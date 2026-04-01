@@ -1,17 +1,26 @@
+package com.matchvagas.backend.entity;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 @Entity
-@Table (name = "telefones")
+@Table(name = "telefones")
 public class Telefones {
-  @Id  
-  @GeneratedValue(stragery = jakarta.persistence.GenerationType.IDENTITY)
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-  
-  @Column(numero = "numero", nullable = false )
+
+  @Column(name = "numero", nullable = false)
   private String numero;
 
-  @Column(tipo_telefones = "tipo_telefones", nullable = false )
+  @Column(name = "tipo_telefones", nullable = false)
   private String tipo_telefones;
 
-  @Column(wpp = "wpp" , nullable = false )
+  @Column(name = "wpp", nullable = false)
   private String wpp;
 
   public Telefones(String numero, String tipo_telefones , String wpp) {
@@ -34,9 +43,8 @@ public class Telefones {
         return numero;
     }
 
-    public void setTipo_Telefones(String numero) {
+    public void setTipo_Telefones(String tipo_telefones) {
         this.tipo_telefones = tipo_telefones;
-
     }
   
 

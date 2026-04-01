@@ -1,29 +1,39 @@
+package com.matchvagas.backend.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+
 @Entity
 @Table(name = "endereco")
 public class Endereco {
+    
 @Id
-@GeneratedValue(stragery = jakarta.persistence.GenerationType.IDENTITY)
+@GeneratedValue(strategy = GenerationType.IDENTITY)
 private Long id;
 
-@Column(logradouro = "logradouro", nullable = false )
+@Column(name = "logradouro", nullable = false)
 private String logradouro;
 
-@Column(numero = "numero" , nullable = false )
+@Column(name = "numero", nullable = false)
 private String numero;
 
-@Column(completo = "completo" , nullable = false )
+@Column(name = "completo", nullable = false)
 private String completo;
 
-@Column(estado = "estado" , nullable = false )
+@Column(name = "estado", nullable = false)
 private String estado;
 
-@Column(cidade = "cidade" , nullable = false )
+@Column(name = "cidade", nullable = false)
 private String cidade;
 
-@Column(bairro = "bairro" , nullable = false )
+@Column(name = "bairro", nullable = false)
 private String bairro;
 
-@Column(cep = "cep" , nullable = false )
+@Column(name = "cep", nullable = false)
 private String cep;
  public Endereco(String logradouro, String numero, String completo, String estado, String cidade, String bairro, String cep){
     this.logradouro = logradouro;
@@ -44,13 +54,4 @@ private String cep;
         this.id = id;
     }
     
-    public String getEndereco() {
-        return endereco;
-    }
-
-    public void setEndereco(String endereco) {
-        this.endereco = endereco;
-
-}
-
 }
