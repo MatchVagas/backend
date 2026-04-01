@@ -20,13 +20,6 @@ public class BackendApplication {
 				logger.info("Variável de ambiente EXAMPLE_VAR: {}", exampleVar);
 			}
 		}
-
-		System.setProperty("spring.datasource.url", "jdbc:mysql://localhost:3306/matchvagas?useSSL=false");
-		System.setProperty("spring.datasource.username", "root");
-		System.setProperty("spring.datasource.password", "");
-
-
-
 	}
 
 }
