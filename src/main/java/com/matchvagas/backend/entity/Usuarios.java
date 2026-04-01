@@ -5,7 +5,6 @@ import jakarta.persistence.Table;
 import java.util.Date;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;

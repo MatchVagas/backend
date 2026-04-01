@@ -13,13 +13,13 @@ public class Empresas {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "cnpj", nullable = false)
+    @Column(name = "cnpj", nullable = false, length = 18)
     private String cnpj;
 
-    @Column(name = "razao_social")
+    @Column(name = "razao_social", length = 150)
     private String razao_Social;
 
-    @Column(name = "nome_fantasia")
+    @Column(name = "nome_fantasia", length = 150)
     private String nome_fantasia;
 
     @Column(name = "descricao")
@@ -31,8 +31,7 @@ public class Empresas {
     @Column(name = "ramo_id")
     private int ramo_id;
 
-   
-    @Column(name = "site")
+    @Column(name = "site", length = 150)
     private String site;
 
     
