@@ -1,3 +1,5 @@
+package com.matchvagas.backend.entity;
+
 import jakarta.persistence.*;
 
 @Entity
