@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.backend.entity.CandidatoVaga;
+import com.matchvagas.entity.CandidatoVaga;
 
 @Repository
 public interface CandidatoVagaRepository extends JpaRepository<CandidatoVaga, Long> {

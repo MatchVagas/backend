@@ -1,9 +1,12 @@
-package com.matchvagas.backend.entity;
+package com.matchvagas.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import jakarta.persistence.Column;
+import java.util.List;
 
 
 @Entity
@@ -28,6 +31,9 @@ public class CandidatoVaga {
 
     @Column(name = "experiencia")
     private String experiencia;
+
+    // Relacionamento de telefones
+    private List<Telefones> telefones;
 
     // Construtor padrão
     public CandidatoVaga() {}

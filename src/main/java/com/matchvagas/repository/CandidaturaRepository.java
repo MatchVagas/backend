@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.backend.entity.Candidaturas;
+import com.matchvagas.entity.Candidaturas;
 
 @Repository
 public interface CandidaturaRepository extends JpaRepository<Candidaturas, Long> {

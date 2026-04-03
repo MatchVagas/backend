@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import com.matchvagas.backend.entity.Usuarios;
+
+import com.matchvagas.entity.Usuarios;
 
 interface UsuariosRepository extends JpaRepository<Usuarios, Integer> {
 

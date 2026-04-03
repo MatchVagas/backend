@@ -1,4 +1,4 @@
-package com.matchvagas.backend.entity;
+package com.matchvagas.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
