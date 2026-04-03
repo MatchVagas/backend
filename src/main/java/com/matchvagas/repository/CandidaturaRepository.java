@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.entity.Candidaturas;
+import com.matchvagas.backend.entity.Candidaturas;
 
 @Repository
 public interface CandidaturaRepository extends JpaRepository<Candidaturas, Long> {
@@ -24,13 +24,4 @@ public interface CandidaturaRepository extends JpaRepository<Candidaturas, Long>
     // Busca por email do candidato (assumindo que CandidatoVaga tem campo email)
     List<Candidaturas> findByCandidatoEmail(String email);
 
-
-    @EntityGraph(attributePaths = {"candidato", "candidato.formacoes", "candidato.experiencias", "vaga"})
-    List<Candidaturas> findAll();
-
-    @EntityGraph(attributePaths = {"candidato", "candidato.formacoes", "candidato.experiencias", "vaga"})
-    Optional<Candidaturas> findById(Long id);
-
-    @EntityGraph(attributePaths = {"candidato", "candidato.formacoes", "candidato.experiencias", "vaga"})
-    List<Candidaturas> findByVagaId(Long vagaId);
 }

@@ -1,7 +1,5 @@
 package com.matchvagas.entity;
 
-import com.matchvagas.entity.*;
-
 import jakarta.persistence.*;
 
 @Entity
@@ -20,8 +18,10 @@ public class Formacao {
 
     @Column(name = "nivel", nullable = false)
     private String nivel; 
+
     @Column(name = "data_inicio", nullable = false)
     private String dataInicio; 
+
     @Column(name = "data_fim")
     private String dataFim; 
     // Relacionamento: cada formação pertence a um candidato

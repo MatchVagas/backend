@@ -17,19 +17,21 @@ public class Empresas {
     private String cnpj;
 
     @Column(name = "razao_social", length = 150)
-    private String razao_Social;
+    private String razaoSocial;
 
     @Column(name = "nome_fantasia", length = 150)
-    private String nome_fantasia;
+    private String nomeFantasia;
 
     @Column(name = "descricao")
     private String descricao;
 
-    @Column(name = "porte_id")
-    private int porte_id;
+    @ManyToOne
+    @JoinColumn(name = "porte_id", nullable = false)
+    private Porte porte;
 
-    @Column(name = "ramo_id")
-    private int ramo_id;
+    @ManyToOne
+    @JoinColumn(name = "ramo_id", nullable = false)
+    private RamoAtuacao ramoAtuacao;
 
     @Column(name = "site", length = 150)
     private String site;
