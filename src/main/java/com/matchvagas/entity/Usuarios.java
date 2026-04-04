@@ -4,11 +4,13 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 import java.util.Date;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import lombok.Data;
 
@@ -45,6 +47,14 @@ public class Usuarios {
 
     @Column(name = "dataUltimoAcesso", nullable = false)
     private LocalDateTime dataUltimoAcesso;
+
+    @ManyToMany
+    @jakarta.persistence.JoinTable(
+        name = "telefones_usuario",
+        joinColumns = @jakarta.persistence.JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @jakarta.persistence.JoinColumn(name = "telefone_id")
+    )
+    private Set<Telefones> telefones;
 
     @PrePersist
     protected void onCreate() {

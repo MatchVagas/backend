@@ -2,7 +2,7 @@ package com.matchvagas.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import com.matchvagas.entity.Vaga;
+import com.matchvagas.entity.Vagas;
 
 
 @Data
@@ -23,7 +23,7 @@ public class Candidatura {
     // Relacionamento: uma candidatura pertence a uma vaga
     @ManyToOne
     @JoinColumn(name = "vaga_id", nullable = false)
-    private Vaga vaga;
+    private Vagas vaga;
 
     @Column(name = "status", nullable = false)
     private String status; // Ex: "Em análise", "Aprovado", "Rejeitado"

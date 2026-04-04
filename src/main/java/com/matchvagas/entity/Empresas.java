@@ -1,5 +1,7 @@
 package com.matchvagas.entity;
 
+import java.util.Set;
+
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -35,6 +37,14 @@ public class Empresas {
 
     @Column(name = "site", length = 150)
     private String site;
+
+    @ManyToMany
+    @JoinTable(
+        name = "telefones_empresa",
+        joinColumns = @JoinColumn(name = "empresa_id"),
+        inverseJoinColumns = @JoinColumn(name = "telefone_id")
+    )
+    private Set<Telefones> telefones;
 
     
 }
