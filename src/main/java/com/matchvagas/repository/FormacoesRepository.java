@@ -7,24 +7,24 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.entity.Formacoes;
+import com.matchvagas.entity.Formacao;
 
 @Repository
-public interface FormacoesRepository extends JpaRepository<Formacoes, Long> {
+public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
 
     @EntityGraph(attributePaths = {"candidato"})
-    List<Formacoes> findAll();
+    List<Formacao> findAll();
 
     @EntityGraph(attributePaths = {"candidato"})
-    List<Formacoes> findByCandidatoId(Long candidatoId);
+    List<Formacao> findByCandidatoId(Long candidatoId);
 
-    List<Formacoes> findByNivel(String nivel);
+    List<Formacao> findByNivel(String nivel);
 
-    List<Formacoes> findByCursoContainingIgnoreCase(String curso);
+    List<Formacao> findByCursoContainingIgnoreCase(String curso);
 
-    List<Formacoes> findByInstituicaoContainingIgnoreCase(String instituicao);
+    List<Formacao> findByInstituicaoContainingIgnoreCase(String instituicao);
 
-    List<Formacoes> findByCandidatoEmail(String email);
+    List<Formacao> findByCandidatoEmail(String email);
 
-    Optional<Formacoes> findByIdAndCandidatoId(Long id, Long candidatoId);
+    Optional<Formacao> findByIdAndCandidatoId(Long id, Long candidatoId);
 }

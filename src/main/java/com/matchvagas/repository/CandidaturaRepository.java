@@ -1,27 +1,26 @@
 package com.matchvagas.repository;
 
 import java.util.List;
-import java.util.Optional;
 
-import org.springframework.data.jpa.repository.EntityGraph;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.backend.entity.Candidaturas;
+import com.matchvagas.entity.Candidatura;
 
 @Repository
-public interface CandidaturaRepository extends JpaRepository<Candidaturas, Long> {
+public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> {
 
     // Busca por status da candidatura
-    List<Candidaturas> findByStatus(String status);
+    List<Candidatura> findByStatus(String status);
 
     // Busca por id do candidato
-    List<Candidaturas> findByCandidatoId(Long candidatoId);
+    List<Candidatura> findByCandidatoId(Long candidatoId);
 
     // Busca por id da vaga
-    List<Candidaturas> findByVagaId(Long vagaId);
+    List<Candidatura> findByVagaId(Long vagaId);
 
     // Busca por email do candidato (assumindo que CandidatoVaga tem campo email)
-    List<Candidaturas> findByCandidatoEmail(String email);
+    List<Candidatura> findByCandidatoEmail(String email);
 
 }

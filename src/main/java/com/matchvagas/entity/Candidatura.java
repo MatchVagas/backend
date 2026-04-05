@@ -1,8 +1,9 @@
 package com.matchvagas.entity;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.Data;
-import com.matchvagas.entity.Vagas;
 
 
 @Data
@@ -25,10 +26,11 @@ public class Candidatura {
     @JoinColumn(name = "vaga_id", nullable = false)
     private Vagas vaga;
 
-    @Column(name = "status", nullable = false)
-    private String status; // Ex: "Em análise", "Aprovado", "Rejeitado"
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "status_id", referencedColumnName = "id")
+    private StatusCandidatura status; // Ex: "Em análise", "Aprovado", "Rejeitado"
 
     @Column(name = "data_candidatura", nullable = false)
-    private String dataCandidatura; // poderia ser LocalDate
+    private LocalDateTime dataCandidatura; // poderia ser LocalDate
 
 }

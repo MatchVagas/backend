@@ -1,12 +1,16 @@
 package com.matchvagas.entity;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
 
@@ -47,6 +51,37 @@ public class Vagas {
     @Column(name = "beneficios", nullable = true, columnDefinition = "TEXT")
     private String beneficios;
 
-    
+    @Column(name = "carga_horaria", nullable = false, length = 50)
+    private String cargaHoraria;
+
+    @Column(name = "idade_minima", nullable = false)
+    private int idadeMinima;
+
+    @Column(name = "idade_maxima", nullable = false)
+    private int idadeMaxima;
+
+    @OneToOne
+    @JoinColumn(name = "nivel_escolaridade_minimo_id", nullable = false)
+    private Escolaridades escolaridade;
+
+    @Column(name = "area_atuacao", nullable = false, length = 100)
+    private String areaAtuacao;
+
+    @Column(name = "data_publicacao", nullable = false)
+    private LocalDateTime dataPublicacao;
+
+    @Column(name = "data_expiracao", nullable = false)
+    private LocalDateTime dataExpiracao;
+
+    @OneToOne
+    @JoinColumn(name = "status_vaga_id", nullable = false)
+    private StatusVaga status;
+
+    @Column(name = "numero_vagas", nullable = false)
+    private int numeroVagas;
+
+    @OneToOne
+    @JoinColumn(name = "cidade_id", nullable = false)
+    private Cidade cidade;
     
 }
