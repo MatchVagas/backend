@@ -14,12 +14,7 @@ public class BackendApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(BackendApplication.class, args);
 		Dotenv dotenv = Dotenv.load();
-		if (dotenv != null) {
-			String exampleVar = dotenv.get("EXAMPLE_VAR");
-			if (exampleVar != null) {
-				logger.info("Variável de ambiente EXAMPLE_VAR: {}", exampleVar);
-			}
-		}
+		logger.info("Environment variables loaded successfully.");
 	}
 
 }

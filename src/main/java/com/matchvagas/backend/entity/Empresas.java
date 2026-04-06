@@ -1,6 +1,17 @@
 package com.matchvagas.backend.entity;
 
-import jakarta.persistence.*;
+import java.util.List;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
@@ -17,22 +28,32 @@ public class Empresas {
     private String cnpj;
 
     @Column(name = "razao_social", length = 150)
-    private String razao_Social;
+    private String razaoSocial;
 
     @Column(name = "nome_fantasia", length = 150)
-    private String nome_fantasia;
+    private String nomeFantasia;
 
     @Column(name = "descricao")
     private String descricao;
 
-    @Column(name = "porte_id")
-    private int porte_id;
+    @ManyToOne
+    @JoinColumn(name = "porte_id", nullable = false)
+    private Porte porte;
 
-    @Column(name = "ramo_id")
-    private int ramo_id;
+    @ManyToOne
+    @JoinColumn(name = "ramo_id", nullable = false)
+    private RamoAtuacao ramoAtuacao;
 
     @Column(name = "site", length = 150)
     private String site;
+
+    @ManyToMany(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
+    @JoinTable(
+        name = "telefones_empresa",
+        joinColumns = @JoinColumn(name = "empresa_id"),
+        inverseJoinColumns = @JoinColumn(name = "telefone_id")
+    )
+    private List<Telefones> telefones;
 
     
 }
