@@ -1,4 +1,4 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,17 +9,14 @@ import jakarta.persistence.Table;
 import lombok.Data;
 
 @Data
+
 @Entity
-@Table(name = "departamentos")
-public class Departamentos {
+@Table(name = "tipos_telefone")
+public class TipoTelefone {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
-    @Column(name = "nome", nullable = false, length = 100)
+    @Column(name = "nome", nullable = false,length = 50)
     private String nome;
-
-    @Column(name = "descricao", length = 255, columnDefinition = "TEXT")
-    private String descricao;
-    
 }

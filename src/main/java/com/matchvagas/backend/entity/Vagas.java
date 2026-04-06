@@ -1,4 +1,4 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,7 +24,8 @@ public class Vagas {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "empresa_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "empresa_id", nullable = false)
     private Empresas empresas;
 
     @Column(name = "titulo", nullable = false,length = 255)
@@ -36,10 +37,12 @@ public class Vagas {
     @Column(name = "requisitos", nullable = false, columnDefinition = "TEXT")
     private String requisitos;
 
-    @Column(name = "tipo_vaga_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "tipo_vaga_id", nullable = false)
     private TipoVaga tipoVaga;
 
-    @Column(name = "modalidade_vaga_id", nullable = false)
+    @OneToOne
+    @JoinColumn(name = "modalidade_id", nullable = false)
     private Modalidade modalidade;
 
     @Column(name = "salario_min", nullable = false, precision = 10, scale = 2)

@@ -1,4 +1,4 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,8 +10,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "estados")
-public class Estado {
+@Table(name = "cidades")
+public class Cidade {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,11 +20,8 @@ public class Estado {
     @Column(name = "nome", nullable = false,length = 100)
     private String nome;
 
-    @Column(name = "uf", nullable = false,length = 2)
-    private String uf;
-
     @ManyToOne
-    @JoinColumn(name = "pais_id")
-    private Pais pais;
+    @JoinColumn(name = "estado_id", nullable = false)
+    private Estado estado;
     
 }

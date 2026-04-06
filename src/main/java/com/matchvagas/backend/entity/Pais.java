@@ -1,6 +1,5 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
-import jakarta.annotation.Generated;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -12,17 +11,17 @@ import lombok.Data;
 @Data
 
 @Entity
-@Table(name = "niveis_escolaridade")
-public class Escolaridades {
+@Table(name = "paises")
+public class Pais{
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "nome", nullable = false,length = 50)
+    @Column(name = "nome", nullable = false)
     private String nome;
 
-    @Column(name = "ordem", nullable = false)
-    private int ordem;
-    
+    @Column(name = "codigo_iso", nullable = false, length = 2)  
+    private String codigoIso;
+
 }

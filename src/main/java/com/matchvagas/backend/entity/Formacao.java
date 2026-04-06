@@ -1,4 +1,4 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
 import jakarta.persistence.*;
 
@@ -27,11 +27,11 @@ public class Formacao {
     // Relacionamento: cada formação pertence a um candidato
     @ManyToOne
     @JoinColumn(name = "candidato_id", nullable = false)
-    private CandidatoVaga candidato;
+    private Candidatos candidato;
 
     public Formacao() {}
 
-    public Formacao(String instituicao, String curso, String nivel, String dataInicio, String dataFim, CandidatoVaga candidato) {
+    public Formacao(String instituicao, String curso, String nivel, String dataInicio, String dataFim, Candidatos candidato) {
         this.instituicao = instituicao;
         this.curso = curso;
         this.nivel = nivel;
@@ -59,6 +59,6 @@ public class Formacao {
     public String getDataFim() { return dataFim; }
     public void setDataFim(String dataFim) { this.dataFim = dataFim; }
 
-    public CandidatoVaga getCandidato() { return candidato; }
-    public void setCandidato(CandidatoVaga candidato) { this.candidato = candidato; }
+    public Candidatos getCandidato() { return candidato; }
+    public void setCandidato(Candidatos candidato) { this.candidato = candidato; }
 }

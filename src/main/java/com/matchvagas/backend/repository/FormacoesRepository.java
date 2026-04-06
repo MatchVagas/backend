@@ -1,4 +1,4 @@
-package com.matchvagas.repository;
+package com.matchvagas.backend.repository;
 
 import java.util.List;
 import java.util.Optional;
@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import com.matchvagas.entity.Formacao;
+import com.matchvagas.backend.entity.Formacao;
 
 @Repository
 public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
@@ -24,7 +24,7 @@ public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
 
     List<Formacao> findByInstituicaoContainingIgnoreCase(String instituicao);
 
-    List<Formacao> findByCandidatoEmail(String email);
+    //List<Formacao> findByCandidatoEmail(String email);
 
     Optional<Formacao> findByIdAndCandidatoId(Long id, Long candidatoId);
 }

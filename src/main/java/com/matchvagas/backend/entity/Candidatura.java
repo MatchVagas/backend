@@ -1,4 +1,4 @@
-package com.matchvagas.entity;
+package com.matchvagas.backend.entity;
 
 import java.time.LocalDateTime;
 
@@ -19,7 +19,7 @@ public class Candidatura {
     // Relacionamento: uma candidatura pertence a um candidato
     @ManyToOne
     @JoinColumn(name = "candidato_id", nullable = false)
-    private CandidatoVaga candidato;
+    private Candidatos candidato;
 
     // Relacionamento: uma candidatura pertence a uma vaga
     @ManyToOne
