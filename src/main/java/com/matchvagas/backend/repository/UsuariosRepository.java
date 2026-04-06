@@ -1,7 +1,6 @@
 
 package com.matchvagas.backend.repository;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,7 +11,6 @@ interface UsuariosRepository extends JpaRepository<Usuarios, Integer> {
 
     Optional<Usuarios> findByEmail(String email);
     
-    //Optional<List<Usuarios>> findByAtivo(us);
-
+    //Optional<List<Usuarios>> findByAtivo();
 
 }

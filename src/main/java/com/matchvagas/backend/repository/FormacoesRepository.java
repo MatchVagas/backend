@@ -1,10 +1,10 @@
 package com.matchvagas.backend.repository;
 
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import com.matchvagas.backend.entity.Formacao;
@@ -13,6 +13,7 @@ import com.matchvagas.backend.entity.Formacao;
 public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
 
     @EntityGraph(attributePaths = {"candidato"})
+    @NonNull
     List<Formacao> findAll();
 
     @EntityGraph(attributePaths = {"candidato"})
