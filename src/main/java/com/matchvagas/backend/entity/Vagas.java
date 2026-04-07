@@ -22,7 +22,7 @@ public class Vagas {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @OneToOne
     @JoinColumn(name = "empresa_id", nullable = false)

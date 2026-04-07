@@ -24,7 +24,7 @@ public class Usuarios {
 
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(name = "nome", nullable = false)
     private String nome;

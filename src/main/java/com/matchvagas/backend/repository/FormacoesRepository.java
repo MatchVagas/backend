@@ -1,6 +1,7 @@
 package com.matchvagas.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,8 +25,6 @@ public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
     List<Formacao> findByCursoContainingIgnoreCase(String curso);
 
     List<Formacao> findByInstituicaoContainingIgnoreCase(String instituicao);
-
-    //List<Formacao> findByCandidatoEmail(String email);
 
     Optional<Formacao> findByIdAndCandidatoId(Long id, Long candidatoId);
 }
