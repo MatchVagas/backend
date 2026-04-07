@@ -1,6 +1,5 @@
 package com.matchvagas.backend.repository;
 
-import java.io.ObjectInputFilter.Status;
 import java.util.List;
 
 

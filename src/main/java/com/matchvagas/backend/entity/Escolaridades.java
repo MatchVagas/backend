@@ -17,7 +17,7 @@ public class Escolaridades {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(name = "nome", nullable = false,length = 50)
     private String nome;

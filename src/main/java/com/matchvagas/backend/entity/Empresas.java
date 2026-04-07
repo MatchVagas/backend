@@ -22,7 +22,7 @@ public class Empresas {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(name = "cnpj", nullable = false, length = 18)
     private String cnpj;
