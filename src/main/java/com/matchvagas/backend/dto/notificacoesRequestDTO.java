@@ -18,6 +18,6 @@ public record NotificacoesRequestDTO(
         @Size(min = 50, message = "Mensagem deve ter no mínimo 50 caracteres") 
         String mensagem,
         List<String> notificacoes
+       ) {
 
-        
-       ) {}
+}

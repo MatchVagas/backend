@@ -2,7 +2,7 @@ package com.matchvagas.backend.dto;
 
 import java.time.LocalDate;
 
-public record FormacaoDto(
+public record FormacaoRequestDTO(
     Long id,
     Long candidatoId,
     String tipoFormacao,

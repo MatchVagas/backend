@@ -3,7 +3,7 @@ package com.matchvagas.backend.dto;
 import java.time.LocalDate;
 import java.util.List;
 
-public record ExperienciaResponse(
+public record ExperienciaResponseDTO(
     Long id,
     Long candidatoId,
     String cargo,
