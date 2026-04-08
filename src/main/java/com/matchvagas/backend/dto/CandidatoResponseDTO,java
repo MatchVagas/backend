@@ -13,7 +13,6 @@ public record CandidatoResponse(
     LocalDate dataNascimento,
     String nivelFormacao,
     String resumoProfissional,
-    String linkedinUrl,
     List<FormacaoDto> formacoes,
     List<ExperienciaDto> experiencias,
     List<String> habilidades,
