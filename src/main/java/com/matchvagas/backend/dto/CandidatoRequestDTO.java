@@ -12,7 +12,6 @@ public record CandidatoDto(
     LocalDate dataNascimento,
     String nivelFormacao,
     String resumoProfissional,
-    String linkedinUrl
 ) {
   
 }
