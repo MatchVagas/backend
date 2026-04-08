@@ -5,8 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record AdministradorRequestDTO(
-    @NotNull(message = "ID do usuário é obrigatório")
-    Long usuarioId,
+    @NotNull(message = "ID do numero é obrigatório")
+    Long numeroId,
 
     @NotBlank(message = "Nível de acesso é obrigatório")
     @Size(max = 50, message = "Nível deve ter no máximo 50 caracteres")
