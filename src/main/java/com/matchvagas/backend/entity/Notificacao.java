@@ -5,7 +5,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "notificacao");
+@Table(name = "notificacao")
 public class Notificacao {
 @Id
 @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
