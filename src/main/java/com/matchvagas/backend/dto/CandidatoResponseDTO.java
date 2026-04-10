@@ -3,7 +3,10 @@ package com.matchvagas.backend.dto;
 import java.time.LocalDate;
 import java.util.List;
 
-public record CandidatoResponse(
+import com.matchvagas.backend.entity.Experiencia;
+import com.matchvagas.backend.entity.Formacao;
+
+public record CandidatoResponseDTO(
     Long id,
     String nome,
     String email,
@@ -13,8 +16,8 @@ public record CandidatoResponse(
     LocalDate dataNascimento,
     String nivelFormacao,
     String resumoProfissional,
-    List<FormacaoDto> formacoes,
-    List<ExperienciaDto> experiencias,
+    List<Formacao> formacoes,
+    List<Experiencia> experiencias,
     List<String> habilidades,
     String fotoUrl,
     String perfilPublicoUrl

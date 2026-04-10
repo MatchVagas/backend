@@ -3,7 +3,7 @@ package com.matchvagas.backend.dto;
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
-public record CandidaturaResponse(
+public record CandidaturaResponseDTO(
     Long id,
     Long candidatoId,
     Long vagaId,

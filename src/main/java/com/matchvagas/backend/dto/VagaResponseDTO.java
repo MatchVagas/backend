@@ -1,4 +1,4 @@
- package com.matchvagas.backend.dto.vaga;
+ package com.matchvagas.backend.dto;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;

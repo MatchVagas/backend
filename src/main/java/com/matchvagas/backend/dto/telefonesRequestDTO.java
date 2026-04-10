@@ -1,9 +1,10 @@
 package com.matchvagas.backend.dto;
-import jakarta.validation.constrations.NotBlank;
-import jakarta.validation.constrations.NotNull;
-import jakarta.validation.constrations.Size;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-public recort TelefonesRequestDTO(
+
+public record TelefonesRequestDTO(
     @NotNull(message = "ID do numero é obrigatório")
     Long numeroId,
 
@@ -12,10 +13,6 @@ public recort TelefonesRequestDTO(
     String nivel,
 
     @NotNull(message = "Wpp é obrigatório")
-    Long wppId,
-
+    Long wppId
 
 ) {}
-
-
-)

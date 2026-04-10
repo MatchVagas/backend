@@ -2,7 +2,7 @@ package com.matchvagas.backend.dto;
 
 import java.time.LocalDate;
 
-public record CandidatoDto(
+public record CandidatoRequestDTO(
     Long id,
     String nome,
     String email,
@@ -11,7 +11,7 @@ public record CandidatoDto(
     String estado,
     LocalDate dataNascimento,
     String nivelFormacao,
-    String resumoProfissional,
+    String resumoProfissional
 ) {
   
 }

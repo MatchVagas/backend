@@ -1,9 +1,10 @@
 package com.matchvagas.backend.dto;
-import jakarta.validation.constrations.NotBlank;
-import jakarta.validation.constrations.NotNull;
-import jakarta.validation.constrations.Size;
 
-public recort EnderecosRequestDTO(
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+
+public record EnderecosRequestDTO(
     @NotNull(message = "ID do enderecos é obrigatório")
     Long enderecosId,
 
@@ -24,6 +25,6 @@ public recort EnderecosRequestDTO(
     Long bairroId,
     
      @NotNull(message = "cep é obrigatório")
-    Long cepId,
+    Long cepId
     
 ) {}

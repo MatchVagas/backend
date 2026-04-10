@@ -7,6 +7,6 @@ public record TelefonesResponseDTO(
     Long id,
     String numeroTelefones,
     String tipo_numeroTelefones,
-    String wppTelefones,
+    String wppTelefones
 
 ) {}
