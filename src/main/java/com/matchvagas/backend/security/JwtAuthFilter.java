@@ -19,7 +19,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final List<String> PUBLIC_ROUTES = List.of(
             "/audit/",
             "/auth/",
-            "/institutes/");
+            "/backend/");
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {

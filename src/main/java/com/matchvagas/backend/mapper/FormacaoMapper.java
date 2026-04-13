@@ -1,21 +1,16 @@
 package com.matchvagas.backend.mapper;
 
 import org.mapstruct.Mapper;
-import org.mapstruct.MappingConstants;
-import org.mapstruct.ReportingPolicy;
-
+import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.AfterMapping;
-import org.mapstruct.Context;
 import org.mapstruct.factory.Mappers;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import com.matchvagas.backend.dto.StatusFormacaoRequestDTO;
-import com.matchvagas.backend.dto.StatusFormacaoResponseDTO;
-import com.matchvagas.backend.entity.StatusFormacao;
+import com.matchvagas.backend.dto.FormacaoRequestDTO;
+import com.matchvagas.backend.entity.Formacao;
 
 @Mapper(componentModel = "spring")
 public interface FormacaoMapper {
@@ -25,26 +20,25 @@ public interface FormacaoMapper {
     DateTimeFormatter FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE; // yyyy-MM-dd
 
     // Entidade -> DTO
-    @Mapping(target = "instituicaoId", source = "instituicao.id")
-    @Mapping(target = "instituicaoNome", source = "instituicao.nome")
-    @Mapping(target = "dataInicio", expression = "java(formacao.getDataInicio() != null ? formacao.getDataInicio().format(FORMATTER) : null)")
-    @Mapping(target = "dataConclusao", expression = "java(formacao.getDataConclusao() != null ? formacao.getDataConclusao().format(FORMATTER) : null)")
-    FormacaoDTO toDto(Formacao formacao);
+    @Mapping(target = "instituicao")
+    @Mapping(target = "dataInicio")
+    @Mapping(target = "dataFim")
+    Formacao toDto(Formacao formacao);
 
     // DTO -> Entidade (criação)
     @Mapping(target = "instituicao", ignore = true) // resolvido em @AfterMapping ou no serviço
-    @Mapping(target = "dataInicio", source = "dataInicio", qualifiedByName = "stringToLocalDate")
-    @Mapping(target = "dataConclusao", source = "dataConclusao", qualifiedByName = "stringToLocalDate")
-    Formacao toEntity(FormacaoDTO dto);
+    @Mapping(target = "dataInicio", source = "dataInicio")
+    @Mapping(target = "dataFim", source = "dataFim")
+    Formacao toEntity(FormacaoRequestDTO dto);
 
     // Atualiza entidade existente com dados do DTO
     @Mapping(target = "instituicao", ignore = true)
-    @Mapping(target = "dataInicio", source = "dataInicio", qualifiedByName = "stringToLocalDate")
-    @Mapping(target = "dataConclusao", source = "dataConclusao", qualifiedByName = "stringToLocalDate")
-    void updateFromDto(FormacaoDTO dto, @MappingTarget Formacao entity);
+    @Mapping(target = "dataInicio", source = "dataInicio")
+    @Mapping(target = "dataFim", source = "dataFim")
+    void updateFromDto(FormacaoRequestDTO dto, @MappingTarget Formacao entity);
 
-    List<FormacaoDTO> toDtoList(List<Formacao> list);
-    List<Formacao> toEntityList(List<FormacaoDTO> list);
+    List<FormacaoRequestDTO> toDtoList(List<Formacao> list);
+    List<Formacao> toEntityList(List<FormacaoRequestDTO> list);
 
     @Named("stringToLocalDate")
     default LocalDate stringToLocalDate(String s) {
@@ -53,7 +47,7 @@ public interface FormacaoMapper {
     }
 
     // AfterMapping para popular a relação Instituicao a partir do dto usando resolvers de contexto
-    @AfterMapping
+    /*@AfterMapping
     default void afterDtoToEntity(FormacaoDTO dto, @MappingTarget Formacao entity,
                                   @Context InstituicaoResolver instituicaoResolver) {
         if (dto == null) return;
@@ -66,5 +60,5 @@ public interface FormacaoMapper {
     // Resolver de contexto para buscar Instituicao por id (implementar no serviço)
     interface InstituicaoResolver {
         Instituicao resolveById(Long id);
-    }
+    }*/
 }

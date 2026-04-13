@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.matchvagas.backend.entity.Telefones;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record UsuarioResponseDTO(
@@ -14,7 +15,7 @@ public record UsuarioResponseDTO(
     Boolean ativo,
     LocalDateTime dataCriacao,
     LocalDateTime dataAtualizacao,
-    List<String> telefones
+    List<Telefones> telefones
 
 ) {
     
