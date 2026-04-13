@@ -9,16 +9,20 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface EmpresaMapper {
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "porte", ignore = true) // Need to fetch by ID
     @Mapping(target = "ramoAtuacao", ignore = true) // Need to fetch by ID
-    @Mapping(target = "enderecos", ignore = true)
+    @Mapping(target = "descricao", ignore = true)
     @Mapping(target = "telefones", ignore = true)
     Empresas toEntity(EmpresaRequestDTO dto);
 
-    @Mapping(target = "porteId", source = "porte.id")
-    @Mapping(target = "ramoId", source = "ramoAtuacao.id")
-    @Mapping(target = "telefones", ignore = true) // Assuming list of strings
+    @Mapping(target = "porte", source = "porte.id", ignore = true) // Assuming Porte has an ID field
+    @Mapping(target = "ramoAtuacao", source = "ramoAtuacao.id", ignore = true) // Assuming RamoAtuacao has an ID field
+    @Mapping(target = "cnpj", ignore = true) // Assuming list of strings
+    @Mapping(target = "totalVagasAtivas", ignore = true)
     EmpresaResponseDTO toResponseDTO(Empresas entity);
 
+    @Mapping(target = "porteId", source = "porte.id")
+    @Mapping(target = "ramoId", source = "ramoAtuacao.id")
     EmpresaRequestDTO toRequestDTO(Empresas entity);
 }

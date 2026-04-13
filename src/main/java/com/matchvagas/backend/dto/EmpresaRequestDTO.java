@@ -2,6 +2,9 @@ package com.matchvagas.backend.dto;
 
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.br.CNPJ;
+
+import com.matchvagas.backend.entity.Telefones;
+
 import java.util.List;
 
 public record EmpresaRequestDTO(
@@ -29,5 +32,5 @@ public record EmpresaRequestDTO(
     @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
     String site,
 
-    List<String> telefones
+    List<Telefones> telefones
 ) {}

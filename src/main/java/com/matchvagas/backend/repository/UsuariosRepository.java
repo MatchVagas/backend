@@ -7,9 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.matchvagas.backend.entity.Usuarios;
 
-interface UsuariosRepository extends JpaRepository<Usuarios, Integer> {
+public interface UsuariosRepository extends JpaRepository<Usuarios, Integer> {
 
     Optional<Usuarios> findByEmail(String email);
+
+    Optional<Usuarios> findById(Long id);
     
     //Optional<List<Usuarios>> findByAtivo();
 
