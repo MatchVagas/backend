@@ -1,11 +1,9 @@
 package com.matchvagas.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -17,5 +15,22 @@ public class Notificacao {
 
     @Column(name = "titulo", nullable = false)
     private String titulo;
+
+    @Column(columnDefinition = "TEXT")
+    private String mensagem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tipo")
+    private TipoNotificacao tipo;
+
+    @Column(name = "dataEnvio")
+    private LocalDateTime dataEnvio;
+
+    private Boolean lida;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuarios usuario;
+
 
 }
