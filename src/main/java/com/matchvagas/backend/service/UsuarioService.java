@@ -6,7 +6,10 @@ import com.matchvagas.backend.entity.Usuarios;
 import com.matchvagas.backend.mapper.UsuarioMapper;
 import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
- 
+
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -68,9 +71,9 @@ public class UsuarioService {
         entity.setSenha(passwordEncoder.encode(dto.senha()));
 
         // Calcular idade se dataNascimento fornecida
-        //if (dto.dataNascimento() != null) {
-        //    entity.setIdade(calcularIdade(dto.dataNascimento()));
-        //}
+        if (dto.dataNascimento() != null) {
+            entity.setIdade(calcularIdade(dto.dataNascimento()));
+        }
 
         // Associar telefones se IDs fornecidos
         //if (dto.getTelefoneIds() != null && !dto.getTelefoneIds().isEmpty()) {
@@ -88,12 +91,12 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
 
         // Verifica se o novo email já está em uso por outro usuário
-        //if (!entity.getEmail().equals(dto.email()) && repository.findByEmail(dto.email())) {
-        //    throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
-        //}
+        if (!entity.getEmail().equals(dto.email()) && repository.findByEmail(dto.email())) {
+           throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
+        }
 
-        //mapper.updateEntityFromDTO(dto, entity);
-        /* 
+        mapper.updateEntityFromDTO(dto, entity);
+        
         // Atualiza a senha apenas se fornecida
         if (dto.senha() != null && !dto.senha().isBlank()) {
             entity.setSenha(passwordEncoder.encode(dto.senha()));
@@ -111,11 +114,11 @@ public class UsuarioService {
         } else {
             entity.setTelefones(new ArrayList<>()); // limpa lista se null
         }
-        */
+        
         entity = repository.save(entity);
         return mapper.toResponseDTO(entity);
     }
-/* 
+
     @Transactional
     public void delete(Long id) {
         if (!repository.existsById(id)) {
@@ -123,7 +126,7 @@ public class UsuarioService {
         }
         repository.deleteById(id);
     }
-*/
+
     @Transactional
     public void registrarAcesso(String email) {
         Usuarios usuario = repository.findByEmail(email)
@@ -140,8 +143,8 @@ public class UsuarioService {
         return passwordEncoder.matches(senha, usuario.getSenha());
     }
 
-    private Integer calcularIdade(LocalDate dataNascimento) {
+    private Integer calcularIdade(LocalDateTime dataNascimento) {
         if (dataNascimento == null) return null;
-        return Period.between(dataNascimento, LocalDate.now()).getYears();
+        return Period.between(dataNascimento.toLocalDate(), LocalDate.now()).getYears();
     }
 }
