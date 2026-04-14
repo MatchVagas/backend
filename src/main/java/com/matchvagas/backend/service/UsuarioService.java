@@ -91,9 +91,9 @@ public class UsuarioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
 
         // Verifica se o novo email já está em uso por outro usuário
-        if (!entity.getEmail().equals(dto.email()) && repository.findByEmail(dto.email())) {
-           throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
-        }
+        //if (!entity.getEmail().equals(dto.email()) && repository.findByEmail(dto.email())) {
+        //   throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
+        //}
 
         mapper.updateEntityFromDTO(dto, entity);
         
@@ -108,24 +108,24 @@ public class UsuarioService {
         }
 
         // Atualiza telefones
-        if (dto.getTelefoneIds() != null) {
-            List<Telefone> telefones = telefoneRepository.findAllById(dto.getTelefoneIds());
-            entity.setTelefones(telefones);
-        } else {
-            entity.setTelefones(new ArrayList<>()); // limpa lista se null
-        }
+        //if (dto.getTelefoneIds() != null) {
+        //    List<Telefone> telefones = telefoneRepository.findAllById(dto.getTelefoneIds());
+        //    entity.setTelefones(telefones);
+        //} else {
+        //    entity.setTelefones(new ArrayList<>()); // limpa lista se null
+        //}
         
         entity = repository.save(entity);
         return mapper.toResponseDTO(entity);
     }
 
-    @Transactional
-    public void delete(Long id) {
-        if (!repository.existsById(id)) {
-            throw new ResourceNotFoundException("Usuário não encontrado com ID: " + id);
-        }
-        repository.deleteById(id);
-    }
+    //@Transactional
+    //public void delete(Long id) {
+    //    if (!repository.existsById(id)) {
+    //        throw new ResourceNotFoundException("Usuário não encontrado com ID: " + id);
+    //    }
+    //    repository.deleteById(id);
+    //}
 
     @Transactional
     public void registrarAcesso(String email) {
