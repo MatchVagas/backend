@@ -6,14 +6,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public record TelefonesResponseDTO(
     Long id,
     String numeroTelefones,
-    String tipo_numeroTelefones,
+    Integer tipoTelefoneId,
     String wppTelefones
 
 ) {
-    public TelefonesResponseDTO(Long id, String numeroTelefones, String tipo_numeroTelefones, String wppTelefones) {
-        this.id = id;
-        this.numeroTelefones = numeroTelefones;
-        this.tipo_numeroTelefones = tipo_numeroTelefones;
-        this.wppTelefones = wppTelefones;
-    }
+    
 }

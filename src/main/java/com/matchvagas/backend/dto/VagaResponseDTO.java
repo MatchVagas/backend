@@ -4,10 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record VagaResponseDTO(
-
-        Long id,
-
-        Long empresaId,
+        
         String nomeFantasiaEmpresa,
 
         String titulo,
@@ -41,7 +38,7 @@ public record VagaResponseDTO(
 
         Integer numeroVagas,
 
-        Long cidadeId,
+        Integer cidadeId,
         String nomeCidade,
         String ufEstado
 

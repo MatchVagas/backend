@@ -1,7 +1,7 @@
 package com.matchvagas.backend.mapper;
 
-import com.matchvagas.backend.dto.TelefoneDTO;
-import com.matchvagas.backend.dto.request.TelefoneRequest;
+import com.matchvagas.backend.dto.TelefonesRequestDTO;
+import com.matchvagas.backend.dto.TelefonesResponseDTO;
 import com.matchvagas.backend.entity.Telefones;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -10,8 +10,8 @@ import org.mapstruct.Mapping;
 public interface TelefonesMapper {
 
     @Mapping(target = "tipoTelefone", ignore = true)
-    Telefones toEntity(TelefoneRequest request);
+    Telefones toEntity(TelefonesRequestDTO request);
 
     @Mapping(target = "tipoTelefoneId", source = "tipoTelefone.id")
-    TelefoneDTO toDTO(Telefones telefone);
+    TelefonesResponseDTO toDTO(Telefones telefone);
 }
