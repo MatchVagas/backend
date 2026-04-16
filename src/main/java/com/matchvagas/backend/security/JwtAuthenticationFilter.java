@@ -1,6 +1,5 @@
 package com.matchvagas.backend.security;
 
-
 import com.matchvagas.backend.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
