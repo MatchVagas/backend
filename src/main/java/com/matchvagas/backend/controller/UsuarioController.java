@@ -29,13 +29,6 @@ public class UsuarioController {
         return ResponseEntity.ok(service.findAll());
     }
 
-    /* 
-    @GetMapping("/{id}")
-    @Operation(summary = "Buscar usuário por ID")
-    public ResponseEntity<UsuarioResponseDTO> findById(@PathVariable Long id) {
-        return ResponseEntity.ok(service.findById(id));
-    }
-        */
 
     @GetMapping("/email/{email}")
     @Operation(summary = "Buscar usuário por email")
@@ -43,12 +36,12 @@ public class UsuarioController {
         return ResponseEntity.ok(service.findByEmail(email));
     }
 
-    /*@PostMapping
+    @PostMapping
     @Operation(summary = "Criar novo usuário")
-    public ResponseEntity<UsuarioResponseDTO> create(@Valid @RequestBody UsuarioRequestDTO dto) {
+    public ResponseEntity<UsuarioResponseDTO> create(@Valid @RequestBody UsuariosRequestDTO dto) {
         UsuarioResponseDTO created = service.create(dto);
         return new ResponseEntity<>(created, HttpStatus.CREATED);
-    }*/
+    }
 
     @PutMapping("/{id}")
     @Operation(summary = "Atualizar usuário existente")
@@ -56,25 +49,5 @@ public class UsuarioController {
             @PathVariable Long id,
             @Valid @RequestBody UsuariosRequestDTO dto) {
         return ResponseEntity.ok(service.update(id, dto));
-    }
-
-    /* 
-    @DeleteMapping("/{id}")
-    @Operation(summary = "Excluir usuário")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        service.delete(id);
-        return ResponseEntity.noContent().build();
-    }*/
-
-    @PostMapping("/login")
-    @Operation(summary = "Autenticar usuário (simples)")
-    public ResponseEntity<String> login(@RequestParam String email, @RequestParam String senha) {
-        boolean autenticado = service.authenticate(email, senha);
-        if (autenticado) {
-            service.registrarAcesso(email);
-            return ResponseEntity.ok("Login bem-sucedido");
-        } else {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenciais inválidas");
-        }
     }
 }

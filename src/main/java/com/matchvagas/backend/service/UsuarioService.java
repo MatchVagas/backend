@@ -135,14 +135,6 @@ public class UsuarioService {
         repository.save(usuario);
     }
 
-    public boolean authenticate(String email, String senha) {
-        Usuarios usuario = repository.findByEmail(email).orElse(null);
-        if (usuario == null || !usuario.getAtivo()) {
-            return false;
-        }
-        return passwordEncoder.matches(senha, usuario.getSenha());
-    }
-
     private Integer calcularIdade(LocalDateTime dataNascimento) {
         if (dataNascimento == null) return null;
         return Period.between(dataNascimento.toLocalDate(), LocalDate.now()).getYears();
