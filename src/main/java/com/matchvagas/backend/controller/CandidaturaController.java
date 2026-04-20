@@ -1,8 +1,8 @@
 package com.matchvagas.backend.controller;
 
-import com.api.dto.CandidaturaRequest;
-import com.api.dto.CandidaturaResponse;
-import com.api.service.CandidaturaService;
+import com.matchvagas.backend.CandidaturaRequest;
+import com.matchvagas.backend.CandidaturaResponse;
+import com.matchvagas.backend.service.CandidaturaService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
