@@ -13,6 +13,6 @@ public record TelefonesRequestDTO(
     String nivel,
 
     @NotNull(message = "Wpp é obrigatório")
-    Long wppId
+    boolean wppId
 
 ) {}

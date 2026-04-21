@@ -22,6 +22,9 @@ public interface UsuarioMapper {
     @Mapping(target = "telefones", ignore = true) // tratado separadamente
     Usuarios toEntity(UsuariosRequestDTO dto);
 
+    // segurança: nunca expor senha
+    UsuarioResponseDTO toDTO(Usuarios usuario);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "dataCadastro", ignore = true)
     @Mapping(target = "dataUltimoAcesso", ignore = true)
