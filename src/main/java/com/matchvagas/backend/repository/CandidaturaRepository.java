@@ -1,6 +1,7 @@
 package com.matchvagas.backend.repository;
 
 import java.util.List;
+import java.util.Optional;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +14,7 @@ import com.matchvagas.backend.entity.Vagas;
 @Repository
 public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> {
 
+    /*
     // Busca por status da candidatura
     List<Candidatura> findByStatus(StatusCandidatura status);
 
@@ -23,6 +25,14 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> 
     List<Candidatura> findByVagaId(Vagas vaga);
 
     // Busca por email do candidato (assumindo que CandidatoVaga tem campo email)
-    //List<Candidatura> findByCandidatoEmail(String email);
+    //List<Candidatura> findByCandidatoEmail(String email);*/
+
+    List<Candidatura> findByCandidatoId(Long candidatoId);
+
+    List<Candidatura> findByVagaId(Long vagaId);
+
+    Optional<Candidatura> findByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
+
+    boolean existsByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
 
 }

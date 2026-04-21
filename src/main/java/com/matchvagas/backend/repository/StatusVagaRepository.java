@@ -5,8 +5,9 @@ import org.springframework.stereotype.Repository;
 
 import com.matchvagas.backend.entity.StatusVaga;
 
+import java.util.Optional;
+
 @Repository
 public interface StatusVagaRepository extends JpaRepository<StatusVaga, Integer> {
-
-    
+    Optional<StatusVaga> findByDescricao(String descricao);
 } 

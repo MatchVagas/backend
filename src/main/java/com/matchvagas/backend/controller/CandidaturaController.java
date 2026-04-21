@@ -1,49 +1,32 @@
 package com.matchvagas.backend.controller;
 
-import com.matchvagas.backend.CandidaturaRequest;
-import com.matchvagas.backend.CandidaturaResponse;
+import com.matchvagas.backend.dto.CandidaturaRequestDTO;
+import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/candidaturas")
-public class CandidaduraController {
+@RequiredArgsConstructor
+public class CandidaturaController {
 
     private final CandidaturaService candidaturaService;
 
-    public CandidaduraController(CandidaturaService candidaturaService) {
-        this.candidaturaService = candidaturaService;
-    }
-
     @PostMapping
-    public ResponseEntity<CandidaturaResponse> criarCandidatura(
-            @Validated @RequestBody CandidaturaRequest request,
-            @AuthenticationPrincipal UserDetails usuario) {
+    public ResponseEntity<CandidaturaResponseDTO> candidatar(
+            Authentication authentication,
+            @Valid @RequestBody CandidaturaRequestDTO request) {
 
-        CandidaturaResponse created = candidaturaService.criar(request, usuario.getUsername());
-        return ResponseEntity.status(HttpStatus.CREATED).body(created);
-    }
+        // O subject do token JWT deve ser o ID do usuário
+        Long candidatoId = Long.parseLong(authentication.getName());
 
-    @GetMapping("/minhas")
-    public ResponseEntity<List<CandidaturaResponse>> listarMinhas(
-            @AuthenticationPrincipal UserDetails usuario) {
-
-        List<CandidaturaResponse> lista = candidaturaService.listarPorUsuario(usuario.getUsername());
-        return ResponseEntity.ok(lista);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<CandidaturaResponse> buscarPorId(@PathVariable Long id,
-                                                           @AuthenticationPrincipal UserDetails usuario) {
-
-        CandidaturaResponse resp = candidaturaService.buscarPorId(id, usuario.getUsername());
-        return ResponseEntity.ok(resp);
+        CandidaturaResponseDTO response = candidaturaService.candidatar(candidatoId, request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 }

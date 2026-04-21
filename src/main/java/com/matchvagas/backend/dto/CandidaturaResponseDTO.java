@@ -1,20 +1,17 @@
 package com.matchvagas.backend.dto;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 public record CandidaturaResponseDTO(
-    Long id,
-    Long candidatoId,
-    Long vagaId,
-    LocalDateTime dataCandidatura,
-    String status,
-    String mensagemCandidato,
-    String curriculoUrl,
-    BigDecimal pretensaoSalarial,
-    String disponibilidade,
-    String etapaProcesso,
-    String notasRecrutador
+        Long id,
+        Long candidatoId,
+        String nomeCandidato,
+        Long vagaId,
+        String tituloVaga,
+        LocalDateTime dataCandidatura,
+        String status
 ) {
-  
 }

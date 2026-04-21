@@ -1,121 +1,56 @@
 package com.matchvagas.backend.service;
 
-import com.matchvagas.backend.dto.CandidaturaRequest;
-import com.matchvagas.backend.dto.CandidaturaResponse;
-import com.matchvagas.backend.DuplicateCandidaturaException;
-import com.matchvagas.backend.exception.NotFoundException;
-import com.matchvagas.backend.exception.UnauthorizedException;
-import com.matchvagas.backend.Candidatura;
-import com.matchvagas.backend.CandidaturaStatus;
-import com.matchvagas.backend.repository.CandidaturaRepository;
-import com.matchvagas.backend.service.CandidaturaService;
-import org.springframework.dao.DataIntegrityViolationException;
+import com.matchvagas.backend.dto.CandidaturaRequestDTO;
+import com.matchvagas.backend.dto.CandidaturaResponseDTO;
+import com.matchvagas.backend.entity.Candidatos;
+import com.matchvagas.backend.entity.Candidatura;
+import com.matchvagas.backend.entity.Vagas;
+import com.matchvagas.backend.exception.BusinessException;
+import com.matchvagas.backend.mapper.CandidatoMapper;
+import com.matchvagas.backend.mapper.CandidaturaMapper;
+import com.matchvagas.backend.repository.*;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.stream.Collectors;
-
 @Service
-public class CandidaturaServiceImpl implements CandidaturaService {
+@RequiredArgsConstructor
+public class CandidaturaService {
 
-    private final CandidaturaRepository repository;
+    private final CandidaturaRepository candidaturasRepository;
+    private final CandidatoRepository candidatosRepository;
+    private final VagaRepository vagasRepository;
+    private final CandidaturaMapper candidaturaMapper;
 
-    public CandidaturaServiceImpl(CandidaturaRepository repository) {
-        this.repository = repository;
-    }
-
-    @Override
     @Transactional
-    public CandidaturaResponse candidatar(CandidaturaRequest request, String username) {
-        // valida duplicata por consulta rápida
-        if (repository.existsByVagaIdAndCandidatoUsername(request.getVagaId(), username)) {
-            throw new DuplicateCandidaturaException("Usuário já se candidatou para essa vaga");
+    public CandidaturaResponseDTO candidatar(Long candidatoId, CandidaturaRequestDTO request) {
+        // 1. Verificar se a vaga existe e está ativa
+        Vagas vaga = vagasRepository.findById(request.vagaId())
+                .orElseThrow(() -> new BusinessException("Vaga não encontrada"));
+
+        // Ajuste conforme o campo real de status da vaga (ex: isAtiva() ou getStatus())
+        if (!"ATIVA".equalsIgnoreCase(vaga.getStatus().getDescricao())) {
+            throw new BusinessException("Esta vaga não está mais disponível para candidaturas");
         }
 
+        // 2. Verificar se o candidato existe
+        Candidatos candidato = candidatosRepository.findById(candidatoId)
+                .orElseThrow(() -> new BusinessException("Candidato não encontrado"));
+
+        // 3. Verificar se já existe candidatura (usa restrição unique do banco, mas previne antes)
+        if (candidaturasRepository.existsByCandidatoIdAndVagaId(candidatoId, request.vagaId())) {
+            throw new BusinessException("Você já se candidatou a esta vaga");
+        }
+
+        // 4. Criar a candidatura
         Candidatura candidatura = new Candidatura();
-        candidatura.setVagaId(request.getVagaId());
-        candidatura.setCandidatoUsername(username);
-        candidatura.setCartaApresentacao(request.getCartaApresentacao());
-        candidatura.setStatus(CandidaturaStatus.PENDENTE);
+        candidatura.setCandidato(candidato);
+        candidatura.setVaga(vaga);
+        // dataCandidatura e status são definidos pelo @PrePersist
 
-        try {
-            candidatura = repository.save(candidatura);
-        } catch (DataIntegrityViolationException ex) {
-            // proteção contra condição de corrida: unique constraint no banco
-            throw new DuplicateCandidaturaException("Candidatura duplicada detectada");
-        }
+        Candidatura salva = candidaturasRepository.save(candidatura);
 
-        return toResponse(candidatura);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<CandidaturaResponse> listarPorUsuario(String username) {
-        return repository.findByCandidatoUsername(username)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public CandidaturaResponse buscarPorId(Long id, String username) {
-        // busca garantindo que o usuário seja dono da candidatura
-        Candidatura candidatura = repository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Candidatura não encontrada"));
-
-        if (!candidatura.getCandidatoUsername().equals(username)) {
-            throw new UnauthorizedException("Acesso negado à candidatura");
-        }
-
-        return toResponse(candidatura);
-    }
-
-    @Override
-    @Transactional
-    public CandidaturaResponse mudarStatus(Long id, CandidaturaStatus novoStatus, String username) {
-        // Exemplo: apenas usuários com papel administrativo podem mudar status.
-        // Aqui assumimos que a verificação de papel foi feita antes ou username "admin" é um placeholder.
-        boolean isAdmin = isAdmin(username);
-        if (!isAdmin) {
-            throw new UnauthorizedException("Somente administradores podem alterar o status");
-        }
-
-        Candidatura candidatura = repository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Candidatura não encontrada"));
-
-        // valida transições de status simples (exemplo)
-        if (candidatura.getStatus() == CandidaturaStatus.APROVADA && novoStatus == CandidaturaStatus.PENDENTE) {
-            throw new InvalidOperationException("Transição de status inválida");
-        }
-
-        candidatura.setStatus(novoStatus);
-        candidatura = repository.save(candidatura);
-
-        return toResponse(candidatura);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public boolean jaCandidatou(Long vagaId, String username) {
-        return repository.existsByVagaIdAndCandidatoUsername(vagaId, username);
-    }
-
-    private CandidaturaResponse toResponse(Candidatura c) {
-        CandidaturaResponse r = new CandidaturaResponse();
-        r.setId(c.getId());
-        r.setVagaId(c.getVagaId());
-        r.setCandidatoUsername(c.getCandidatoUsername());
-        r.setCartaApresentacao(c.getCartaApresentacao());
-        r.setCriadoEm(c.getCriadoEm());
-        r.setStatus(c.getStatus());
-        return r;
-    }
-
-    // método placeholder para verificação de papel
-    private boolean isAdmin(String username) {
-        // implementar verificação real de roles (ex: consultar serviço de usuários ou token)
-        return "admin".equalsIgnoreCase(username);
+        // 5. Retornar DTO mapeado
+        return candidaturaMapper.toResponseDTO(salva);
     }
 }
