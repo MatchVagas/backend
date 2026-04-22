@@ -3,40 +3,28 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.entity.Usuarios;
+import com.matchvagas.backend.exception.BusinessException;
+import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.UsuarioMapper;
-import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
-
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.rest.webmvc.ResourceNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.Period;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class UsuarioService {
 
-    @Autowired
-    private UsuariosRepository repository;
-
-    @Autowired
-    private TelefoneRepository telefoneRepository;
-
-    @Autowired
-    private UsuarioMapper mapper;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private final UsuariosRepository repository;
+    private final UsuarioMapper mapper;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public List<UsuarioResponseDTO> findAll() {
@@ -46,8 +34,9 @@ public class UsuarioService {
                 .collect(Collectors.toList());
     }
 
+    // CORRIGIDO: Long em vez de int
     @Transactional(readOnly = true)
-    public UsuarioResponseDTO findById(int id) {
+    public UsuarioResponseDTO findById(Long id) {
         Usuarios entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
         return mapper.toResponseDTO(entity);
@@ -62,27 +51,18 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioResponseDTO create(UsuariosRequestDTO dto) {
-        Optional<Usuarios> existingUser = repository.findByEmail(dto.email());
-        if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
+        if (repository.existsByEmail(dto.email())) {
+            throw new BusinessException("Email já cadastrado: " + dto.email());
         }
 
         Usuarios entity = mapper.toEntity(dto);
         entity.setSenha(passwordEncoder.encode(dto.senha()));
 
-        // Calcular idade se dataNascimento fornecida
         if (dto.dataNascimento() != null) {
             entity.setIdade(calcularIdade(dto.dataNascimento()));
         }
 
-        // Associar telefones se IDs fornecidos
-        //if (dto.getTelefoneIds() != null && !dto.getTelefoneIds().isEmpty()) {
-        //    List<Telefone> telefones = telefoneRepository.findAllById(dto.getTelefoneIds());
-        //   entity.setTelefones(telefones);
-        //}
-
-        entity = repository.save(entity);
-        return mapper.toResponseDTO(entity);
+        return mapper.toResponseDTO(repository.save(entity));
     }
 
     @Transactional
@@ -90,42 +70,31 @@ public class UsuarioService {
         Usuarios entity = repository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
 
-        // Verifica se o novo email já está em uso por outro usuário
-        //if (!entity.getEmail().equals(dto.email()) && repository.findByEmail(dto.email())) {
-        //   throw new IllegalArgumentException("Email já cadastrado: " + dto.email());
-        //}
+        // CORRIGIDO: verifica email duplicado apenas se for diferente do atual
+        if (!entity.getEmail().equals(dto.email()) && repository.existsByEmail(dto.email())) {
+            throw new BusinessException("Email já está em uso por outro usuário: " + dto.email());
+        }
 
         mapper.updateEntityFromDTO(dto, entity);
-        
-        // Atualiza a senha apenas se fornecida
+
         if (dto.senha() != null && !dto.senha().isBlank()) {
             entity.setSenha(passwordEncoder.encode(dto.senha()));
         }
 
-        // Recalcula idade se dataNascimento alterada
         if (dto.dataNascimento() != null) {
             entity.setIdade(calcularIdade(dto.dataNascimento()));
         }
 
-        // Atualiza telefones
-        //if (dto.getTelefoneIds() != null) {
-        //    List<Telefone> telefones = telefoneRepository.findAllById(dto.getTelefoneIds());
-        //    entity.setTelefones(telefones);
-        //} else {
-        //    entity.setTelefones(new ArrayList<>()); // limpa lista se null
-        //}
-        
-        entity = repository.save(entity);
-        return mapper.toResponseDTO(entity);
+        return mapper.toResponseDTO(repository.save(entity));
     }
 
-    //@Transactional
-    //public void delete(Long id) {
-    //    if (!repository.existsById(id)) {
-    //        throw new ResourceNotFoundException("Usuário não encontrado com ID: " + id);
-    //    }
-    //    repository.deleteById(id);
-    //}
+    @Transactional
+    public void delete(Long id) {
+        if (!repository.existsById(id)) {
+            throw new ResourceNotFoundException("Usuário não encontrado com ID: " + id);
+        }
+        repository.deleteById(id);
+    }
 
     @Transactional
     public void registrarAcesso(String email) {

@@ -10,19 +10,11 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface UsuarioMapper {
 
+    @Mapping(target = "dataCadastro", source = "dataCadastro")
+    @Mapping(target = "dataUltimoAcesso", source = "dataUltimoAcesso")
     @Mapping(target = "telefones", source = "telefones")
     UsuarioResponseDTO toResponseDTO(Usuarios entity);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "dataCadastro", ignore = true)
-    @Mapping(target = "dataUltimoAcesso", ignore = true)
-    @Mapping(target = "idade", ignore = true) // idade pode ser calculada
-    @Mapping(target = "ativo", ignore = true)
-    @Mapping(target = "senha", ignore = true) // tratada no service
-    @Mapping(target = "telefones", ignore = true) // tratado separadamente
-    Usuarios toEntity(UsuariosRequestDTO dto);
-
-    // segurança: nunca expor senha
     UsuarioResponseDTO toDTO(Usuarios usuario);
 
     @Mapping(target = "id", ignore = true)
@@ -32,7 +24,14 @@ public interface UsuarioMapper {
     @Mapping(target = "ativo", ignore = true)
     @Mapping(target = "senha", ignore = true)
     @Mapping(target = "telefones", ignore = true)
+    Usuarios toEntity(UsuariosRequestDTO dto);
+
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "dataCadastro", ignore = true)
+    @Mapping(target = "dataUltimoAcesso", ignore = true)
+    @Mapping(target = "idade", ignore = true)
+    @Mapping(target = "ativo", ignore = true)
+    @Mapping(target = "senha", ignore = true)
+    @Mapping(target = "telefones", ignore = true)
     void updateEntityFromDTO(UsuariosRequestDTO dto, @MappingTarget Usuarios entity);
-
-
 }

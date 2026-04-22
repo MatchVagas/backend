@@ -38,7 +38,7 @@ public record VagaResponseDTO(
 
         Integer numeroVagas,
 
-        Integer cidadeId,
+        Long cidadeId,
         String nomeCidade,
         String ufEstado
 

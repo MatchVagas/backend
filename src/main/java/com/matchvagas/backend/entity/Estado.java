@@ -1,14 +1,9 @@
 package com.matchvagas.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.Data;
 
+@Data
 @Entity
 @Table(name = "estados")
 public class Estado {
@@ -17,14 +12,13 @@ public class Estado {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Column(name = "nome", nullable = false,length = 100)
+    @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 
-    @Column(name = "uf", nullable = false,length = 2)
+    @Column(name = "uf", nullable = false, length = 2)
     private String uf;
 
     @ManyToOne
     @JoinColumn(name = "pais_id")
     private Pais pais;
-    
 }

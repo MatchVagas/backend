@@ -1,35 +1,24 @@
 package com.matchvagas.backend.entity;
 
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
+import lombok.Data;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
-import jakarta.persistence.JoinColumn;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.PrePersist;
-import lombok.Data;
 
 @Data
-
 @Entity
 @Table(name = "usuarios")
 public class Usuarios {
 
     @Id
-    @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "nome", nullable = false)
     private String nome;
 
-    @Column(name = "email", nullable = false)
+    @Column(name = "email", nullable = false, unique = true)
     private String email;
 
     @Column(name = "senha_hash", nullable = false, columnDefinition = "TEXT")
@@ -50,16 +39,26 @@ public class Usuarios {
     @Column(name = "dataUltimoAcesso", nullable = false)
     private LocalDateTime dataUltimoAcesso;
 
-    @ManyToMany(cascade = {jakarta.persistence.CascadeType.PERSIST, jakarta.persistence.CascadeType.MERGE})
-    @JoinTable(name = "telefones_usuario", 
-        joinColumns = @JoinColumn(name = "usuario_id"), 
+    // ADICIONADO: tipo de usuário para diferenciar CANDIDATO / EMPRESA / ADMIN
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_usuario", nullable = false, length = 20)
+    private TipoUsuario tipoUsuario;
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(name = "telefones_usuario",
+        joinColumns = @JoinColumn(name = "usuario_id"),
         inverseJoinColumns = @JoinColumn(name = "telefone_id"))
     private List<Telefones> telefones;
 
     @PrePersist
     protected void onCreate() {
         this.dataCadastro = LocalDateTime.now();
+        this.dataUltimoAcesso = LocalDateTime.now();
         this.ativo = true;
     }
 
+    // Enum interno para o tipo de usuário
+    public enum TipoUsuario {
+        CANDIDATO, EMPRESA, ADMIN
+    }
 }

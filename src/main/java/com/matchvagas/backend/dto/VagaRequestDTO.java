@@ -62,7 +62,7 @@ public record VagaRequestDTO(
         Integer numeroVagas,
 
         @NotNull(message = "Cidade é obrigatória")
-        Integer cidadeId
+        Long cidadeId
 
 ) {
 }

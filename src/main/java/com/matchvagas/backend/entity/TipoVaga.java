@@ -16,7 +16,7 @@ public class TipoVaga {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
     @Column(name = "descricao", nullable = false, length = 50)
     private String descricao;

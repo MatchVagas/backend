@@ -2,17 +2,10 @@ package com.matchvagas.backend.entity;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.Data;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.Table;
-
+@Data
 @Entity
 @Table(name = "curriculo")
 public class Curriculos {
@@ -21,28 +14,28 @@ public class Curriculos {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    // Referência ao candidato dono deste currículo
+    @ManyToOne
     @JoinColumn(name = "candidato_id", referencedColumnName = "id")
     private Candidatos candidato;
 
     @Column(name = "nome_arquivo", nullable = false, length = 255)
-    private String nome_arquivo;
+    private String nomeArquivo;
 
     @Column(name = "caminho_arquivo", columnDefinition = "TEXT")
-    private String caminho_arquivo;
+    private String caminhoArquivo;
 
     @Column(name = "data_upload")
-    private LocalDateTime data_upload;
+    private LocalDateTime dataUpload;
 
     @Column(name = "tamanho_arquivo")
-    private BigInteger tamanho_arquivo;
+    private BigInteger tamanhoArquivo;
 
-    @Column(name = "formato_arquivo",length = 50)
-    private String formato_arquivo;
+    @Column(name = "formato_arquivo", length = 50)
+    private String formatoArquivo;
 
     @PrePersist
     protected void onCreate() {
-        this.data_upload = LocalDateTime.now();
+        this.dataUpload = LocalDateTime.now();
     }
-    
 }

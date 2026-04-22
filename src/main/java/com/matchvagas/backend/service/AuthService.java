@@ -1,7 +1,6 @@
 package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.*;
-import com.matchvagas.backend.dto.AuthResponse;
 import com.matchvagas.backend.entity.Usuarios;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -13,7 +12,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -24,51 +22,53 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     /**
-     * RF001 - Cadastro de novo usuário (Candidato ou Empresa)
+     * RF001 - Cadastro de novo usuário (Candidato, Empresa ou Admin)
      */
     @Transactional
     public UsuarioResponseDTO register(UsuariosRequestDTO request) {
 
-        // Verifica se email já existe
         if (usuariosRepository.existsByEmail(request.email())) {
             throw new BusinessException("Já existe um usuário cadastrado com este email.");
         }
 
-        // Converte DTO para Entity
         Usuarios usuario = usuariosMapper.toEntity(request);
-
-        // Hash da senha
         usuario.setSenha(passwordEncoder.encode(request.senha()));
 
-        // Salva no banco
-        Usuarios savedUsuario = usuariosRepository.save(usuario);
+        // Calcula idade a partir da dataNascimento
+        if (request.dataNascimento() != null) {
+            int idade = java.time.Period.between(
+                request.dataNascimento().toLocalDate(),
+                java.time.LocalDate.now()
+            ).getYears();
+            usuario.setIdade(idade);
+        }
 
-        return usuariosMapper.toDTO(savedUsuario);
+        Usuarios salvo = usuariosRepository.save(usuario);
+        return usuariosMapper.toDTO(salvo);
     }
 
     /**
-     * RF002 - Realiza login e retorna JWT Token
+     * RF002 - Autenticação (Login)
      */
     public AuthResponse login(LoginRequestDTO request) {
 
         Usuarios usuario = usuariosRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com o email informado."));
 
-        // Verifica senha
         if (!passwordEncoder.matches(request.senha(), usuario.getSenha())) {
             throw new BusinessException("Email ou senha inválidos.");
         }
 
-        // Verifica se usuário está ativo
         if (Boolean.FALSE.equals(usuario.getAtivo())) {
             throw new BusinessException("Usuário está inativo. Contate o administrador.");
         }
 
-        // Gera o token JWT
         String token = jwtTokenProvider.generateToken(usuario);
 
-        // Determina o perfil (pode ser melhorado com roles no futuro)
-        String perfil = determinarPerfil(usuario);
+        // Usa o tipoUsuario real — não mais hardcoded
+        String perfil = usuario.getTipoUsuario() != null
+                ? usuario.getTipoUsuario().name()
+                : "CANDIDATO";
 
         return new AuthResponse(
                 token,
@@ -78,19 +78,5 @@ public class AuthService {
                 usuario.getEmail(),
                 perfil
         );
-    }
-
-    /**
-     * Método auxiliar para determinar o perfil do usuário
-     * (Pode ser aprimorado com @ManyToMany de roles ou verificação em tabelas filhas)
-     */
-    private String determinarPerfil(Usuarios usuario) {
-        // Lógica temporária - pode ser melhorada depois
-        if (usuario.getId() != null) {
-            // Verificar se existe registro em Candidatos ou Empresas
-            // Por enquanto retorna genérico
-            return "CANDIDATO"; // TODO: implementar detecção real de perfil
-        }
-        return "USUARIO";
     }
 }

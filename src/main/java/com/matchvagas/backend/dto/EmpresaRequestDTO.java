@@ -3,34 +3,29 @@ package com.matchvagas.backend.dto;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.br.CNPJ;
 
-import com.matchvagas.backend.entity.Telefones;
-
-import java.util.List;
-
 public record EmpresaRequestDTO(
-    @NotBlank(message = "CNPJ é obrigatório")
-    @CNPJ(message = "CNPJ inválido")
-    String cnpj,
 
-    @NotBlank(message = "Razão social é obrigatória")
-    @Size(max = 150, message = "Razão social deve ter no máximo 150 caracteres")
-    String razaoSocial,
+        @NotBlank(message = "CNPJ é obrigatório")
+        @CNPJ(message = "CNPJ inválido")
+        String cnpj,
 
-    @NotBlank(message = "Nome fantasia é obrigatório")
-    @Size(max = 150, message = "Nome fantasia deve ter no máximo 150 caracteres")
-    String nomeFantasia,
+        @NotBlank(message = "Razão social é obrigatória")
+        @Size(max = 150, message = "Razão social deve ter no máximo 150 caracteres")
+        String razaoSocial,
 
-    @Size(max = 500, message = "Descrição deve ter no máximo 500 caracteres")
-    String descricao,
+        @NotBlank(message = "Nome fantasia é obrigatório")
+        @Size(max = 150, message = "Nome fantasia deve ter no máximo 150 caracteres")
+        String nomeFantasia,
 
-    @NotNull(message = "Porte da empresa é obrigatório")
-    Long porteId, // ID da entidade Porte
+        @Size(max = 500, message = "Descrição deve ter no máximo 500 caracteres")
+        String descricao,
 
-    @NotNull(message = "Ramo de atuação é obrigatório")
-    Long ramoId, // ID da entidade RamoAtuacao
+        @NotNull(message = "Porte da empresa é obrigatório")
+        Long porteId,
 
-    @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
-    String site,
+        @NotNull(message = "Ramo de atuação é obrigatório")
+        Long ramoId,
 
-    List<Telefones> telefones
+        @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
+        String site
 ) {}
