@@ -1,7 +1,7 @@
 package com.matchvagas.backend.repository;
 
-import java.io.ObjectInputFilter.Status;
 import java.util.List;
+import java.util.Optional;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,10 +9,12 @@ import org.springframework.stereotype.Repository;
 
 import com.matchvagas.backend.entity.Candidatura;
 import com.matchvagas.backend.entity.StatusCandidatura;
+import com.matchvagas.backend.entity.Vagas;
 
 @Repository
 public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> {
 
+    /*
     // Busca por status da candidatura
     List<Candidatura> findByStatus(StatusCandidatura status);
 
@@ -20,9 +22,17 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> 
     List<Candidatura> findByCandidatoId(Long candidatoId);
 
     // Busca por id da vaga
-    List<Candidatura> findByVagaId(Long vagaId);
+    List<Candidatura> findByVagaId(Vagas vaga);
 
     // Busca por email do candidato (assumindo que CandidatoVaga tem campo email)
-    //List<Candidatura> findByCandidatoEmail(String email);
+    //List<Candidatura> findByCandidatoEmail(String email);*/
+
+    List<Candidatura> findByCandidatoId(Long candidatoId);
+
+    List<Candidatura> findByVagaId(Long vagaId);
+
+    Optional<Candidatura> findByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
+
+    boolean existsByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
 
 }

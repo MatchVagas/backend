@@ -2,46 +2,39 @@ package com.matchvagas.backend.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Data
-
 @Entity
 @Table(name = "vagas")
 public class Vagas {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Long id;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne — uma empresa pode ter muitas vagas
+    @ManyToOne
     @JoinColumn(name = "empresa_id", nullable = false)
     private Empresas empresas;
 
-    @Column(name = "titulo", nullable = false,length = 255)
+    @Column(name = "titulo", nullable = false, length = 255)
     private String titulo;
 
     @Column(name = "descricao", nullable = false, columnDefinition = "TEXT")
-    private String descricao;   
+    private String descricao;
 
     @Column(name = "requisitos", nullable = false, columnDefinition = "TEXT")
     private String requisitos;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne — lookup table compartilhada entre muitas vagas
+    @ManyToOne
     @JoinColumn(name = "tipo_vaga_id", nullable = false)
     private TipoVaga tipoVaga;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne
+    @ManyToOne
     @JoinColumn(name = "modalidade_id", nullable = false)
     private Modalidade modalidade;
 
@@ -51,7 +44,7 @@ public class Vagas {
     @Column(name = "salario_max", nullable = false, precision = 10, scale = 2)
     private BigDecimal salarioMaximo;
 
-    @Column(name = "beneficios", nullable = true, columnDefinition = "TEXT")
+    @Column(name = "beneficios", columnDefinition = "TEXT")
     private String beneficios;
 
     @Column(name = "carga_horaria", nullable = false, length = 50)
@@ -63,7 +56,8 @@ public class Vagas {
     @Column(name = "idade_maxima", nullable = false)
     private int idadeMaxima;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne
+    @ManyToOne
     @JoinColumn(name = "nivel_escolaridade_minimo_id", nullable = false)
     private Escolaridades escolaridade;
 
@@ -76,15 +70,21 @@ public class Vagas {
     @Column(name = "data_expiracao", nullable = false)
     private LocalDateTime dataExpiracao;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne
+    @ManyToOne
     @JoinColumn(name = "status_vaga_id", nullable = false)
     private StatusVaga status;
 
     @Column(name = "numero_vagas", nullable = false)
     private int numeroVagas;
 
-    @OneToOne
+    // CORRIGIDO: @ManyToOne
+    @ManyToOne
     @JoinColumn(name = "cidade_id", nullable = false)
     private Cidade cidade;
-    
+
+    @PrePersist
+    protected void onCreate() {
+        this.dataPublicacao = LocalDateTime.now();
+    }
 }

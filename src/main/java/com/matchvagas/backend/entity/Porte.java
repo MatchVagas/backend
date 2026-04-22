@@ -14,7 +14,7 @@ import lombok.Data;
 public class Porte {
     @Id
     @GeneratedValue(strategy = jakarta.persistence.GenerationType.IDENTITY)
-    private int id;
+    private Long id;
     @Column(name = "descricao", nullable = false,length = 50)
     private String descricao;
 

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Repository;
 
 import com.matchvagas.backend.entity.Formacao;
@@ -13,6 +14,7 @@ import com.matchvagas.backend.entity.Formacao;
 public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
 
     @EntityGraph(attributePaths = {"candidato"})
+    @NonNull
     List<Formacao> findAll();
 
     @EntityGraph(attributePaths = {"candidato"})
@@ -23,8 +25,6 @@ public interface FormacoesRepository extends JpaRepository<Formacao, Long> {
     List<Formacao> findByCursoContainingIgnoreCase(String curso);
 
     List<Formacao> findByInstituicaoContainingIgnoreCase(String instituicao);
-
-    //List<Formacao> findByCandidatoEmail(String email);
 
     Optional<Formacao> findByIdAndCandidatoId(Long id, Long candidatoId);
 }

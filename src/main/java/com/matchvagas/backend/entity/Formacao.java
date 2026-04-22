@@ -1,6 +1,9 @@
 package com.matchvagas.backend.entity;
 
 import jakarta.persistence.*;
+import lombok.Data;
+
+@Data
 
 @Entity
 @Table(name = "formacoes")
@@ -29,36 +32,4 @@ public class Formacao {
     @JoinColumn(name = "candidato_id", nullable = false)
     private Candidatos candidato;
 
-    public Formacao() {}
-
-    public Formacao(String instituicao, String curso, String nivel, String dataInicio, String dataFim, Candidatos candidato) {
-        this.instituicao = instituicao;
-        this.curso = curso;
-        this.nivel = nivel;
-        this.dataInicio = dataInicio;
-        this.dataFim = dataFim;
-        this.candidato = candidato;
-    }
-
-    // Getters e Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-
-    public String getInstituicao() { return instituicao; }
-    public void setInstituicao(String instituicao) { this.instituicao = instituicao; }
-
-    public String getCurso() { return curso; }
-    public void setCurso(String curso) { this.curso = curso; }
-
-    public String getNivel() { return nivel; }
-    public void setNivel(String nivel) { this.nivel = nivel; }
-
-    public String getDataInicio() { return dataInicio; }
-    public void setDataInicio(String dataInicio) { this.dataInicio = dataInicio; }
-
-    public String getDataFim() { return dataFim; }
-    public void setDataFim(String dataFim) { this.dataFim = dataFim; }
-
-    public Candidatos getCandidato() { return candidato; }
-    public void setCandidato(Candidatos candidato) { this.candidato = candidato; }
 }

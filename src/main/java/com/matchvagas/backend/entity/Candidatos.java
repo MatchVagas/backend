@@ -31,6 +31,10 @@ public class Candidatos {
     @JoinColumn(name = "endereco_id", referencedColumnName = "id")
     private Endereco endereco;
 
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "curriculo_id", referencedColumnName = "id") 
+    private Curriculos curriculo;
+
     @Column(name = "objetivo_profissional", columnDefinition = "TEXT")
     private String objetivoProfissional;
 
