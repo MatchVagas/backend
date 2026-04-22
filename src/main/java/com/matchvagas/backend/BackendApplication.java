@@ -13,7 +13,7 @@ public class BackendApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(BackendApplication.class, args);
-		Dotenv.load();
+		//Dotenv.load();
 		logger.info("Environment variables loaded successfully.");
 	}
 
