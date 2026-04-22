@@ -38,11 +38,11 @@ public class AuthController {
     }
 
     /**
-     * Logout (stateless com JWT - não precisa invalidar token no backend)
+     * Logout (stateless com JWT - não precisa invalidar token no backend) ???
      */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
-        // Como estamos usando JWT stateless, basta o frontend remover o token
+        // Como estamos usando JWT stateless, basta o frontend remover o token ???
         return ResponseEntity.ok().build();
     }
 }
