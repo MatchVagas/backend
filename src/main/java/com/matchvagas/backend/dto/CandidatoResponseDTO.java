@@ -1,27 +1,23 @@
 package com.matchvagas.backend.dto;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.List;
 
-import com.matchvagas.backend.entity.Experiencia;
-import com.matchvagas.backend.entity.Formacao;
-import com.matchvagas.backend.entity.Telefones;
-
 public record CandidatoResponseDTO(
-    Long id,
-    String nome,
-    String email,
-    List<Telefones> telefones,
-    String cidade,
-    String estado,
-    LocalDate dataNascimento,
-    String nivelFormacao,
-    String resumoProfissional,
-    List<Formacao> formacoes,
-    List<Experiencia> experiencias,
-    List<String> habilidades,
-    String fotoUrl,
-    String perfilPublicoUrl
-) {
-  
-}
+        Long id,                     // ID do candidato (da tabela candidatos)
+        Long usuarioId,              // ID do usuário associado (chave estrangeira)
+        String nome,
+        String email,
+        Date dataNascimento,
+        Integer idade,
+        List<TelefonesResponseDTO> telefones,
+        String cpf,
+        EnderecosResponseDTO endereco,
+        String objetivoProfissional,
+        BigDecimal pretensaoSalarial,
+        String disponibilidade,
+        LocalDateTime dataCadastro,
+        Boolean ativo
+) {}
