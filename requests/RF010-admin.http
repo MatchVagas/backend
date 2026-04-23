@@ -1,0 +1,163 @@
+### ============================================================
+### RF010 — Administração do Sistema
+### PRÉ-REQUISITO: token de usuário com tipoUsuario = ADMIN
+###
+### Para criar um admin no banco diretamente (primeira vez):
+###   UPDATE usuarios SET tipo_usuario = 'ADMIN' WHERE email = 'admin@matchvagas.com';
+###   INSERT INTO administradores (usuarios_id, nivel, departamento_id, permissoes)
+###   VALUES (1, 'SUPER', 1, 'TUDO');
+### ============================================================
+
+### Login como admin — salva token
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@matchvagas.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.test("Status 200 - Login admin OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+  client.test("Perfil é ADMIN", function() {
+    client.assert(response.body.perfil === "ADMIN", "Perfil não é ADMIN: " + response.body.perfil);
+  });
+  client.global.set("adminToken", response.body.token);
+%}
+
+###
+
+### [RF010] Listar todos os usuários
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+  client.test("Retorna array de usuários", function() {
+    client.assert(Array.isArray(response.body), "Resposta não é array");
+  });
+%}
+
+###
+
+### [RF010] Listar todos os candidatos
+GET {{base_url}}/api/admin/candidatos
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010] Listar todas as empresas
+GET {{base_url}}/api/admin/empresas
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010] Listar todos os administradores
+GET {{base_url}}/api/admin/admins
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010] Promover usuário a administrador
+### Troque usuarioId pelo ID de um usuário existente no banco
+POST {{base_url}}/api/admin/admins
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "usuarioId": 2,
+  "nivel": "MODERADOR",
+  "departamentoId": 1,
+  "permissoes": "USUARIOS, VAGAS"
+}
+
+> {%
+  client.test("Status 201 - Admin criado", function() {
+    client.assert(response.status === 201, "Esperado 201, recebido: " + response.status);
+  });
+  client.test("Retorna dados do admin", function() {
+    client.assert(response.body.nivel === "MODERADOR", "Nível errado");
+  });
+%}
+
+###
+
+### [RF010] Desativar usuário
+PATCH {{base_url}}/api/admin/usuarios/2/desativar
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 204 - Usuário desativado", function() {
+    client.assert(response.status === 204, "Esperado 204, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010] Ativar usuário
+PATCH {{base_url}}/api/admin/usuarios/2/ativar
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 204 - Usuário ativado", function() {
+    client.assert(response.status === 204, "Esperado 204, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010] Remover administrador
+DELETE {{base_url}}/api/admin/admins/1
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 204 - Admin removido", function() {
+    client.assert(response.status === 204, "Esperado 204, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010 - ERRO] Acesso à área admin sem token de ADMIN
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Status 403 - Acesso negado para não-admin", function() {
+    client.assert(response.status === 403, "Esperado 403, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF010 - ERRO] Excluir usuário inexistente
+DELETE {{base_url}}/api/admin/usuarios/9999
+Authorization: Bearer {{adminToken}}
+
+> {%
+  client.test("Status 404 - Usuário não encontrado", function() {
+    client.assert(response.status === 404, "Esperado 404, recebido: " + response.status);
+  });
+%}

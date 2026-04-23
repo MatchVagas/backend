@@ -12,7 +12,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
@@ -23,24 +23,56 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
+    private final PasswordEncoder passwordEncoder;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
-                // Auth — público
+
+                // ── Público — sem token ───────────────────────────────────
                 .requestMatchers("/api/auth/**").permitAll()
-                // Swagger — público
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                // RF007 — busca pública de vagas (GET)
+
+                // Swagger UI — todos os caminhos que o Springdoc usa
+                .requestMatchers(
+                    "/swagger-ui.html",
+                    "/swagger-ui/**",
+                    "/v3/api-docs",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs.yaml",
+                    "/swagger-resources",
+                    "/swagger-resources/**",
+                    "/webjars/**"
+                ).permitAll()
+
+                // Vagas — leitura pública (RF007)
                 .requestMatchers(HttpMethod.GET, "/api/vagas/**").permitAll()
-                // RF004 — empresas visíveis publicamente (GET)
+
+                // Empresas — leitura pública
                 .requestMatchers(HttpMethod.GET, "/api/empresas/**").permitAll()
-                // RF010 — administração restrita a ADMIN
+
+                // Localização — leitura pública (País, Estado, Cidade)
+                .requestMatchers(HttpMethod.GET, "/api/localizacao/**").permitAll()
+
+                // Lookup — leitura pública (TipoVaga, Modalidade, etc.)
+                .requestMatchers(HttpMethod.GET, "/api/lookup/**").permitAll()
+
+                // ── Somente ADMIN ─────────────────────────────────────────
+                // Administração global
                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-                // Tudo mais requer autenticação
+
+                // Escrita nos lookups e localização
+                .requestMatchers(HttpMethod.POST,   "/api/localizacao/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/localizacao/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/localizacao/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/api/lookup/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/lookup/**").hasAuthority("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/lookup/**").hasAuthority("ADMIN")
+
+                // ── Qualquer outro endpoint requer autenticação ───────────
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -49,15 +81,10 @@ public class SecurityConfig {
     }
 
     @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12);
-    }
-
-    @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
         provider.setUserDetailsService(userDetailsService);
-        provider.setPasswordEncoder(passwordEncoder());
+        provider.setPasswordEncoder(passwordEncoder);
         return provider;
     }
 

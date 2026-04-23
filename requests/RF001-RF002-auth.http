@@ -1,0 +1,131 @@
+### ============================================================
+### RF001 — Cadastro de Usuários
+### RF002 — Autenticação
+### ============================================================
+
+### [RF001] Cadastrar candidato
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "senha": "senha123",
+  "dataNascimento": "1995-05-10T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+  client.test("Status 201 - Criado", function() {
+    client.assert(response.status === 201, "Esperado 201, recebido: " + response.status);
+  });
+  client.test("Retorna tipoUsuario CANDIDATO", function() {
+    client.assert(response.body.tipoUsuario === "CANDIDATO", "Tipo errado");
+  });
+  client.test("Não expõe senha na resposta", function() {
+    client.assert(response.body.senha === undefined, "Senha exposta na resposta!");
+  });
+%}
+
+###
+
+### [RF001] Cadastrar empresa
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Tech Corp RH",
+  "email": "rh@techcorp.com",
+  "senha": "senha123",
+  "dataNascimento": "1990-01-01T00:00:00",
+  "tipoUsuario": "EMPRESA"
+}
+
+> {%
+  client.test("Status 201 - Criado", function() {
+    client.assert(response.status === 201, "Esperado 201, recebido: " + response.status);
+  });
+  client.test("Retorna tipoUsuario EMPRESA", function() {
+    client.assert(response.body.tipoUsuario === "EMPRESA", "Tipo errado");
+  });
+%}
+
+###
+
+### [RF001 - ERRO] Email duplicado deve retornar 400
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "João Silva 2",
+  "email": "joao@email.com",
+  "senha": "outrasenha",
+  "dataNascimento": "1995-05-10T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+  client.test("Status 400 - Bad Request para email duplicado", function() {
+    client.assert(response.status === 400, "Esperado 400, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF002] Login com sucesso — salva token automaticamente
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+  client.test("Retorna token JWT", function() {
+    client.assert(response.body.token !== undefined, "Token não encontrado");
+    client.assert(response.body.tipo === "Bearer", "Tipo do token errado");
+  });
+  client.test("Retorna perfil do usuário", function() {
+    client.assert(response.body.perfil === "CANDIDATO", "Perfil errado");
+  });
+  // Salva o token para usar nas próximas requisições
+  client.global.set("token", response.body.token);
+%}
+
+###
+
+### [RF002 - ERRO] Senha incorreta deve retornar 400
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "senha": "senhaErrada"
+}
+
+> {%
+  client.test("Status 400 - Credenciais inválidas", function() {
+    client.assert(response.status === 400, "Esperado 400, recebido: " + response.status);
+  });
+%}
+
+###
+
+### [RF002 - ERRO] Email não cadastrado deve retornar 404
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "naoexiste@email.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.test("Status 404 - Usuário não encontrado", function() {
+    client.assert(response.status === 404, "Esperado 404, recebido: " + response.status);
+  });
+%}

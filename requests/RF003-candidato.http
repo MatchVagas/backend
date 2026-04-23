@@ -1,0 +1,76 @@
+### ============================================================
+### RF003 — Gerenciamento de Perfil do Candidato
+### PRÉ-REQUISITO: executar login em RF001-RF002-auth.http
+###   para que o {{token}} seja preenchido automaticamente
+### ============================================================
+
+### [RF003] Criar perfil de candidato
+POST {{base_url}}/api/candidatos
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cpf": "123.456.789-00",
+  "resumoProfissional": "Desenvolvedor Java com 3 anos de experiência",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 5000.00
+}
+
+> {%
+  client.test("Status 201 - Perfil criado", function() {
+    client.assert(response.status === 201, "Esperado 201, recebido: " + response.status);
+  });
+  client.test("Retorna dados do perfil", function() {
+    client.assert(response.body.cpf === "123.456.789-00", "CPF errado");
+  });
+%}
+
+###
+
+### [RF003] Visualizar meu perfil
+GET {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token}}
+
+> {%
+  client.test("Status 200 - OK", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+  client.test("Retorna nome e email do usuário vinculado", function() {
+    client.assert(response.body.nome !== undefined, "Nome não encontrado");
+    client.assert(response.body.email !== undefined, "Email não encontrado");
+  });
+%}
+
+###
+
+### [RF003] Atualizar perfil do candidato
+PUT {{base_url}}/api/candidatos/meu-perfil
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "cpf": "123.456.789-00",
+  "resumoProfissional": "Desenvolvedor Java Sênior com 5 anos de experiência",
+  "disponibilidade": "30 dias",
+  "pretensaoSalarial": 8000.00
+}
+
+> {%
+  client.test("Status 200 - Perfil atualizado", function() {
+    client.assert(response.status === 200, "Esperado 200, recebido: " + response.status);
+  });
+  client.test("Pretensão salarial atualizada", function() {
+    client.assert(response.body.pretensaoSalarial === 8000.00, "Salário não foi atualizado");
+  });
+%}
+
+###
+
+### [RF003 - ERRO] Sem token deve retornar 403
+GET {{base_url}}/api/candidatos/meu-perfil
+
+> {%
+  client.test("Status 403 - Não autorizado sem token", function() {
+    client.assert(response.status === 403, "Esperado 403, recebido: " + response.status);
+  });
+%}
