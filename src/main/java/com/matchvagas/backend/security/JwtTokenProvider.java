@@ -2,6 +2,7 @@ package com.matchvagas.backend.security;
 
 import com.matchvagas.backend.entity.Usuarios;
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,10 +20,20 @@ public class JwtTokenProvider {
     private long jwtExpirationInMs;
 
     /**
-     * Gera o SecretKey a partir da string configurada
+     * Gera o SecretKey a partir da string configurada.
+     * Usa UTF-8 explícito para garantir >= 256 bits.
+     * Se a chave estiver em Base64 no properties, usa Decoders.BASE64.
      */
     private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
+        byte[] keyBytes;
+        try {
+            // Tenta decodificar como Base64 primeiro (chave de produção)
+            keyBytes = Decoders.BASE64.decode(jwtSecret);
+        } catch (Exception e) {
+            // Fallback: usa os bytes UTF-8 direto (desenvolvimento)
+            keyBytes = jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        }
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     /**
@@ -33,40 +44,30 @@ public class JwtTokenProvider {
         Date expiryDate = new Date(now.getTime() + jwtExpirationInMs);
 
         return Jwts.builder()
-                .subject(usuario.getEmail())                    // Principal claim
-                .claim("id", usuario.getId())
+                .subject(String.valueOf(usuario.getId()))       // ID como subject (para extrair no filter)
+                .claim("email", usuario.getEmail())
                 .claim("nome", usuario.getNome())
-                .claim("perfil", determinarPerfil(usuario))     // Pode ser melhorado depois
+                .claim("perfil", usuario.getTipoUsuario() != null
+                        ? usuario.getTipoUsuario().name()
+                        : "CANDIDATO")
                 .issuedAt(now)
                 .expiration(expiryDate)
-                .signWith(getSigningKey(), Jwts.SIG.HS512)      // Algoritmo HS512 (mais seguro)
+                .signWith(getSigningKey(), Jwts.SIG.HS256)      // HS256 exige >= 256 bits (32 chars)
                 .compact();
     }
 
     /**
-     * Extrai o email (subject) do token
+     * Extrai o ID do usuário (subject) do token
      */
-    public String getEmailFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.getSubject();
+    public String getUserIdFromToken(String token) {
+        return getClaims(token).getSubject();
     }
 
     /**
-     * Extrai o ID do usuário do token
+     * Extrai o email do token
      */
-    public Long getUserIdFromToken(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(getSigningKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.get("id", Long.class);
+    public String getEmailFromToken(String token) {
+        return getClaims(token).get("email", String.class);
     }
 
     /**
@@ -74,10 +75,7 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         try {
-            Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token);
+            getClaims(token);
             return true;
         } catch (ExpiredJwtException e) {
             System.out.println("Token expirado: " + e.getMessage());
@@ -85,8 +83,6 @@ public class JwtTokenProvider {
             System.out.println("Token não suportado: " + e.getMessage());
         } catch (MalformedJwtException e) {
             System.out.println("Token malformado: " + e.getMessage());
-        } catch (SignatureException e) {
-            System.out.println("Assinatura inválida: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Token vazio ou inválido: " + e.getMessage());
         }
@@ -98,22 +94,17 @@ public class JwtTokenProvider {
      */
     public boolean isTokenExpired(String token) {
         try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(getSigningKey())
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
-            return claims.getExpiration().before(new Date());
+            return getClaims(token).getExpiration().before(new Date());
         } catch (Exception e) {
             return true;
         }
     }
 
-    /**
-     * Método auxiliar para determinar o perfil (pode ser melhorado futuramente)
-     */
-    private String determinarPerfil(Usuarios usuario) {
-        // TODO: Melhorar essa lógica quando implementar Roles ou verificação em Candidatos/Empresas
-        return "USER"; // Temporário
+    private Claims getClaims(String token) {
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
     }
 }
