@@ -3,11 +3,14 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
+import com.matchvagas.backend.entity.Usuarios.TipoUsuario;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,9 +33,7 @@ public class VagaService {
     @Transactional(readOnly = true)
     public List<VagaResponseDTO> findAll() {
         return vagaRepository.findAll()
-                .stream()
-                .map(vagasMapper::toDTO)
-                .collect(Collectors.toList());
+                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -45,26 +46,31 @@ public class VagaService {
     @Transactional(readOnly = true)
     public List<VagaResponseDTO> findByEmpresa(Long empresaId) {
         return vagaRepository.findByEmpresasId(empresaId)
-                .stream()
-                .map(vagasMapper::toDTO)
-                .collect(Collectors.toList());
+                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
+    }
+
+    // Listar vagas da empresa do usuário autenticado
+    @Transactional(readOnly = true)
+    public List<VagaResponseDTO> findMinhasVagas() {
+        Long usuarioId = getUsuarioIdAutenticado();
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+        return vagaRepository.findByEmpresasId(empresa.getId())
+                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
     }
 
     // RF007 — Busca e filtragem de vagas
     @Transactional(readOnly = true)
     public List<VagaResponseDTO> search(String titulo, String areaAtuacao, Long tipoVagaId, Long modalidadeId) {
-        if (titulo != null && !titulo.isBlank()) {
+        if (titulo != null && !titulo.isBlank())
             return vagaRepository.findByTituloContaining(titulo)
                     .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        }
-        if (areaAtuacao != null && !areaAtuacao.isBlank()) {
+        if (areaAtuacao != null && !areaAtuacao.isBlank())
             return vagaRepository.findByDescricaoContaining(areaAtuacao)
                     .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        }
-        if (tipoVagaId != null && modalidadeId != null) {
+        if (tipoVagaId != null && modalidadeId != null)
             return vagaRepository.findByEmpresasIdAndTipoVagaIdAndModalidadeId(null, tipoVagaId, modalidadeId)
                     .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        }
         return findAll();
     }
 
@@ -73,8 +79,25 @@ public class VagaService {
     public VagaResponseDTO create(VagaRequestDTO dto) {
         Vagas vaga = vagasMapper.toEntity(dto);
 
-        vaga.setEmpresas(empresaRepository.findById(dto.empresaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada")));
+        // Busca a empresa pelo usuário autenticado — garante que a vaga pertence à empresa correta
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
+
+        Empresas empresa;
+        if (isAdmin && dto.empresaId() != null) {
+            // ADMIN pode criar vaga para qualquer empresa informando o ID
+            empresa = empresaRepository.findById(dto.empresaId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));
+        } else {
+            // EMPRESA — busca automaticamente pelo usuário autenticado
+            Long usuarioId = getUsuarioIdAutenticado();
+            empresa = empresaRepository.findByUsuarioId(usuarioId)
+                    .orElseThrow(() -> new BusinessException(
+                            "Nenhuma empresa vinculada a este usuário. Cadastre sua empresa primeiro."));
+        }
+
+        vaga.setEmpresas(empresa);
         vaga.setTipoVaga(tipoVagaRepository.findById(dto.tipoVagaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de vaga não encontrado")));
         vaga.setModalidade(modalidadeRepository.findById(dto.modalidadeId())
@@ -87,9 +110,8 @@ public class VagaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cidade não encontrada")));
 
         if (dto.salarioMinimo() != null && dto.salarioMaximo() != null
-                && dto.salarioMinimo().compareTo(dto.salarioMaximo()) > 0) {
+                && dto.salarioMinimo().compareTo(dto.salarioMaximo()) > 0)
             throw new BusinessException("Salário mínimo não pode ser maior que o salário máximo.");
-        }
 
         return vagasMapper.toDTO(vagaRepository.save(vaga));
     }
@@ -99,6 +121,19 @@ public class VagaService {
     public VagaResponseDTO update(Long id, VagaRequestDTO dto) {
         Vagas vaga = vagaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vaga não encontrada com ID: " + id));
+
+        // Verifica se a vaga pertence à empresa do usuário autenticado
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
+
+        if (!isAdmin) {
+            Long usuarioId = getUsuarioIdAutenticado();
+            Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                    .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+            if (!vaga.getEmpresas().getId().equals(empresa.getId()))
+                throw new BusinessException("Você não tem permissão para editar esta vaga.");
+        }
 
         vaga.setTitulo(dto.titulo());
         vaga.setDescricao(dto.descricao());
@@ -135,9 +170,25 @@ public class VagaService {
     // RF006 — Remover vaga
     @Transactional
     public void delete(Long id) {
-        if (!vagaRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Vaga não encontrada com ID: " + id);
+        Vagas vaga = vagaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Vaga não encontrada com ID: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
+
+        if (!isAdmin) {
+            Long usuarioId = getUsuarioIdAutenticado();
+            Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                    .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+            if (!vaga.getEmpresas().getId().equals(empresa.getId()))
+                throw new BusinessException("Você não tem permissão para remover esta vaga.");
         }
+
         vagaRepository.deleteById(id);
+    }
+
+    private Long getUsuarioIdAutenticado() {
+        return Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
     }
 }

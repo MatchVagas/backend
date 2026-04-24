@@ -64,7 +64,7 @@ class CandidaturaServiceTest {
         vaga.setStatus(statusAtiva);
 
         StatusCandidatura statusCandidatura = new StatusCandidatura();
-        statusCandidatura.setId(1);
+        statusCandidatura.setId(1L);
         statusCandidatura.setStatus("EM_ANALISE");
 
         candidatura = new Candidatura();

@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,7 +22,7 @@ public class VagaController {
 
     private final VagaService vagaService;
 
-    // RF007 — Listar/buscar vagas com filtros opcionais
+    // RF007 — Busca pública com filtros opcionais
     @GetMapping
     @Operation(summary = "Buscar e filtrar vagas")
     public ResponseEntity<List<VagaResponseDTO>> search(
@@ -44,15 +45,25 @@ public class VagaController {
         return ResponseEntity.ok(vagaService.findByEmpresa(empresaId));
     }
 
-    // RF005 — Cadastrar vaga
+    // Empresa — listar as próprias vagas
+    @GetMapping("/minhas")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Listar minhas vagas")
+    public ResponseEntity<List<VagaResponseDTO>> minhasVagas() {
+        return ResponseEntity.ok(vagaService.findMinhasVagas());
+    }
+
+    // RF005 — Cadastrar vaga (EMPRESA ou ADMIN)
     @PostMapping
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
     @Operation(summary = "Cadastrar nova vaga")
     public ResponseEntity<VagaResponseDTO> create(@Valid @RequestBody VagaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(vagaService.create(dto));
     }
 
-    // RF006 — Atualizar vaga
+    // RF006 — Atualizar vaga (EMPRESA ou ADMIN)
     @PutMapping("/{id}")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
     @Operation(summary = "Atualizar vaga existente")
     public ResponseEntity<VagaResponseDTO> update(
             @PathVariable Long id,
@@ -60,8 +71,9 @@ public class VagaController {
         return ResponseEntity.ok(vagaService.update(id, dto));
     }
 
-    // RF006 — Remover vaga
+    // RF006 — Remover vaga (EMPRESA ou ADMIN)
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
     @Operation(summary = "Remover vaga")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         vagaService.delete(id);

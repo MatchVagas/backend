@@ -54,5 +54,8 @@ public class Empresas {
     )
     private List<Telefones> telefones;
 
-    
+    // Usuário gestor da empresa — um usuário EMPRESA gerencia uma empresa
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", unique = true)
+    private Usuarios usuario;
 }
