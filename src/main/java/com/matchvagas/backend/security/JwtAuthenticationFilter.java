@@ -29,11 +29,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = getTokenFromRequest(request);
 
-        if(StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+            // Carrega o usuário pelo email (claim "email") para validar credenciais
             String email = jwtTokenProvider.getEmailFromToken(token);
             UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
-            UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            // Usa o ID (subject do token) como o nome do principal —
+            // assim Authentication.getName() nos controllers retorna o ID do usuário
+            UsernamePasswordAuthenticationToken authenticationToken =
+                    new UsernamePasswordAuthenticationToken(
+                            jwtTokenProvider.getUserIdFromToken(token), // principal = ID
+                            null,
+                            userDetails.getAuthorities()
+                    );
 
             SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         }
