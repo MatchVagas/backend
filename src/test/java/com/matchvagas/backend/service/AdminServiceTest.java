@@ -274,7 +274,8 @@ class AdminServiceTest {
 
             EmpresaResponseDTO dto = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda",
-                    "Tech Corp", null, null, null, null, null);
+                    "Tech Corp", null, null, null, null, null,
+                    1L, "Gestor Tech Corp"); // ATUALIZADO — usuarioGestorId e nomeGestor
 
             when(empresaRepository.findAll()).thenReturn(List.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);

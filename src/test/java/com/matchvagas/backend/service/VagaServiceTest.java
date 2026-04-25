@@ -56,11 +56,13 @@ class VagaServiceTest {
     private StatusVaga statusVaga;
     private Cidade cidade;
 
+    // ID do usuário autenticado nos testes
     private static final Long USUARIO_ID = 10L;
     private static final Long EMPRESA_ID = 1L;
 
     @BeforeEach
     void setUp() {
+        // Montar entidades de lookup
         tipoVaga = new TipoVaga();
         tipoVaga.setId(1L);
         tipoVaga.setDescricao("CLT");
@@ -87,6 +89,7 @@ class VagaServiceTest {
         cidade.setNome("São Paulo");
         cidade.setEstado(estado);
 
+        // Empresa vinculada ao usuário autenticado
         Usuarios usuario = new Usuarios();
         usuario.setId(USUARIO_ID);
         usuario.setNome("Gestor Tech Corp");
@@ -97,6 +100,7 @@ class VagaServiceTest {
         empresa.setNomeFantasia("Tech Corp");
         empresa.setUsuario(usuario);
 
+        // Vaga completa
         vaga = new Vagas();
         vaga.setId(1L);
         vaga.setTitulo("Dev Java Pleno");
@@ -117,6 +121,7 @@ class VagaServiceTest {
         vaga.setAreaAtuacao("Tecnologia");
         vaga.setDataExpiracao(LocalDateTime.now().plusDays(30));
 
+        // DTO de request — empresaId é ignorado para EMPRESA (busca pelo usuário autenticado)
         request = new VagaRequestDTO(
                 null, "Dev Java Pleno",
                 "Vaga para desenvolvedor Java com experiência em Spring Boot",
@@ -130,10 +135,11 @@ class VagaServiceTest {
                 1L, 3, 1L
         );
 
+        // DTO de response atualizado com id e empresaId
         responseDTO = new VagaResponseDTO(
-                1L,
+                1L,                     // id — ADICIONADO
                 "Tech Corp",
-                EMPRESA_ID,
+                EMPRESA_ID,             // empresaId — ADICIONADO
                 "Dev Java Pleno",
                 "Vaga para desenvolvedor Java com experiência em Spring Boot",
                 "Java 17, Spring Boot, JPA",
@@ -152,8 +158,13 @@ class VagaServiceTest {
 
     @AfterEach
     void tearDown() {
+        // Limpar o SecurityContext após cada teste
         SecurityContextHolder.clearContext();
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Método auxiliar — simula usuário autenticado no SecurityContext
+    // ─────────────────────────────────────────────────────────────────────────
 
     private void autenticarComoEmpresa() {
         autenticar(TipoUsuario.EMPRESA);
@@ -171,6 +182,10 @@ class VagaServiceTest {
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF005 — Cadastro de Vagas
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("RF005 — Cadastro de Vagas")
@@ -197,6 +212,7 @@ class VagaServiceTest {
             assertThat(result.id()).isEqualTo(1L);
             assertThat(result.nomeFantasiaEmpresa()).isEqualTo("Tech Corp");
             assertThat(result.empresaId()).isEqualTo(EMPRESA_ID);
+            // Garante que buscou pela empresa do usuário, não por ID direto
             verify(empresaRepository).findByUsuarioId(USUARIO_ID);
             verify(empresaRepository, never()).findById(any());
             verify(vagaRepository).save(any());
@@ -229,6 +245,7 @@ class VagaServiceTest {
             VagaResponseDTO result = vagaService.create(requestAdmin);
 
             assertThat(result).isNotNull();
+            // ADMIN usa findById, não findByUsuarioId
             verify(empresaRepository).findById(EMPRESA_ID);
             verify(empresaRepository, never()).findByUsuarioId(any());
         }
@@ -256,7 +273,7 @@ class VagaServiceTest {
             VagaRequestDTO requestInvalido = new VagaRequestDTO(
                     null, "Dev Java", "Descrição", "Requisitos",
                     1L, 1L,
-                    new BigDecimal("9000.00"), new BigDecimal("5000.00"),
+                    new BigDecimal("9000.00"), new BigDecimal("5000.00"), // mínimo > máximo
                     null, "40h/semana", 18, 40, 1L, "TI",
                     LocalDateTime.now().plusDays(30), 1L, 1, 1L
             );
@@ -274,6 +291,10 @@ class VagaServiceTest {
                     .hasMessageContaining("Salário mínimo");
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF006 — Manutenção de Vagas
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("RF006 — Manutenção de Vagas")
@@ -317,11 +338,14 @@ class VagaServiceTest {
         void deveLancarExcecaoEditarVagaDeOutraEmpresa() {
             autenticarComoEmpresa();
 
+            // Empresa diferente vinculada à vaga
             Empresas outraEmpresa = new Empresas();
             outraEmpresa.setId(99L);
+            outraEmpresa.setNomeFantasia("Outra Empresa");
             vaga.setEmpresas(outraEmpresa);
 
             when(vagaRepository.findById(1L)).thenReturn(Optional.of(vaga));
+            // Retorna a empresa do usuário autenticado (diferente da vaga)
             when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
 
             assertThatThrownBy(() -> vagaService.update(1L, request))
@@ -346,6 +370,7 @@ class VagaServiceTest {
             VagaResponseDTO result = vagaService.update(1L, request);
 
             assertThat(result).isNotNull();
+            // ADMIN não verifica empresa do usuário
             verify(empresaRepository, never()).findByUsuarioId(any());
         }
 
@@ -387,6 +412,10 @@ class VagaServiceTest {
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF007 — Busca e Filtragem de Vagas
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("RF007 — Busca e Filtragem de Vagas")
