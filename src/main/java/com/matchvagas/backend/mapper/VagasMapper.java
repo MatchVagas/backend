@@ -9,6 +9,8 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface VagasMapper {
 
+    @Mapping(target = "id",                  source = "id")          // ADICIONADO
+    @Mapping(target = "empresaId",           source = "empresas.id") // ADICIONADO
     @Mapping(target = "nomeFantasiaEmpresa", source = "empresas.nomeFantasia")
     @Mapping(target = "tipoVagaId",          source = "tipoVaga.id")
     @Mapping(target = "tipoVagaDescricao",   source = "tipoVaga.descricao")
@@ -23,13 +25,13 @@ public interface VagasMapper {
     @Mapping(target = "ufEstado",            source = "cidade.estado.uf")
     VagaResponseDTO toDTO(Vagas vaga);
 
-    @Mapping(target = "id",          ignore = true)
-    @Mapping(target = "empresas",    ignore = true)
-    @Mapping(target = "tipoVaga",    ignore = true)
-    @Mapping(target = "modalidade",  ignore = true)
-    @Mapping(target = "escolaridade",ignore = true)
-    @Mapping(target = "status",      ignore = true)
-    @Mapping(target = "cidade",      ignore = true)
-    @Mapping(target = "dataPublicacao", ignore = true) // preenchido pelo @PrePersist
+    @Mapping(target = "id",           ignore = true)
+    @Mapping(target = "empresas",     ignore = true)
+    @Mapping(target = "tipoVaga",     ignore = true)
+    @Mapping(target = "modalidade",   ignore = true)
+    @Mapping(target = "escolaridade", ignore = true)
+    @Mapping(target = "status",       ignore = true)
+    @Mapping(target = "cidade",       ignore = true)
+    @Mapping(target = "dataPublicacao", ignore = true)
     Vagas toEntity(VagaRequestDTO dto);
 }

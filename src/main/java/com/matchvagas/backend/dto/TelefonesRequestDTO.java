@@ -1,18 +1,19 @@
 package com.matchvagas.backend.dto;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
-
 public record TelefonesRequestDTO(
-    @NotNull(message = "ID do numero é obrigatório")
-    Long numeroId,
 
-    @NotBlank(message = "Nível de tipo_numero é obrigatório")
-    @Size(max = 9, message = "Nível deve ter no máximo 9 caracteres")
-    String nivel,
+        @NotBlank(message = "Número de telefone é obrigatório")
+        @Size(max = 20, message = "Número deve ter no máximo 20 caracteres")
+        @Pattern(regexp = "^\\+?[0-9\\s\\-\\(\\)]+$", message = "Número de telefone inválido")
+        String numero,              // era: Long numeroId — corrigido para String
 
-    @NotNull(message = "Wpp é obrigatório")
-    boolean wppId
+        @NotNull(message = "Tipo de telefone é obrigatório")
+        Long tipoTelefoneId,        // era: String nivel — corrigido para o ID correto
 
+        boolean wpp                 // era: boolean wppId — removido o sufixo Id
 ) {}
