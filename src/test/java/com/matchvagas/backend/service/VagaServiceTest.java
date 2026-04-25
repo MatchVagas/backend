@@ -3,10 +3,12 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
+import com.matchvagas.backend.entity.Usuarios.TipoUsuario;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -15,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -51,12 +56,11 @@ class VagaServiceTest {
     private StatusVaga statusVaga;
     private Cidade cidade;
 
+    private static final Long USUARIO_ID = 10L;
+    private static final Long EMPRESA_ID = 1L;
+
     @BeforeEach
     void setUp() {
-        empresa = new Empresas();
-        empresa.setId(1L);
-        empresa.setNomeFantasia("Tech Corp");
-
         tipoVaga = new TipoVaga();
         tipoVaga.setId(1L);
         tipoVaga.setDescricao("CLT");
@@ -73,9 +77,25 @@ class VagaServiceTest {
         statusVaga.setId(1L);
         statusVaga.setDescricao("ATIVA");
 
+        Estado estado = new Estado();
+        estado.setId(1L);
+        estado.setNome("São Paulo");
+        estado.setUf("SP");
+
         cidade = new Cidade();
         cidade.setId(1L);
         cidade.setNome("São Paulo");
+        cidade.setEstado(estado);
+
+        Usuarios usuario = new Usuarios();
+        usuario.setId(USUARIO_ID);
+        usuario.setNome("Gestor Tech Corp");
+        usuario.setTipoUsuario(TipoUsuario.EMPRESA);
+
+        empresa = new Empresas();
+        empresa.setId(EMPRESA_ID);
+        empresa.setNomeFantasia("Tech Corp");
+        empresa.setUsuario(usuario);
 
         vaga = new Vagas();
         vaga.setId(1L);
@@ -98,7 +118,7 @@ class VagaServiceTest {
         vaga.setDataExpiracao(LocalDateTime.now().plusDays(30));
 
         request = new VagaRequestDTO(
-                1L, "Dev Java Pleno",
+                null, "Dev Java Pleno",
                 "Vaga para desenvolvedor Java com experiência em Spring Boot",
                 "Java 17, Spring Boot, JPA",
                 1L, 1L,
@@ -111,11 +131,15 @@ class VagaServiceTest {
         );
 
         responseDTO = new VagaResponseDTO(
-                "Tech Corp", "Dev Java Pleno",
+                1L,
+                "Tech Corp",
+                EMPRESA_ID,
+                "Dev Java Pleno",
                 "Vaga para desenvolvedor Java com experiência em Spring Boot",
                 "Java 17, Spring Boot, JPA",
                 "Vale refeição, Plano de saúde",
-                1L, "CLT", 1L, "Remoto",
+                1L, "CLT",
+                1L, "Remoto",
                 new BigDecimal("5000.00"), new BigDecimal("8000.00"),
                 "40h/semana", 18, 40,
                 1L, "Ensino Superior",
@@ -126,19 +150,39 @@ class VagaServiceTest {
         );
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // RF005 — Cadastro de Vagas
-    // ─────────────────────────────────────────────────────────────────────────
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void autenticarComoEmpresa() {
+        autenticar(TipoUsuario.EMPRESA);
+    }
+
+    private void autenticarComoAdmin() {
+        autenticar(TipoUsuario.ADMIN);
+    }
+
+    private void autenticar(TipoUsuario tipo) {
+        var auth = new UsernamePasswordAuthenticationToken(
+                String.valueOf(USUARIO_ID),
+                null,
+                List.of(new SimpleGrantedAuthority(tipo.name()))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
     @Nested
     @DisplayName("RF005 — Cadastro de Vagas")
     class RF005 {
 
         @Test
-        @DisplayName("Deve cadastrar vaga com sucesso")
-        void deveCadastrarVagaComSucesso() {
+        @DisplayName("Usuário EMPRESA deve cadastrar vaga na própria empresa automaticamente")
+        void deveCadastrarVagaViaUsuarioEmpresa() {
+            autenticarComoEmpresa();
+
             when(vagasMapper.toEntity(request)).thenReturn(vaga);
-            when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
             when(tipoVagaRepository.findById(1L)).thenReturn(Optional.of(tipoVaga));
             when(modalidadeRepository.findById(1L)).thenReturn(Optional.of(modalidade));
             when(escolaridadeRepository.findById(1L)).thenReturn(Optional.of(escolaridade));
@@ -150,24 +194,75 @@ class VagaServiceTest {
             VagaResponseDTO result = vagaService.create(request);
 
             assertThat(result).isNotNull();
-            assertThat(result.titulo()).isEqualTo("Dev Java Pleno");
+            assertThat(result.id()).isEqualTo(1L);
             assertThat(result.nomeFantasiaEmpresa()).isEqualTo("Tech Corp");
+            assertThat(result.empresaId()).isEqualTo(EMPRESA_ID);
+            verify(empresaRepository).findByUsuarioId(USUARIO_ID);
+            verify(empresaRepository, never()).findById(any());
             verify(vagaRepository).save(any());
+        }
+
+        @Test
+        @DisplayName("ADMIN deve cadastrar vaga informando empresaId no request")
+        void deveCadastrarVagaComoAdmin() {
+            autenticarComoAdmin();
+
+            VagaRequestDTO requestAdmin = new VagaRequestDTO(
+                    EMPRESA_ID, "Dev Java Pleno",
+                    "Descrição", "Requisitos",
+                    1L, 1L,
+                    new BigDecimal("5000.00"), new BigDecimal("8000.00"),
+                    null, "40h/semana", 18, 40, 1L, "TI",
+                    LocalDateTime.now().plusDays(30), 1L, 1, 1L
+            );
+
+            when(vagasMapper.toEntity(requestAdmin)).thenReturn(vaga);
+            when(empresaRepository.findById(EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(tipoVagaRepository.findById(1L)).thenReturn(Optional.of(tipoVaga));
+            when(modalidadeRepository.findById(1L)).thenReturn(Optional.of(modalidade));
+            when(escolaridadeRepository.findById(1L)).thenReturn(Optional.of(escolaridade));
+            when(statusVagaRepository.findById(1L)).thenReturn(Optional.of(statusVaga));
+            when(cidadeRepository.findById(1L)).thenReturn(Optional.of(cidade));
+            when(vagaRepository.save(any())).thenReturn(vaga);
+            when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
+
+            VagaResponseDTO result = vagaService.create(requestAdmin);
+
+            assertThat(result).isNotNull();
+            verify(empresaRepository).findById(EMPRESA_ID);
+            verify(empresaRepository, never()).findByUsuarioId(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção quando EMPRESA não tem empresa cadastrada")
+        void deveLancarExcecaoEmpresaNaoVinculada() {
+            autenticarComoEmpresa();
+
+            when(vagasMapper.toEntity(any())).thenReturn(vaga);
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> vagaService.create(request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("Nenhuma empresa vinculada");
+
+            verify(vagaRepository, never()).save(any());
         }
 
         @Test
         @DisplayName("Deve lançar exceção quando salário mínimo maior que máximo")
         void deveLancarExcecaoSalarioInvalido() {
+            autenticarComoEmpresa();
+
             VagaRequestDTO requestInvalido = new VagaRequestDTO(
-                    1L, "Dev Java", "Descrição longa o suficiente para validar", "Requisitos",
+                    null, "Dev Java", "Descrição", "Requisitos",
                     1L, 1L,
-                    new BigDecimal("9000.00"), new BigDecimal("5000.00"), // mínimo > máximo
+                    new BigDecimal("9000.00"), new BigDecimal("5000.00"),
                     null, "40h/semana", 18, 40, 1L, "TI",
                     LocalDateTime.now().plusDays(30), 1L, 1, 1L
             );
 
             when(vagasMapper.toEntity(any())).thenReturn(vaga);
-            when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
             when(tipoVagaRepository.findById(1L)).thenReturn(Optional.of(tipoVaga));
             when(modalidadeRepository.findById(1L)).thenReturn(Optional.of(modalidade));
             when(escolaridadeRepository.findById(1L)).thenReturn(Optional.of(escolaridade));
@@ -178,33 +273,20 @@ class VagaServiceTest {
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Salário mínimo");
         }
-
-        @Test
-        @DisplayName("Deve lançar exceção quando empresa não encontrada")
-        void deveLancarExcecaoEmpresaNaoEncontrada() {
-            when(vagasMapper.toEntity(any())).thenReturn(vaga);
-            when(empresaRepository.findById(1L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> vagaService.create(request))
-                    .isInstanceOf(ResourceNotFoundException.class)
-                    .hasMessageContaining("Empresa");
-        }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // RF006 — Manutenção de Vagas
-    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("RF006 — Manutenção de Vagas")
     class RF006 {
 
         @Test
-        @DisplayName("Deve atualizar vaga existente com sucesso")
-        void deveAtualizarVagaComSucesso() {
+        @DisplayName("Empresa deve atualizar sua própria vaga com sucesso")
+        void deveAtualizarVagaPropriaEmpresa() {
+            autenticarComoEmpresa();
+
             VagaResponseDTO responseAtualizado = new VagaResponseDTO(
-                    "Tech Corp", "Dev Java Sênior",
-                    "Vaga atualizada", "Java 21",
+                    1L, "Tech Corp", EMPRESA_ID,
+                    "Dev Java Sênior", "Vaga atualizada", "Java 21",
                     null, 1L, "CLT", 1L, "Remoto",
                     new BigDecimal("8000.00"), new BigDecimal("12000.00"),
                     "40h/semana", 25, 45,
@@ -215,6 +297,7 @@ class VagaServiceTest {
             );
 
             when(vagaRepository.findById(1L)).thenReturn(Optional.of(vaga));
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
             when(tipoVagaRepository.findById(1L)).thenReturn(Optional.of(tipoVaga));
             when(modalidadeRepository.findById(1L)).thenReturn(Optional.of(modalidade));
             when(escolaridadeRepository.findById(1L)).thenReturn(Optional.of(escolaridade));
@@ -225,14 +308,54 @@ class VagaServiceTest {
 
             VagaResponseDTO result = vagaService.update(1L, request);
 
-            assertThat(result).isNotNull();
+            assertThat(result.titulo()).isEqualTo("Dev Java Sênior");
             verify(vagaRepository).save(any());
         }
 
         @Test
-        @DisplayName("Deve remover vaga existente")
-        void deveRemoverVagaComSucesso() {
-            when(vagaRepository.existsById(1L)).thenReturn(true);
+        @DisplayName("Deve lançar exceção quando EMPRESA tenta editar vaga de outra empresa")
+        void deveLancarExcecaoEditarVagaDeOutraEmpresa() {
+            autenticarComoEmpresa();
+
+            Empresas outraEmpresa = new Empresas();
+            outraEmpresa.setId(99L);
+            vaga.setEmpresas(outraEmpresa);
+
+            when(vagaRepository.findById(1L)).thenReturn(Optional.of(vaga));
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
+
+            assertThatThrownBy(() -> vagaService.update(1L, request))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("permissão");
+        }
+
+        @Test
+        @DisplayName("ADMIN deve atualizar qualquer vaga sem restrição")
+        void adminDeveAtualizarQualquerVaga() {
+            autenticarComoAdmin();
+
+            when(vagaRepository.findById(1L)).thenReturn(Optional.of(vaga));
+            when(tipoVagaRepository.findById(1L)).thenReturn(Optional.of(tipoVaga));
+            when(modalidadeRepository.findById(1L)).thenReturn(Optional.of(modalidade));
+            when(escolaridadeRepository.findById(1L)).thenReturn(Optional.of(escolaridade));
+            when(statusVagaRepository.findById(1L)).thenReturn(Optional.of(statusVaga));
+            when(cidadeRepository.findById(1L)).thenReturn(Optional.of(cidade));
+            when(vagaRepository.save(any())).thenReturn(vaga);
+            when(vagasMapper.toDTO(any())).thenReturn(responseDTO);
+
+            VagaResponseDTO result = vagaService.update(1L, request);
+
+            assertThat(result).isNotNull();
+            verify(empresaRepository, never()).findByUsuarioId(any());
+        }
+
+        @Test
+        @DisplayName("Empresa deve remover sua própria vaga")
+        void deveRemoverVagaPropriaEmpresa() {
+            autenticarComoEmpresa();
+
+            when(vagaRepository.findById(1L)).thenReturn(Optional.of(vaga));
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
             doNothing().when(vagaRepository).deleteById(1L);
 
             vagaService.delete(1L);
@@ -243,7 +366,9 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve lançar exceção ao remover vaga inexistente")
         void deveLancarExcecaoRemoverVagaInexistente() {
-            when(vagaRepository.existsById(99L)).thenReturn(false);
+            autenticarComoEmpresa();
+
+            when(vagaRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> vagaService.delete(99L))
                     .isInstanceOf(ResourceNotFoundException.class);
@@ -254,16 +379,14 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve lançar exceção ao atualizar vaga inexistente")
         void deveLancarExcecaoAtualizarVagaInexistente() {
+            autenticarComoEmpresa();
+
             when(vagaRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> vagaService.update(99L, request))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // RF007 — Busca e Filtragem de Vagas
-    // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
     @DisplayName("RF007 — Busca e Filtragem de Vagas")
@@ -282,7 +405,7 @@ class VagaServiceTest {
 
         @Test
         @DisplayName("Deve filtrar vagas por título")
-        void deveFilterPorTitulo() {
+        void deveFiltrarPorTitulo() {
             when(vagaRepository.findByTituloContaining("Java")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
@@ -321,16 +444,44 @@ class VagaServiceTest {
 
             VagaResponseDTO result = vagaService.findById(1L);
 
+            assertThat(result.id()).isEqualTo(1L);
             assertThat(result.titulo()).isEqualTo("Dev Java Pleno");
         }
 
         @Test
-        @DisplayName("Deve lançar exceção para vaga não encontrada")
+        @DisplayName("Deve lançar exceção para vaga não encontrada por ID")
         void deveLancarExcecaoVagaNaoEncontrada() {
             when(vagaRepository.findById(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> vagaService.findById(99L))
                     .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("Deve listar vagas da empresa do usuário autenticado")
+        void deveListarMinhasVagas() {
+            autenticarComoEmpresa();
+
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(empresa));
+            when(vagaRepository.findByEmpresasId(EMPRESA_ID)).thenReturn(List.of(vaga));
+            when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
+
+            List<VagaResponseDTO> result = vagaService.findMinhasVagas();
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).empresaId()).isEqualTo(EMPRESA_ID);
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção em findMinhasVagas quando empresa não vinculada")
+        void deveLancarExcecaoMinhasVagasSemEmpresa() {
+            autenticarComoEmpresa();
+
+            when(empresaRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> vagaService.findMinhasVagas())
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("Nenhuma empresa vinculada");
         }
     }
 }
