@@ -1,23 +1,14 @@
 package com.matchvagas.backend.dto;
 
-import java.time.LocalDate;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record ExperienciaResponseDTO(
-    Long id,
-    Long candidatoId,
-    String cargo,
-    String empresa,
-    String localTrabalho,
-    LocalDate dataInicio,
-    LocalDate dataFim,
-    Boolean atual,
-    String tipoContrato,
-    String descricao,
-    List<String> responsabilidades,
-    List<String> tecnologias,
-    Double salario,
-    String comprovanteUrl
-) {
-  
-}
+        Long id,
+        Long candidatoId,
+        String empresa,             // alinhado com entidade Experiencia
+        String cargo,
+        String descricao,
+        String dataInicio,          // String — como está na entidade
+        String dataFim
+) {}

@@ -13,4 +13,5 @@ import com.matchvagas.backend.entity.RamoAtuacao;
 public interface EmpresaRepository extends JpaRepository<Empresas, Long> {
     Optional<Empresas> findByCnpjContainingIgnoreCase(String cnpj);
     List<Empresas> findByRamoAtuacao(RamoAtuacao ramoAtuacao);
+    Optional<Empresas> findByUsuarioId(Long usuarioId);
 }

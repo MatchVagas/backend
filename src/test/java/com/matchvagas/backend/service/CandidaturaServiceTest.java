@@ -8,6 +8,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidaturaMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.EmpresaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,6 +35,7 @@ class CandidaturaServiceTest {
     @Mock CandidaturaRepository candidaturasRepository;
     @Mock CandidatoRepository candidatosRepository;
     @Mock VagaRepository vagasRepository;
+    @Mock EmpresaRepository empresaRepository; // ADICIONADO — CandidaturaService agora injeta EmpresaRepository
     @Mock CandidaturaMapper candidaturaMapper;
 
     @InjectMocks CandidaturaService candidaturaService;
@@ -41,8 +43,12 @@ class CandidaturaServiceTest {
     private Candidatos candidato;
     private Vagas vaga;
     private Candidatura candidatura;
+    private Empresas empresa;
     private CandidaturaRequestDTO request;
     private CandidaturaResponseDTO responseDTO;
+
+    private static final Long USUARIO_EMPRESA_ID = 20L;
+    private static final Long EMPRESA_ID = 5L;
 
     @BeforeEach
     void setUp() {
@@ -58,13 +64,23 @@ class CandidaturaServiceTest {
         statusAtiva.setId(1L);
         statusAtiva.setDescricao("ATIVA");
 
+        // Empresa vinculada ao usuário gestor
+        Usuarios usuarioEmpresa = new Usuarios();
+        usuarioEmpresa.setId(USUARIO_EMPRESA_ID);
+
+        empresa = new Empresas();
+        empresa.setId(EMPRESA_ID);
+        empresa.setNomeFantasia("Tech Corp");
+        empresa.setUsuario(usuarioEmpresa);
+
         vaga = new Vagas();
         vaga.setId(5L);
         vaga.setTitulo("Dev Java Pleno");
         vaga.setStatus(statusAtiva);
+        vaga.setEmpresas(empresa); // ADICIONADO — vaga tem empresa
 
         StatusCandidatura statusCandidatura = new StatusCandidatura();
-        statusCandidatura.setId(1);
+        statusCandidatura.setId(1L);
         statusCandidatura.setStatus("EM_ANALISE");
 
         candidatura = new Candidatura();
@@ -159,12 +175,12 @@ class CandidaturaServiceTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RF009 — Acompanhamento de Candidaturas
+    // RF009 — Acompanhamento de Candidaturas (Candidato)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
-    @DisplayName("RF009 — Acompanhamento de Candidaturas")
-    class RF009 {
+    @DisplayName("RF009 — Acompanhamento de Candidaturas (Candidato)")
+    class RF009Candidato {
 
         @Test
         @DisplayName("Deve listar todas as candidaturas do candidato com status")
@@ -215,10 +231,56 @@ class CandidaturaServiceTest {
         void deveLancarExcecaoAcessoNegado() {
             when(candidaturasRepository.findById(100L)).thenReturn(Optional.of(candidatura));
 
-            // candidato 10 tenta acessar candidatura do candidato 10, mas passando id 99 (outro)
             assertThatThrownBy(() -> candidaturaService.findByIdAndCandidato(100L, 99L))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("permissão");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF009 — Acompanhamento de Candidaturas (Empresa)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("RF009 — Candidaturas recebidas na empresa")
+    class RF009Empresa {
+
+        @Test
+        @DisplayName("Empresa deve listar candidaturas recebidas nas suas vagas")
+        void deveListarCandidaturasRecebidas() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID))
+                    .thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID))
+                    .thenReturn(List.of(candidatura));
+            when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
+
+            List<CandidaturaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).tituloVaga()).isEqualTo("Dev Java Pleno");
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista vazia quando empresa não tem candidaturas")
+        void deveRetornarVazioSemCandidaturasRecebidas() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID))
+                    .thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID))
+                    .thenReturn(List.of());
+
+            List<CandidaturaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção quando usuário não tem empresa vinculada")
+        void deveLancarExcecaoSemEmpresaVinculada() {
+            when(empresaRepository.findByUsuarioId(99L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("Nenhuma empresa vinculada");
         }
     }
 }

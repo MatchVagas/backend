@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,16 +34,26 @@ public class EmpresaController {
         return ResponseEntity.ok(empresaService.findById(id));
     }
 
-    // RF004 — Criar perfil de empresa
+    // Usuário EMPRESA visualiza sua própria empresa
+    @GetMapping("/minha-empresa")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Visualizar minha empresa")
+    public ResponseEntity<EmpresaResponseDTO> minhaEmpresa() {
+        return ResponseEntity.ok(empresaService.findByUsuarioAutenticado());
+    }
+
+    // RF004 — Criar perfil de empresa (EMPRESA ou ADMIN)
     @PostMapping
-    @Operation(summary = "Cadastrar empresa")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
+    @Operation(summary = "Cadastrar empresa — restrito a usuários do tipo EMPRESA ou ADMIN")
     public ResponseEntity<EmpresaResponseDTO> create(@Valid @RequestBody EmpresaRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(empresaService.create(dto));
     }
 
-    // RF004 — Atualizar perfil de empresa
+    // RF004 — Atualizar perfil de empresa (EMPRESA ou ADMIN)
     @PutMapping("/{id}")
-    @Operation(summary = "Atualizar empresa")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
+    @Operation(summary = "Atualizar empresa — restrito a usuários do tipo EMPRESA ou ADMIN")
     public ResponseEntity<EmpresaResponseDTO> update(
             @PathVariable Long id,
             @Valid @RequestBody EmpresaRequestDTO dto) {

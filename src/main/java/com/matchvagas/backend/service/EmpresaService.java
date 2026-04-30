@@ -3,15 +3,18 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.EmpresaRequestDTO;
 import com.matchvagas.backend.dto.EmpresaResponseDTO;
 import com.matchvagas.backend.entity.Empresas;
-import com.matchvagas.backend.entity.Porte;
-import com.matchvagas.backend.entity.RamoAtuacao;
+import com.matchvagas.backend.entity.Usuarios;
+import com.matchvagas.backend.entity.Usuarios.TipoUsuario;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.EmpresaMapper;
 import com.matchvagas.backend.repository.EmpresaRepository;
 import com.matchvagas.backend.repository.PorteRepository;
 import com.matchvagas.backend.repository.RamoAtuacaoRepository;
+import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ public class EmpresaService {
     private final EmpresaRepository empresaRepository;
     private final PorteRepository porteRepository;
     private final RamoAtuacaoRepository ramoAtuacaoRepository;
+    private final UsuariosRepository usuariosRepository;
     private final EmpresaMapper empresaMapper;
 
     @Transactional(readOnly = true)
@@ -42,15 +46,46 @@ public class EmpresaService {
         return empresaMapper.toResponseDTO(empresa);
     }
 
-    // RF004 — Criar perfil de empresa
+    @Transactional(readOnly = true)
+    public EmpresaResponseDTO findByUsuarioAutenticado() {
+        Long usuarioId = getUsuarioIdAutenticado();
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Nenhuma empresa vinculada a este usuário."));
+        return empresaMapper.toResponseDTO(empresa);
+    }
+
     @Transactional
     public EmpresaResponseDTO create(EmpresaRequestDTO dto) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
+        boolean isEmpresa = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.EMPRESA.name()));
+
+        if (!isEmpresa && !isAdmin) {
+            throw new BusinessException("Apenas usuários do tipo EMPRESA ou ADMIN podem cadastrar uma empresa.");
+        }
+
         if (empresaRepository.findByCnpjContainingIgnoreCase(dto.cnpj()).isPresent()) {
             throw new BusinessException("Já existe uma empresa cadastrada com este CNPJ.");
         }
 
-        Empresas empresa = empresaMapper.toEntity(dto);
+        Long usuarioId;
+        if (isEmpresa) {
+            usuarioId = getUsuarioIdAutenticado();
+            if (empresaRepository.findByUsuarioId(usuarioId).isPresent()) {
+                throw new BusinessException("Este usuário já possui uma empresa cadastrada.");
+            }
+        } else {
+            usuarioId = dto.usuarioGestorId() != null ? dto.usuarioGestorId() : getUsuarioIdAutenticado();
+        }
 
+        Usuarios usuarioGestor = usuariosRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário gestor não encontrado"));
+
+        Empresas empresa = empresaMapper.toEntity(dto);
+        empresa.setUsuario(usuarioGestor);
         empresa.setPorte(porteRepository.findById(dto.porteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Porte não encontrado")));
         empresa.setRamoAtuacao(ramoAtuacaoRepository.findById(dto.ramoId())
@@ -59,26 +94,38 @@ public class EmpresaService {
         return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
     }
 
-    // RF004 — Atualizar perfil de empresa
     @Transactional
     public EmpresaResponseDTO update(Long id, EmpresaRequestDTO dto) {
         Empresas empresa = empresaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
+
+        if (!isAdmin) {
+            Long usuarioId = getUsuarioIdAutenticado();
+            if (empresa.getUsuario() == null || !empresa.getUsuario().getId().equals(usuarioId)) {
+                throw new BusinessException("Você não tem permissão para editar esta empresa.");
+            }
+        }
 
         empresa.setRazaoSocial(dto.razaoSocial());
         empresa.setNomeFantasia(dto.nomeFantasia());
         empresa.setDescricao(dto.descricao());
         empresa.setSite(dto.site());
 
-        if (dto.porteId() != null) {
+        if (dto.porteId() != null)
             empresa.setPorte(porteRepository.findById(dto.porteId())
                     .orElseThrow(() -> new ResourceNotFoundException("Porte não encontrado")));
-        }
-        if (dto.ramoId() != null) {
+        if (dto.ramoId() != null)
             empresa.setRamoAtuacao(ramoAtuacaoRepository.findById(dto.ramoId())
                     .orElseThrow(() -> new ResourceNotFoundException("Ramo de atuação não encontrado")));
-        }
 
         return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
+    }
+
+    private Long getUsuarioIdAutenticado() {
+        return Long.parseLong(SecurityContextHolder.getContext().getAuthentication().getName());
     }
 }

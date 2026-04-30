@@ -27,5 +27,9 @@ public record EmpresaRequestDTO(
         Long ramoId,
 
         @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
-        String site
+        String site,
+
+        // Usado apenas por ADMIN para vincular a empresa a um usuário específico
+        // Usuários EMPRESA ignoram este campo — a empresa é vinculada a eles automaticamente
+        Long usuarioGestorId
 ) {}

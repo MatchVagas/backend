@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,8 +23,9 @@ public class CandidaturaController {
 
     private final CandidaturaService candidaturaService;
 
-    // RF008 — Candidatar-se a uma vaga
+    // RF008 — Candidatar-se a uma vaga (somente CANDIDATO)
     @PostMapping
+    @PreAuthorize("hasAuthority('CANDIDATO')")
     @Operation(summary = "Candidatar-se a uma vaga")
     public ResponseEntity<CandidaturaResponseDTO> candidatar(
             Authentication authentication,
@@ -33,21 +35,32 @@ public class CandidaturaController {
                 .body(candidaturaService.candidatar(candidatoId, request));
     }
 
-    // RF009 — Listar candidaturas do candidato autenticado
+    // RF009 — Listar minhas candidaturas (CANDIDATO)
     @GetMapping("/minhas")
+    @PreAuthorize("hasAuthority('CANDIDATO')")
     @Operation(summary = "Listar minhas candidaturas com status")
     public ResponseEntity<List<CandidaturaResponseDTO>> minhasCandidaturas(Authentication authentication) {
         Long candidatoId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByCandidato(candidatoId));
     }
 
-    // RF009 — Detalhe de uma candidatura específica
+    // RF009 — Detalhar uma candidatura (CANDIDATO)
     @GetMapping("/{id}")
+    @PreAuthorize("hasAuthority('CANDIDATO')")
     @Operation(summary = "Detalhar uma candidatura")
     public ResponseEntity<CandidaturaResponseDTO> findById(
             @PathVariable Long id,
             Authentication authentication) {
         Long candidatoId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByIdAndCandidato(id, candidatoId));
+    }
+
+    // Empresa — ver candidaturas recebidas nas vagas da minha empresa
+    @GetMapping("/empresa")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
+    @Operation(summary = "Listar candidaturas recebidas nas vagas da minha empresa")
+    public ResponseEntity<List<CandidaturaResponseDTO>> candidaturasEmpresa(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.findByEmpresa(usuarioId));
     }
 }

@@ -1,21 +1,14 @@
 package com.matchvagas.backend.dto;
 
-import java.time.LocalDate;
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record FormacaoResponseDTO(
-    Long id,
-    Long candidatoId,
-    String tipoFormacao,
-    String curso,
-    String instituicao,
-    LocalDate dataInicio,
-    LocalDate dataFim,
-    String grau,
-    String descricao,
-    String certificadoUrl,
-    Integer cargaHoraria,
-    Double notaMedia,
-    Boolean concluido
-) {
-  
-}
+        Long id,
+        Long candidatoId,
+        String instituicao,
+        String curso,
+        String nivel,
+        String dataInicio,
+        String dataFim
+) {}

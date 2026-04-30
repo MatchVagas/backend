@@ -1,21 +1,20 @@
 package com.matchvagas.backend.dto;
 
-import java.time.LocalDate;
+import jakarta.validation.constraints.NotBlank;
 
 public record FormacaoRequestDTO(
-    Long id,
-    Long candidatoId,
-    String tipoFormacao,
-    String curso,
-    String instituicao,
-    LocalDate dataInicio,
-    LocalDate dataFim,
-    String grau,            
-    String descricao,
-    String certificadoUrl,
-    Integer cargaHoraria,
-    Double notaMedia,
-    Boolean concluido
-) {
-  
-}
+
+        @NotBlank(message = "Instituição é obrigatória")
+        String instituicao,
+
+        @NotBlank(message = "Curso é obrigatório")
+        String curso,
+
+        @NotBlank(message = "Nível é obrigatório")
+        String nivel,               // campo real da entidade Formacao
+
+        @NotBlank(message = "Data de início é obrigatória")
+        String dataInicio,          // String — como está na entidade
+
+        String dataFim
+) {}

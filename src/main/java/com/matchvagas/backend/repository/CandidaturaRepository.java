@@ -35,4 +35,6 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> 
 
     boolean existsByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
 
+    // Busca todas as candidaturas das vagas de uma empresa
+    List<Candidatura> findByVagaEmpresasId(Long empresaId);
 }

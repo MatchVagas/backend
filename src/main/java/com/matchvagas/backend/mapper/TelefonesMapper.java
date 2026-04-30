@@ -9,9 +9,13 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface TelefonesMapper {
 
-    @Mapping(target = "tipoTelefone", ignore = true)
+    @Mapping(target = "id",          ignore = true)
+    @Mapping(target = "tipoTelefone", ignore = true) // resolvido no service
+    @Mapping(target = "empresas",     ignore = true)
+    @Mapping(target = "usuarios",     ignore = true)
     Telefones toEntity(TelefonesRequestDTO request);
 
-    @Mapping(target = "tipoTelefoneId", source = "tipoTelefone.id")
+    @Mapping(target = "tipoTelefoneId",   source = "tipoTelefone.id")
+    @Mapping(target = "tipoTelefoneNome", source = "tipoTelefone.nome") // ADICIONADO
     TelefonesResponseDTO toDTO(Telefones telefone);
 }
