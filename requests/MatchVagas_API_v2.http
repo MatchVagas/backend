@@ -1,0 +1,964 @@
+# MatchVagas API v2
+
+###
+# group: RF001 — Cadastro de Usuários
+# @name Cadastrar candidato
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "João Silva",
+  "email": "joao@email.com",
+  "senha": "senha123",
+  "dataNascimento": "1995-05-10T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201 - Criado', () => pm.response.to.have.status(201));
+    // pm.test('tipoUsuario é CANDIDATO', () => pm.expect(pm.response.json().tipoUsuario).to.eql('CANDIDATO'));
+    // pm.test('Senha não é exposta', () => pm.expect(pm.response.json().senha).to.be.undefined);
+    // pm.test('Retorna id', () => pm.expect(pm.response.json().id).to.be.a('number'));
+%}
+
+###
+# group: RF001 — Cadastro de Usuários
+# @name Cadastrar usuário empresa
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Tech Corp RH",
+  "email": "rh@techcorp.com",
+  "senha": "senha123",
+  "dataNascimento": "1990-01-01T00:00:00",
+  "tipoUsuario": "EMPRESA"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201 - Criado', () => pm.response.to.have.status(201));
+    // pm.test('tipoUsuario é EMPRESA', () => pm.expect(pm.response.json().tipoUsuario).to.eql('EMPRESA'));
+%}
+
+###
+# group: RF001 — Cadastro de Usuários
+# @name [ERRO] Email duplicado → 400
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Outro João",
+  "email": "joao@email.com",
+  "senha": "outrasenha",
+  "dataNascimento": "1995-05-10T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para email duplicado', () => pm.response.to.have.status(400));
+    // pm.test('Mensagem de erro retornada', () => pm.expect(pm.response.json().mensagem).to.be.a('string'));
+%}
+
+###
+# group: RF001 — Cadastro de Usuários
+# @name [ERRO] Campos inválidos → 400
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Jo",
+  "email": "emailinvalido",
+  "senha": "123"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para dados inválidos', () => pm.response.to.have.status(400));
+    // pm.test('Retorna erros de validação', () => pm.expect(pm.response.json().erros).to.be.an('object'));
+%}
+
+###
+# group: RF002 — Autenticação
+# @name Login candidato — salva token automaticamente
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "senha": "senha123"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna token JWT', () => pm.expect(pm.response.json().token).to.be.a('string'));
+    // pm.test('Tipo é Bearer', () => pm.expect(pm.response.json().tipo).to.eql('Bearer'));
+    // pm.test('Perfil é CANDIDATO', () => pm.expect(pm.response.json().perfil).to.eql('CANDIDATO'));
+    // pm.collectionVariables.set('token_candidato', pm.response.json().token);
+    // console.log('Token candidato salvo:', pm.response.json().token.substring(0,20) + '...');
+%}
+
+###
+# group: RF002 — Autenticação
+# @name Login empresa — salva token automaticamente
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "rh@techcorp.com",
+  "senha": "senha123"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Perfil é EMPRESA', () => pm.expect(pm.response.json().perfil).to.eql('EMPRESA'));
+    // pm.collectionVariables.set('token_empresa', pm.response.json().token);
+    // console.log('Token empresa salvo:', pm.response.json().token.substring(0,20) + '...');
+%}
+
+###
+# group: RF002 — Autenticação
+# @name Login admin — salva token automaticamente
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@matchvagas.com",
+  "senha": "senha123"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Perfil é ADMIN', () => pm.expect(pm.response.json().perfil).to.eql('ADMIN'));
+    // pm.collectionVariables.set('token_admin', pm.response.json().token);
+    // console.log('Token admin salvo:', pm.response.json().token.substring(0,20) + '...');
+%}
+
+###
+# group: RF002 — Autenticação
+# @name [ERRO] Senha incorreta → 400
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao@email.com",
+  "senha": "senhaErrada"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para senha errada', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF002 — Autenticação
+# @name [ERRO] Email não cadastrado → 404
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "naoexiste@email.com",
+  "senha": "senha123"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 404 para usuário não encontrado', () => pm.response.to.have.status(404));
+%}
+
+###
+# group: RF003 — Perfil do Candidato
+# @name Criar perfil de candidato
+POST {{base_url}}/api/candidatos
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Desenvolvedor Java com 3 anos de experiência em Spring Boot",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 5000.00
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201', () => pm.response.to.have.status(201));
+    // pm.test('Retorna CPF', () => pm.expect(pm.response.json().cpf).to.eql('529.982.247-25'));
+    // pm.test('Retorna nome do usuário', () => pm.expect(pm.response.json().nome).to.be.a('string'));
+    // pm.test('Retorna email do usuário', () => pm.expect(pm.response.json().email).to.be.a('string'));
+%}
+
+###
+# group: RF003 — Perfil do Candidato
+# @name Visualizar meu perfil
+GET {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna nome', () => pm.expect(pm.response.json().nome).to.be.a('string'));
+    // pm.test('Retorna email', () => pm.expect(pm.response.json().email).to.be.a('string'));
+    // pm.test('Retorna cpf', () => pm.expect(pm.response.json().cpf).to.be.a('string'));
+%}
+
+###
+# group: RF003 — Perfil do Candidato
+# @name Atualizar perfil de candidato
+PUT {{base_url}}/api/candidatos/meu-perfil
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Desenvolvedor Java Sênior com 5 anos de experiência",
+  "disponibilidade": "30 dias",
+  "pretensaoSalarial": 8000.00
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Pretensão salarial atualizada', () => pm.expect(pm.response.json().pretensaoSalarial).to.eql(8000));
+%}
+
+###
+# group: RF003 — Perfil do Candidato
+# @name [ERRO] Sem token → 403
+GET {{base_url}}/api/candidatos/meu-perfil
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 sem token', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF003 — Perfil do Candidato
+# @name [ERRO] CPF inválido → 400
+POST {{base_url}}/api/candidatos
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "cpf": "111.111.111-11",
+  "resumoProfissional": "Teste",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 3000.00
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para CPF inválido', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name Cadastrar empresa (vincula ao usuário autenticado)
+POST {{base_url}}/api/empresas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Tech Corp Ltda",
+  "nomeFantasia": "Tech Corp",
+  "descricao": "Empresa de desenvolvimento de software",
+  "porteId": 4,
+  "ramoId": 1,
+  "site": "https://techcorp.com.br"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201', () => pm.response.to.have.status(201));
+    // pm.test('Retorna nomeFantasia', () => pm.expect(pm.response.json().nomeFantasia).to.eql('Tech Corp'));
+    // pm.test('Retorna usuarioGestorId', () => pm.expect(pm.response.json().usuarioGestorId).to.be.a('number'));
+    // pm.test('Retorna nomeGestor', () => pm.expect(pm.response.json().nomeGestor).to.be.a('string'));
+    // pm.test('Retorna porte', () => pm.expect(pm.response.json().porte).to.be.a('string'));
+    // pm.test('Retorna ramoAtuacao', () => pm.expect(pm.response.json().ramoAtuacao).to.be.a('string'));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name Visualizar minha empresa
+GET {{base_url}}/api/empresas/minha-empresa
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna nomeGestor', () => pm.expect(pm.response.json().nomeGestor).to.be.a('string'));
+    // pm.test('Retorna usuarioGestorId', () => pm.expect(pm.response.json().usuarioGestorId).to.be.a('number'));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name Listar todas as empresas (público)
+GET {{base_url}}/api/empresas
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200 sem token', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name Buscar empresa por ID (público)
+GET {{base_url}}/api/empresas/1
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna id', () => pm.expect(pm.response.json().id).to.be.a('number'));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name Atualizar empresa
+PUT {{base_url}}/api/empresas/1
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Tech Corp Ltda",
+  "nomeFantasia": "Tech Corp 2.0",
+  "descricao": "Empresa de tecnologia e inovação",
+  "porteId": 4,
+  "ramoId": 1,
+  "site": "https://techcorp2.com.br"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Nome fantasia atualizado', () => pm.expect(pm.response.json().nomeFantasia).to.eql('Tech Corp 2.0'));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name [ERRO] Candidato não pode cadastrar empresa → 403
+POST {{base_url}}/api/empresas
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "cnpj": "99.999.999/0001-99",
+  "razaoSocial": "Fake",
+  "nomeFantasia": "Fake",
+  "porteId": 1,
+  "ramoId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para candidato', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF004 — Perfil da Empresa
+# @name [ERRO] CNPJ duplicado → 400
+POST {{base_url}}/api/empresas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Duplicada",
+  "nomeFantasia": "Dup",
+  "porteId": 1,
+  "ramoId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para CNPJ duplicado', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF005 — Cadastro de Vagas
+# @name Criar vaga (empresa vinculada automaticamente)
+POST {{base_url}}/api/vagas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "titulo": "Desenvolvedor Java Pleno",
+  "descricao": "Vaga para desenvolvedor Java com experiência em Spring Boot e microsserviços",
+  "requisitos": "Java 17+, Spring Boot, JPA/Hibernate, Git",
+  "tipoVagaId": 1,
+  "modalidadeId": 2,
+  "salarioMinimo": 5000.00,
+  "salarioMaximo": 8000.00,
+  "beneficios": "Vale refeição, Plano de saúde, Gympass",
+  "cargaHoraria": "40h/semana",
+  "idadeMinima": 18,
+  "idadeMaxima": 45,
+  "escolaridadeId": 7,
+  "areaAtuacao": "Tecnologia da Informação",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": 1,
+  "numeroVagas": 3,
+  "cidadeId": 87
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201', () => pm.response.to.have.status(201));
+    // pm.test('Retorna id da vaga', () => pm.expect(pm.response.json().id).to.be.a('number'));
+    // pm.test('Retorna empresaId', () => pm.expect(pm.response.json().empresaId).to.be.a('number'));
+    // pm.test('Retorna nomeFantasiaEmpresa', () => pm.expect(pm.response.json().nomeFantasiaEmpresa).to.be.a('string'));
+    // pm.test('Retorna statusDescricao ATIVA', () => pm.expect(pm.response.json().statusDescricao).to.eql('ATIVA'));
+    // pm.collectionVariables.set('vaga_id', pm.response.json().id);
+    // console.log('Vaga ID salvo:', pm.response.json().id);
+%}
+
+###
+# group: RF005 — Cadastro de Vagas
+# @name [ERRO] Candidato não pode criar vaga → 403
+POST {{base_url}}/api/vagas
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "titulo": "Vaga Indevida do Candidato",
+  "descricao": "Candidato tentando criar vaga indevidamente",
+  "requisitos": "Não deveria funcionar",
+  "tipoVagaId": 1,
+  "modalidadeId": 1,
+  "salarioMinimo": 1000.00,
+  "salarioMaximo": 2000.00,
+  "cargaHoraria": "40h/semana",
+  "idadeMinima": 18,
+  "idadeMaxima": 40,
+  "escolaridadeId": 4,
+  "areaAtuacao": "TI",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": 1,
+  "numeroVagas": 1,
+  "cidadeId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para candidato', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF005 — Cadastro de Vagas
+# @name [ERRO] Salário mínimo maior que máximo → 400
+POST {{base_url}}/api/vagas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "titulo": "Vaga com Salário Inválido",
+  "descricao": "Testando regra de negócio de salário inválido aqui",
+  "requisitos": "Qualquer requisito para preencher o campo",
+  "tipoVagaId": 1,
+  "modalidadeId": 1,
+  "salarioMinimo": 9000.00,
+  "salarioMaximo": 5000.00,
+  "cargaHoraria": "40h/semana",
+  "idadeMinima": 18,
+  "idadeMaxima": 45,
+  "escolaridadeId": 4,
+  "areaAtuacao": "TI",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": 1,
+  "numeroVagas": 1,
+  "cidadeId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para salário inválido', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF005 — Cadastro de Vagas
+# @name [ERRO] Empresa sem perfil cadastrado → 400
+POST {{base_url}}/api/vagas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "titulo": "Vaga sem empresa",
+  "descricao": "Empresa ainda não cadastrou o perfil completo",
+  "requisitos": "Requisitos da vaga aqui",
+  "tipoVagaId": 1,
+  "modalidadeId": 1,
+  "salarioMinimo": 3000.00,
+  "salarioMaximo": 5000.00,
+  "cargaHoraria": "40h/semana",
+  "idadeMinima": 18,
+  "idadeMaxima": 40,
+  "escolaridadeId": 4,
+  "areaAtuacao": "TI",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": 1,
+  "numeroVagas": 1,
+  "cidadeId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 quando empresa não cadastrada', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF006 — Manutenção de Vagas
+# @name Listar minhas vagas
+GET {{base_url}}/api/vagas/minhas
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+    // pm.test('Cada vaga tem id', () => pm.response.json().forEach(v => pm.expect(v.id).to.be.a('number')));
+    // pm.test('Cada vaga tem empresaId', () => pm.response.json().forEach(v => pm.expect(v.empresaId).to.be.a('number')));
+%}
+
+###
+# group: RF006 — Manutenção de Vagas
+# @name Atualizar vaga
+PUT {{base_url}}/api/vagas/{{vaga_id}}
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "titulo": "Desenvolvedor Java Sênior",
+  "descricao": "Vaga atualizada para nível sênior com foco em arquitetura de microsserviços",
+  "requisitos": "Java 17+, Spring Boot, Kubernetes, Docker, AWS",
+  "tipoVagaId": 1,
+  "modalidadeId": 2,
+  "salarioMinimo": 8000.00,
+  "salarioMaximo": 12000.00,
+  "beneficios": "Vale refeição, Plano de saúde, Stock options",
+  "cargaHoraria": "40h/semana",
+  "idadeMinima": 25,
+  "idadeMaxima": 50,
+  "escolaridadeId": 7,
+  "areaAtuacao": "Tecnologia da Informação",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": 1,
+  "numeroVagas": 2,
+  "cidadeId": 87
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Título atualizado', () => pm.expect(pm.response.json().titulo).to.eql('Desenvolvedor Java Sênior'));
+    // pm.test('Retorna id', () => pm.expect(pm.response.json().id).to.be.a('number'));
+%}
+
+###
+# group: RF006 — Manutenção de Vagas
+# @name Remover vaga
+DELETE {{base_url}}/api/vagas/{{vaga_id}}
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 204 sem corpo', () => pm.response.to.have.status(204));
+%}
+
+###
+# group: RF006 — Manutenção de Vagas
+# @name [ERRO] Remover vaga inexistente → 404
+DELETE {{base_url}}/api/vagas/99999
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 404', () => pm.response.to.have.status(404));
+%}
+
+###
+# group: RF006 — Manutenção de Vagas
+# @name [ERRO] Candidato não pode remover vaga → 403
+DELETE {{base_url}}/api/vagas/1
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para candidato', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Listar todas as vagas (público sem token)
+GET {{base_url}}/api/vagas
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200 sem token', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+    // pm.test('Cada vaga tem id', () => pm.response.json().forEach(v => pm.expect(v.id).to.be.a('number')));
+    // pm.test('Cada vaga tem empresaId', () => pm.response.json().forEach(v => pm.expect(v.empresaId).to.be.a('number')));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Filtrar por título
+GET {{base_url}}/api/vagas?
+    titulo=Java
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Resultados contêm Java', () => { const vagas = pm.response.json(); if(vagas.length > 0) pm.expect(vagas[0].titulo.toLowerCase()).to.include('java'); });
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Filtrar por área de atuação
+GET {{base_url}}/api/vagas?
+    areaAtuacao=Tecnologia
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Filtrar por tipo e modalidade
+GET {{base_url}}/api/vagas?
+    tipoVagaId=1&
+    modalidadeId=2
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Buscar vaga por ID
+GET {{base_url}}/api/vagas/1
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna id', () => pm.expect(pm.response.json().id).to.be.a('number'));
+    // pm.test('Retorna empresaId', () => pm.expect(pm.response.json().empresaId).to.be.a('number'));
+    // pm.test('Retorna titulo', () => pm.expect(pm.response.json().titulo).to.be.a('string'));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name Listar vagas de uma empresa
+GET {{base_url}}/api/vagas/empresa/1
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF007 — Busca e Filtragem de Vagas
+# @name [ERRO] Vaga inexistente → 404
+GET {{base_url}}/api/vagas/99999
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 404', () => pm.response.to.have.status(404));
+%}
+
+###
+# group: RF008 — Candidatura à Vaga
+# @name Candidatar-se a uma vaga
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "vagaId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201', () => pm.response.to.have.status(201));
+    // pm.test('Retorna vagaId', () => pm.expect(pm.response.json().vagaId).to.be.a('number'));
+    // pm.test('Retorna candidatoId', () => pm.expect(pm.response.json().candidatoId).to.be.a('number'));
+    // pm.test('Retorna dataCandidatura', () => pm.expect(pm.response.json().dataCandidatura).to.be.a('string'));
+    // pm.test('Retorna status', () => pm.expect(pm.response.json().status).to.be.a('string'));
+    // pm.collectionVariables.set('candidatura_id', pm.response.json().id);
+    // console.log('Candidatura ID salvo:', pm.response.json().id);
+%}
+
+###
+# group: RF008 — Candidatura à Vaga
+# @name [ERRO] Candidatura duplicada → 400
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "vagaId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para duplicata', () => pm.response.to.have.status(400));
+    // pm.test('Mensagem indica duplicata', () => pm.expect(pm.response.json().mensagem.toLowerCase()).to.include('candidatou'));
+%}
+
+###
+# group: RF008 — Candidatura à Vaga
+# @name [ERRO] Empresa não pode se candidatar → 403
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+Authorization: Bearer {{token_empresa}}
+
+{
+  "vagaId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para empresa', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF008 — Candidatura à Vaga
+# @name [ERRO] Vaga inexistente → 400
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+Authorization: Bearer {{token_candidato}}
+
+{
+  "vagaId": 99999
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 400 para vaga inexistente', () => pm.response.to.have.status(400));
+%}
+
+###
+# group: RF008 — Candidatura à Vaga
+# @name [ERRO] Sem token → 403
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+
+{
+  "vagaId": 1
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 sem token', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF009 — Acompanhamento de Candidaturas
+# @name Candidato — listar minhas candidaturas
+GET {{base_url}}/api/candidaturas/minhas
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+    // pm.test('Cada item tem status', () => pm.response.json().forEach(c => pm.expect(c.status).to.be.a('string')));
+    // pm.test('Cada item tem tituloVaga', () => pm.response.json().forEach(c => pm.expect(c.tituloVaga).to.be.a('string')));
+    // pm.test('Cada item tem dataCandidatura', () => pm.response.json().forEach(c => pm.expect(c.dataCandidatura).to.be.a('string')));
+%}
+
+###
+# group: RF009 — Acompanhamento de Candidaturas
+# @name Candidato — detalhar candidatura específica
+GET {{base_url}}/api/candidaturas/{{candidatura_id}}
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna id correto', () => pm.expect(pm.response.json().id).to.eql(parseInt(pm.collectionVariables.get('candidatura_id'))));
+    // pm.test('Retorna vagaId', () => pm.expect(pm.response.json().vagaId).to.be.a('number'));
+    // pm.test('Retorna nomeCandidato', () => pm.expect(pm.response.json().nomeCandidato).to.be.a('string'));
+%}
+
+###
+# group: RF009 — Acompanhamento de Candidaturas
+# @name Empresa — candidaturas recebidas nas suas vagas
+GET {{base_url}}/api/candidaturas/empresa
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+    // pm.test('Cada item tem tituloVaga', () => pm.response.json().forEach(c => pm.expect(c.tituloVaga).to.be.a('string')));
+    // pm.test('Cada item tem nomeCandidato', () => pm.response.json().forEach(c => pm.expect(c.nomeCandidato).to.be.a('string')));
+%}
+
+###
+# group: RF009 — Acompanhamento de Candidaturas
+# @name [ERRO] Candidatura inexistente → 404
+GET {{base_url}}/api/candidaturas/99999
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 404', () => pm.response.to.have.status(404));
+%}
+
+###
+# group: RF009 — Acompanhamento de Candidaturas
+# @name [ERRO] Empresa não pode ver candidaturas de candidato → 403
+GET {{base_url}}/api/candidaturas/minhas
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para empresa tentando acessar rota de candidato', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Listar todos os usuários
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+    // pm.test('Cada usuário tem tipoUsuario', () => pm.response.json().forEach(u => pm.expect(u.tipoUsuario).to.be.a('string')));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Desativar usuário
+PATCH {{base_url}}/api/admin/usuarios/2/desativar
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 204 sem corpo', () => pm.response.to.have.status(204));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Ativar usuário
+PATCH {{base_url}}/api/admin/usuarios/2/ativar
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 204 sem corpo', () => pm.response.to.have.status(204));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Listar todos os candidatos
+GET {{base_url}}/api/admin/candidatos
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Listar todas as empresas
+GET {{base_url}}/api/admin/empresas
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Listar administradores
+GET {{base_url}}/api/admin/admins
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 200', () => pm.response.to.have.status(200));
+    // pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Promover usuário a administrador
+POST {{base_url}}/api/admin/admins
+Content-Type: application/json
+Authorization: Bearer {{token_admin}}
+
+{
+  "usuarioId": 2,
+  "nivel": "MODERADOR",
+  "departamentoId": 1,
+  "permissoes": "USUARIOS, VAGAS"
+}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 201', () => pm.response.to.have.status(201));
+    // pm.test('Retorna nivel', () => pm.expect(pm.response.json().nivel).to.eql('MODERADOR'));
+    // pm.test('Retorna nomeUsuario', () => pm.expect(pm.response.json().nomeUsuario).to.be.a('string'));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name Excluir usuário
+DELETE {{base_url}}/api/admin/usuarios/99
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 204 sem corpo', () => pm.response.to.have.status(204));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name [ERRO] Candidato não pode acessar admin → 403
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token_candidato}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para candidato', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name [ERRO] Empresa não pode acessar admin → 403
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token_empresa}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 403 para empresa', () => pm.response.to.have.status(403));
+%}
+
+###
+# group: RF010 — Administração do Sistema
+# @name [ERRO] Usuário inexistente → 404
+DELETE {{base_url}}/api/admin/usuarios/99999
+Authorization: Bearer {{token_admin}}
+
+> {%
+    // TODO: migrate to HTTP Client Response handler API
+    // pm.test('Status 404', () => pm.response.to.have.status(404));
+%}
