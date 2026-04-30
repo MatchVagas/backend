@@ -80,7 +80,7 @@ class CandidaturaServiceTest {
         vaga.setEmpresas(empresa); // ADICIONADO — vaga tem empresa
 
         StatusCandidatura statusCandidatura = new StatusCandidatura();
-        statusCandidatura.setId(1L);
+        statusCandidatura.setId(1);
         statusCandidatura.setStatus("EM_ANALISE");
 
         candidatura = new Candidatura();
