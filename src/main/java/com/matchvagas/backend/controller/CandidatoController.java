@@ -2,7 +2,9 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
+import com.matchvagas.backend.dto.SugestaoVagaResponseDTO;
 import com.matchvagas.backend.service.CandidatoService;
+import com.matchvagas.backend.service.SugestaoVagaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -12,13 +14,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/candidatos")
 @RequiredArgsConstructor
 @Tag(name = "Candidatos", description = "Gerenciamento de perfil do candidato (RF003)")
 public class CandidatoController {
 
-    private final CandidatoService candidatoService;
+    private final CandidatoService    candidatoService;
+    private final SugestaoVagaService sugestaoVagaService;
 
     // RF003 — Visualizar próprio perfil
     @GetMapping("/meu-perfil")
@@ -47,5 +52,18 @@ public class CandidatoController {
             @Valid @RequestBody CandidatoRequestDTO dto) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidatoService.update(usuarioId, dto));
+    }
+
+    // Sugestão de vagas baseada no perfil do candidato
+    @GetMapping("/sugestoes")
+    @Operation(
+        summary = "Vagas sugeridas para o candidato",
+        description = "Retorna até 10 vagas ativas ordenadas por compatibilidade com o perfil "
+                    + "do candidato (objetivo profissional, pretensão salarial e faixa etária). "
+                    + "Vagas já candidatadas são excluídas automaticamente."
+    )
+    public ResponseEntity<List<SugestaoVagaResponseDTO>> sugestoes(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(sugestaoVagaService.sugerirVagas(usuarioId));
     }
 }

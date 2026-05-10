@@ -3,11 +3,11 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.*;
 import com.matchvagas.backend.entity.Usuarios;
 import com.matchvagas.backend.exception.BusinessException;
-import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.UsuarioMapper;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import com.matchvagas.backend.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -53,14 +53,14 @@ public class AuthService {
     public AuthResponse login(LoginRequestDTO request) {
 
         Usuarios usuario = usuariosRepository.findByEmail(request.email())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com o email informado."));
+                .orElseThrow(() -> new BadCredentialsException("Email ou senha inválidos."));
 
         if (!passwordEncoder.matches(request.senha(), usuario.getSenha())) {
-            throw new BusinessException("Email ou senha inválidos.");
+            throw new BadCredentialsException("Email ou senha inválidos.");
         }
 
         if (Boolean.FALSE.equals(usuario.getAtivo())) {
-            throw new BusinessException("Usuário está inativo. Contate o administrador.");
+            throw new BadCredentialsException("Usuário está inativo. Contate o administrador.");
         }
 
         String token = jwtTokenProvider.generateToken(usuario);

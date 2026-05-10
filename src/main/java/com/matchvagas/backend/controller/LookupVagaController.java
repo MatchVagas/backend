@@ -133,7 +133,7 @@ public class LookupVagaController {
         Escolaridades entity = escolaridadeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escolaridade não encontrada"));
         entity.setNome(dto.nome());
-        entity.setOrdem(dto.ordem());
+        if (dto.ordem() != null) entity.setOrdem(dto.ordem());
         return ResponseEntity.ok(escolaridadeMapper.toResponseDTO(escolaridadeRepository.save(entity)));
     }
 

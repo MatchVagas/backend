@@ -1,10 +1,7 @@
 package com.matchvagas.backend.controller;
 
-import com.matchvagas.backend.dto.AdministradorRequestDTO;
-import com.matchvagas.backend.dto.AdministradorResponseDTO;
-import com.matchvagas.backend.dto.CandidatoResponseDTO;
-import com.matchvagas.backend.dto.EmpresaResponseDTO;
-import com.matchvagas.backend.dto.UsuarioResponseDTO;
+import com.matchvagas.backend.dto.*;
+import com.matchvagas.backend.entity.Usuarios;
 import com.matchvagas.backend.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -19,17 +16,33 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin")
 @RequiredArgsConstructor
-@Tag(name = "Administração", description = "Gestão global do sistema (RF010) — acesso restrito a ADMIN")
+@Tag(name = "Administração", description = "Gestão global do sistema — acesso restrito a ADMIN")
 public class AdminController {
 
     private final AdminService adminService;
 
-    // ── Gestão de Usuários ──────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    //  USUÁRIOS
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/usuarios")
     @Operation(summary = "Listar todos os usuários do sistema")
     public ResponseEntity<List<UsuarioResponseDTO>> listarUsuarios() {
         return ResponseEntity.ok(adminService.listarUsuarios());
+    }
+
+    @GetMapping("/usuarios/{id}")
+    @Operation(summary = "Buscar usuário por ID")
+    public ResponseEntity<UsuarioResponseDTO> buscarUsuario(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarUsuario(id));
+    }
+
+    @PutMapping("/usuarios/{id}")
+    @Operation(summary = "Atualizar dados de um usuário")
+    public ResponseEntity<UsuarioResponseDTO> atualizarUsuario(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminAtualizarUsuarioRequestDTO dto) {
+        return ResponseEntity.ok(adminService.atualizarUsuario(id, dto));
     }
 
     @PatchMapping("/usuarios/{id}/ativar")
@@ -46,6 +59,15 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
+    @PatchMapping("/usuarios/{id}/tipo/{tipo}")
+    @Operation(summary = "Alterar tipo do usuário (CANDIDATO, EMPRESA, ADMIN)")
+    public ResponseEntity<Void> alterarTipoUsuario(
+            @PathVariable Long id,
+            @PathVariable Usuarios.TipoUsuario tipo) {
+        adminService.alterarTipoUsuario(id, tipo);
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/usuarios/{id}")
     @Operation(summary = "Excluir usuário do sistema")
     public ResponseEntity<Void> excluirUsuario(@PathVariable Long id) {
@@ -53,7 +75,9 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // ── Gestão de Candidatos ────────────────────────────────────────────────
+    // ═══════════════════════════════════════════════════════════
+    //  CANDIDATOS
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/candidatos")
     @Operation(summary = "Listar todos os candidatos")
@@ -61,7 +85,30 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listarCandidatos());
     }
 
-    // ── Gestão de Empresas ──────────────────────────────────────────────────
+    @GetMapping("/candidatos/{id}")
+    @Operation(summary = "Buscar candidato por ID")
+    public ResponseEntity<CandidatoResponseDTO> buscarCandidato(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarCandidato(id));
+    }
+
+    @PutMapping("/candidatos/{id}")
+    @Operation(summary = "Atualizar perfil de candidato")
+    public ResponseEntity<CandidatoResponseDTO> atualizarCandidato(
+            @PathVariable Long id,
+            @Valid @RequestBody CandidatoRequestDTO dto) {
+        return ResponseEntity.ok(adminService.atualizarCandidato(id, dto));
+    }
+
+    @DeleteMapping("/candidatos/{id}")
+    @Operation(summary = "Excluir perfil de candidato")
+    public ResponseEntity<Void> excluirCandidato(@PathVariable Long id) {
+        adminService.excluirCandidato(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  EMPRESAS
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/empresas")
     @Operation(summary = "Listar todas as empresas")
@@ -69,12 +116,95 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listarEmpresas());
     }
 
-    // ── Gestão de Administradores ───────────────────────────────────────────
+    @GetMapping("/empresas/{id}")
+    @Operation(summary = "Buscar empresa por ID")
+    public ResponseEntity<EmpresaResponseDTO> buscarEmpresa(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarEmpresa(id));
+    }
+
+    @DeleteMapping("/empresas/{id}")
+    @Operation(summary = "Excluir empresa do sistema")
+    public ResponseEntity<Void> excluirEmpresa(@PathVariable Long id) {
+        adminService.excluirEmpresa(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  VAGAS
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping("/vagas")
+    @Operation(summary = "Listar todas as vagas do sistema")
+    public ResponseEntity<List<VagaResponseDTO>> listarVagas() {
+        return ResponseEntity.ok(adminService.listarVagas());
+    }
+
+    @GetMapping("/vagas/{id}")
+    @Operation(summary = "Buscar vaga por ID")
+    public ResponseEntity<VagaResponseDTO> buscarVaga(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarVaga(id));
+    }
+
+    @PatchMapping("/vagas/{id}/status/{statusId}")
+    @Operation(summary = "Alterar status de uma vaga")
+    public ResponseEntity<VagaResponseDTO> alterarStatusVaga(
+            @PathVariable Long id,
+            @PathVariable Long statusId) {
+        return ResponseEntity.ok(adminService.alterarStatusVaga(id, statusId));
+    }
+
+    @DeleteMapping("/vagas/{id}")
+    @Operation(summary = "Excluir vaga do sistema")
+    public ResponseEntity<Void> excluirVaga(@PathVariable Long id) {
+        adminService.excluirVaga(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CANDIDATURAS
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping("/candidaturas")
+    @Operation(summary = "Listar todas as candidaturas do sistema")
+    public ResponseEntity<List<CandidaturaResponseDTO>> listarCandidaturas() {
+        return ResponseEntity.ok(adminService.listarCandidaturas());
+    }
+
+    @GetMapping("/candidaturas/{id}")
+    @Operation(summary = "Buscar candidatura por ID")
+    public ResponseEntity<CandidaturaResponseDTO> buscarCandidatura(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarCandidatura(id));
+    }
+
+    @PatchMapping("/candidaturas/{id}/status/{statusId}")
+    @Operation(summary = "Alterar status de uma candidatura")
+    public ResponseEntity<CandidaturaResponseDTO> alterarStatusCandidatura(
+            @PathVariable Long id,
+            @PathVariable Long statusId) {
+        return ResponseEntity.ok(adminService.alterarStatusCandidatura(id, statusId));
+    }
+
+    @DeleteMapping("/candidaturas/{id}")
+    @Operation(summary = "Excluir candidatura do sistema")
+    public ResponseEntity<Void> excluirCandidatura(@PathVariable Long id) {
+        adminService.excluirCandidatura(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ADMINISTRADORES
+    // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/admins")
     @Operation(summary = "Listar todos os administradores")
     public ResponseEntity<List<AdministradorResponseDTO>> listarAdmins() {
         return ResponseEntity.ok(adminService.listarAdmins());
+    }
+
+    @GetMapping("/admins/{id}")
+    @Operation(summary = "Buscar administrador por ID")
+    public ResponseEntity<AdministradorResponseDTO> buscarAdmin(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.buscarAdmin(id));
     }
 
     @PostMapping("/admins")
@@ -84,10 +214,28 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(adminService.criarAdmin(dto));
     }
 
+    @PutMapping("/admins/{id}")
+    @Operation(summary = "Atualizar dados do administrador (nível, departamento, permissões)")
+    public ResponseEntity<AdministradorResponseDTO> atualizarAdmin(
+            @PathVariable Long id,
+            @Valid @RequestBody AdministradorRequestDTO dto) {
+        return ResponseEntity.ok(adminService.atualizarAdmin(id, dto));
+    }
+
     @DeleteMapping("/admins/{id}")
-    @Operation(summary = "Remover administrador")
+    @Operation(summary = "Remover administrador (reverte usuário para CANDIDATO)")
     public ResponseEntity<Void> removerAdmin(@PathVariable Long id) {
         adminService.removerAdmin(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  ESTATÍSTICAS
+    // ═══════════════════════════════════════════════════════════
+
+    @GetMapping("/estatisticas")
+    @Operation(summary = "Obter estatísticas gerais do sistema")
+    public ResponseEntity<EstatisticasSistemaDTO> estatisticas() {
+        return ResponseEntity.ok(adminService.estatisticas());
     }
 }

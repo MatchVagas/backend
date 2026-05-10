@@ -7,7 +7,6 @@ import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.entity.Usuarios;
 import com.matchvagas.backend.entity.Usuarios.TipoUsuario;
 import com.matchvagas.backend.exception.BusinessException;
-import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.UsuarioMapper;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import com.matchvagas.backend.security.JwtTokenProvider;
@@ -19,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -35,13 +35,13 @@ import static org.mockito.Mockito.*;
 class AuthServiceTest {
 
     @Mock UsuariosRepository usuariosRepository;
-    @Mock UsuarioMapper usuariosMapper;
-    @Mock PasswordEncoder passwordEncoder;
-    @Mock JwtTokenProvider jwtTokenProvider;
+    @Mock UsuarioMapper      usuariosMapper;
+    @Mock PasswordEncoder    passwordEncoder;
+    @Mock JwtTokenProvider   jwtTokenProvider;
 
     @InjectMocks AuthService authService;
 
-    private Usuarios usuarioBase;
+    private Usuarios       usuarioBase;
     private UsuariosRequestDTO requestCandidato;
 
     @BeforeEach
@@ -64,6 +64,11 @@ class AuthServiceTest {
         );
     }
 
+    private UsuarioResponseDTO buildUsuarioResponseDTO(Long id, String nome, String email, TipoUsuario tipo) {
+        return new UsuarioResponseDTO(id, nome, email, 29, true, tipo,
+                LocalDateTime.now(), LocalDateTime.now(), null);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // RF001 — Cadastro de Usuários
     // ─────────────────────────────────────────────────────────────────────────
@@ -80,12 +85,10 @@ class AuthServiceTest {
             when(passwordEncoder.encode("senha123")).thenReturn("$2a$12$hashBcrypt");
             when(usuariosRepository.save(any())).thenReturn(usuarioBase);
             when(usuariosMapper.toDTO(any())).thenReturn(
-                    new UsuarioResponseDTO(1L, "João Silva", "joao@email.com", 29, true,
-                            TipoUsuario.CANDIDATO, LocalDateTime.now(), LocalDateTime.now(), null));
+                    buildUsuarioResponseDTO(1L, "João Silva", "joao@email.com", TipoUsuario.CANDIDATO));
 
             UsuarioResponseDTO result = authService.register(requestCandidato);
 
-            assertThat(result).isNotNull();
             assertThat(result.email()).isEqualTo("joao@email.com");
             assertThat(result.tipoUsuario()).isEqualTo(TipoUsuario.CANDIDATO);
             verify(usuariosRepository).save(any());
@@ -108,8 +111,7 @@ class AuthServiceTest {
             when(usuariosMapper.toEntity(any())).thenReturn(usuarioEmpresa);
             when(usuariosRepository.save(any())).thenReturn(usuarioEmpresa);
             when(usuariosMapper.toDTO(any())).thenReturn(
-                    new UsuarioResponseDTO(2L, "Tech Corp", "rh@techcorp.com", 34, true,
-                            TipoUsuario.EMPRESA, LocalDateTime.now(), LocalDateTime.now(), null));
+                    buildUsuarioResponseDTO(2L, "Tech Corp", "rh@techcorp.com", TipoUsuario.EMPRESA));
 
             UsuarioResponseDTO result = authService.register(reqEmpresa);
 
@@ -117,7 +119,7 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("Deve lançar exceção quando email já está cadastrado")
+        @DisplayName("Deve lançar exceção quando e-mail já está cadastrado")
         void deveLancarExcecaoEmailDuplicado() {
             when(usuariosRepository.existsByEmail("joao@email.com")).thenReturn(true);
 
@@ -136,13 +138,11 @@ class AuthServiceTest {
             when(passwordEncoder.encode("senha123")).thenReturn("$2a$12$hashBcrypt");
             when(usuariosRepository.save(any())).thenReturn(usuarioBase);
             when(usuariosMapper.toDTO(any())).thenReturn(
-                    new UsuarioResponseDTO(1L, "João", "joao@email.com", 29, true,
-                            TipoUsuario.CANDIDATO, LocalDateTime.now(), LocalDateTime.now(), null));
+                    buildUsuarioResponseDTO(1L, "João", "joao@email.com", TipoUsuario.CANDIDATO));
 
             authService.register(requestCandidato);
 
             verify(passwordEncoder).encode("senha123");
-            // Garante que a senha hashada foi setada na entidade antes de salvar
             verify(usuariosRepository).save(argThat(u -> u.getSenha().equals("$2a$12$hashBcrypt")));
         }
     }
@@ -166,39 +166,63 @@ class AuthServiceTest {
 
             AuthResponse response = authService.login(login);
 
-            assertThat(response).isNotNull();
             assertThat(response.token()).isEqualTo("jwt.token.aqui");
             assertThat(response.tipo()).isEqualTo("Bearer");
             assertThat(response.perfil()).isEqualTo("CANDIDATO");
+            assertThat(response.email()).isEqualTo("joao@email.com");
         }
 
         @Test
-        @DisplayName("Deve lançar exceção para email não cadastrado")
-        void deveLancarExcecaoEmailNaoEncontrado() {
+        @DisplayName("Deve retornar 401 para e-mail não cadastrado (não revela se existe)")
+        void deveLancarBadCredentialsParaEmailInexistente() {
+            // Correção de segurança: não lança 404, lança BadCredentialsException → 401
+            // Evita enumerar e-mails válidos do sistema
             LoginRequestDTO login = new LoginRequestDTO("naoexiste@email.com", "senha123");
 
             when(usuariosRepository.findByEmail("naoexiste@email.com")).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> authService.login(login))
-                    .isInstanceOf(ResourceNotFoundException.class);
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("inválidos");
         }
 
         @Test
-        @DisplayName("Deve lançar exceção para senha incorreta")
-        void deveLancarExcecaoSenhaIncorreta() {
+        @DisplayName("Deve retornar 401 para senha incorreta")
+        void deveLancarBadCredentialsParaSenhaIncorreta() {
+            // Correção de segurança: não lança BusinessException (400), lança BadCredentialsException → 401
             LoginRequestDTO login = new LoginRequestDTO("joao@email.com", "senhaErrada");
 
             when(usuariosRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuarioBase));
             when(passwordEncoder.matches("senhaErrada", "$2a$12$hashBcrypt")).thenReturn(false);
 
             assertThatThrownBy(() -> authService.login(login))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(BadCredentialsException.class)
                     .hasMessageContaining("inválidos");
         }
 
         @Test
-        @DisplayName("Deve lançar exceção para usuário inativo")
-        void deveLancarExcecaoUsuarioInativo() {
+        @DisplayName("E-mail inválido e senha errada retornam a mesma mensagem genérica")
+        void mensagemDeErroDeveSerGenerica() {
+            // Garante que não se revela se o problema é o e-mail ou a senha
+            LoginRequestDTO loginEmailErrado = new LoginRequestDTO("nao@existe.com", "qualquer");
+            when(usuariosRepository.findByEmail("nao@existe.com")).thenReturn(Optional.empty());
+
+            LoginRequestDTO loginSenhaErrada = new LoginRequestDTO("joao@email.com", "errada");
+            when(usuariosRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuarioBase));
+            when(passwordEncoder.matches("errada", "$2a$12$hashBcrypt")).thenReturn(false);
+
+            String msgEmailErrado = null;
+            String msgSenhaErrada = null;
+
+            try { authService.login(loginEmailErrado); } catch (BadCredentialsException e) { msgEmailErrado = e.getMessage(); }
+            try { authService.login(loginSenhaErrada); } catch (BadCredentialsException e) { msgSenhaErrada = e.getMessage(); }
+
+            assertThat(msgEmailErrado).isEqualTo(msgSenhaErrada);
+        }
+
+        @Test
+        @DisplayName("Deve retornar 401 para usuário inativo")
+        void deveLancarBadCredentialsParaUsuarioInativo() {
             usuarioBase.setAtivo(false);
             LoginRequestDTO login = new LoginRequestDTO("joao@email.com", "senha123");
 
@@ -206,7 +230,7 @@ class AuthServiceTest {
             when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
 
             assertThatThrownBy(() -> authService.login(login))
-                    .isInstanceOf(BusinessException.class)
+                    .isInstanceOf(BadCredentialsException.class)
                     .hasMessageContaining("inativo");
         }
 
@@ -223,6 +247,21 @@ class AuthServiceTest {
             AuthResponse response = authService.login(login);
 
             assertThat(response.perfil()).isEqualTo("EMPRESA");
+        }
+
+        @Test
+        @DisplayName("Token JWT deve conter o ID do usuário")
+        void tokenDeveConterIdDoUsuario() {
+            LoginRequestDTO login = new LoginRequestDTO("joao@email.com", "senha123");
+
+            when(usuariosRepository.findByEmail("joao@email.com")).thenReturn(Optional.of(usuarioBase));
+            when(passwordEncoder.matches(anyString(), anyString())).thenReturn(true);
+            when(jwtTokenProvider.generateToken(any())).thenReturn("jwt.token");
+
+            AuthResponse response = authService.login(login);
+
+            assertThat(response.usuarioId()).isEqualTo(1L);
+            assertThat(response.nome()).isEqualTo("João Silva");
         }
     }
 }
