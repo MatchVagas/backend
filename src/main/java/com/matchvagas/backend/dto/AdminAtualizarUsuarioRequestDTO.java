@@ -1,0 +1,29 @@
+package com.matchvagas.backend.dto;
+
+import com.matchvagas.backend.entity.Usuarios.TipoUsuario;
+import jakarta.validation.constraints.*;
+import java.time.LocalDateTime;
+
+public record AdminAtualizarUsuarioRequestDTO(
+
+        @NotBlank(message = "Nome é obrigatório")
+        @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
+        String nome,
+
+        @NotBlank(message = "Email é obrigatório")
+        @Email(message = "Email deve ser válido")
+        String email,
+
+        @NotNull(message = "Tipo de usuário é obrigatório")
+        TipoUsuario tipoUsuario,
+
+        @NotNull(message = "Data de nascimento é obrigatória")
+        @Past(message = "Data de nascimento deve ser no passado")
+        LocalDateTime dataNascimento,
+
+        Boolean ativo,
+
+        // Opcional — só atualiza a senha se fornecida
+        @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+        String senha
+) {}

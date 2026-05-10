@@ -1,5 +1,7 @@
 package com.matchvagas.backend.service;
 
+import com.matchvagas.backend.dto.AtualizarCompartilhamentoRequestDTO;
+import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -19,7 +21,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,38 +37,43 @@ import static org.mockito.Mockito.*;
 class CandidaturaServiceTest {
 
     @Mock CandidaturaRepository candidaturasRepository;
-    @Mock CandidatoRepository candidatosRepository;
-    @Mock VagaRepository vagasRepository;
-    @Mock EmpresaRepository empresaRepository; // ADICIONADO — CandidaturaService agora injeta EmpresaRepository
-    @Mock CandidaturaMapper candidaturaMapper;
+    @Mock CandidatoRepository   candidatosRepository;
+    @Mock VagaRepository        vagasRepository;
+    @Mock EmpresaRepository     empresaRepository;
+    @Mock CandidaturaMapper     candidaturaMapper;
 
     @InjectMocks CandidaturaService candidaturaService;
 
     private Candidatos candidato;
-    private Vagas vaga;
+    private Vagas      vaga;
     private Candidatura candidatura;
-    private Empresas empresa;
-    private CandidaturaRequestDTO request;
-    private CandidaturaResponseDTO responseDTO;
+    private Empresas    empresa;
 
-    private static final Long USUARIO_EMPRESA_ID = 20L;
-    private static final Long EMPRESA_ID = 5L;
+    private static final Long USUARIO_EMPRESA_ID  = 20L;
+    private static final Long EMPRESA_ID          = 5L;
+    private static final Long USUARIO_CANDIDATO_ID = 1L;   // ID do usuário (JWT subject)
+    private static final Long CANDIDATO_ID        = 10L;   // ID da entidade Candidatos
+    private static final Long VAGA_ID             = 5L;
+    private static final Long CANDIDATURA_ID      = 100L;
 
     @BeforeEach
     void setUp() {
-        Usuarios usuario = new Usuarios();
-        usuario.setId(1L);
-        usuario.setNome("Carlos Souza");
+        Usuarios usuarioCandidato = new Usuarios();
+        usuarioCandidato.setId(1L);
+        usuarioCandidato.setNome("Carlos Souza");
+        usuarioCandidato.setTelefones(new ArrayList<>());
 
         candidato = new Candidatos();
-        candidato.setId(10L);
-        candidato.setUsuario(usuario);
+        candidato.setId(CANDIDATO_ID);
+        candidato.setUsuario(usuarioCandidato);
+        candidato.setObjetivoProfissional("Desenvolvedor Java Sênior");
+        candidato.setDisponibilidade("Imediata");
+        candidato.setPretensaoSalarial(new BigDecimal("8000.00"));
 
         StatusVaga statusAtiva = new StatusVaga();
         statusAtiva.setId(1L);
         statusAtiva.setDescricao("ATIVA");
 
-        // Empresa vinculada ao usuário gestor
         Usuarios usuarioEmpresa = new Usuarios();
         usuarioEmpresa.setId(USUARIO_EMPRESA_ID);
 
@@ -74,27 +83,29 @@ class CandidaturaServiceTest {
         empresa.setUsuario(usuarioEmpresa);
 
         vaga = new Vagas();
-        vaga.setId(5L);
+        vaga.setId(VAGA_ID);
         vaga.setTitulo("Dev Java Pleno");
         vaga.setStatus(statusAtiva);
-        vaga.setEmpresas(empresa); // ADICIONADO — vaga tem empresa
+        vaga.setEmpresas(empresa);
 
         StatusCandidatura statusCandidatura = new StatusCandidatura();
         statusCandidatura.setId(1);
         statusCandidatura.setStatus("EM_ANALISE");
 
         candidatura = new Candidatura();
-        candidatura.setId(100L);
+        candidatura.setId(CANDIDATURA_ID);
         candidatura.setCandidato(candidato);
         candidatura.setVaga(vaga);
         candidatura.setStatus(statusCandidatura);
         candidatura.setDataCandidatura(LocalDateTime.now());
+        // defaults definidos na entidade: profissional=true, contato=false
+    }
 
-        request = new CandidaturaRequestDTO(5L);
-
-        responseDTO = new CandidaturaResponseDTO(
-                100L, 10L, "Carlos Souza", 5L, "Dev Java Pleno",
-                LocalDateTime.now(), "EM_ANALISE"
+    private CandidaturaResponseDTO buildResponseDTO() {
+        return new CandidaturaResponseDTO(
+                CANDIDATURA_ID, CANDIDATO_ID, "Carlos Souza", VAGA_ID, "Dev Java Pleno",
+                LocalDateTime.now(), "EM_ANALISE",
+                true, true, true, true, true, true, false, false
         );
     }
 
@@ -107,31 +118,83 @@ class CandidaturaServiceTest {
     class RF008 {
 
         @Test
-        @DisplayName("Deve registrar candidatura com sucesso")
-        void deveRegistrarCandidaturaComSucesso() {
-            when(vagasRepository.findById(5L)).thenReturn(Optional.of(vaga));
-            when(candidatosRepository.findById(10L)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.existsByCandidatoIdAndVagaId(10L, 5L)).thenReturn(false);
-            when(candidaturasRepository.save(any())).thenReturn(candidatura);
-            when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
+        @DisplayName("Deve registrar candidatura com preferências padrão")
+        void deveRegistrarCandidaturaComDefaults() {
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
+            CandidaturaResponseDTO responseDTO = buildResponseDTO();
 
-            CandidaturaResponseDTO result = candidaturaService.candidatar(10L, request);
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.existsByCandidatoIdAndVagaId(CANDIDATO_ID, VAGA_ID)).thenReturn(false);
+            when(candidaturasRepository.save(any())).thenReturn(candidatura);
+            when(candidaturaMapper.toResponseDTO(any())).thenReturn(responseDTO);
+
+            CandidaturaResponseDTO result = candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request);
 
             assertThat(result).isNotNull();
-            assertThat(result.vagaId()).isEqualTo(5L);
-            assertThat(result.candidatoId()).isEqualTo(10L);
+            assertThat(result.vagaId()).isEqualTo(VAGA_ID);
+            assertThat(result.candidatoId()).isEqualTo(CANDIDATO_ID);
             assertThat(result.status()).isEqualTo("EM_ANALISE");
-            verify(candidaturasRepository).save(any());
+            // Preferências padrão: dados profissionais compartilhados, contato privado
+            assertThat(result.compartilharObjetivoProfissional()).isTrue();
+            assertThat(result.compartilharTelefone()).isFalse();
+            assertThat(result.compartilharEndereco()).isFalse();
+            verify(candidaturasRepository).save(any(Candidatura.class));
         }
 
         @Test
-        @DisplayName("Deve lançar exceção para candidatura duplicada — RNF010")
-        void deveLancarExcecaoCandidaturaDuplicada() {
-            when(vagasRepository.findById(5L)).thenReturn(Optional.of(vaga));
-            when(candidatosRepository.findById(10L)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.existsByCandidatoIdAndVagaId(10L, 5L)).thenReturn(true);
+        @DisplayName("Deve registrar candidatura com preferências explícitas")
+        void deveRegistrarCandidaturaComPreferenciasExplicitas() {
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID,
+                    true,  // objetivo
+                    false, // disponibilidade
+                    false, // pretensão
+                    false, // currículo
+                    false, // experiências
+                    false, // formações
+                    true,  // telefone
+                    false  // endereço
+            );
+            CandidaturaResponseDTO responseDTO = new CandidaturaResponseDTO(
+                    CANDIDATURA_ID, CANDIDATO_ID, "Carlos Souza", VAGA_ID, "Dev Java Pleno",
+                    LocalDateTime.now(), "EM_ANALISE",
+                    true, false, false, false, false, false, true, false
+            );
 
-            assertThatThrownBy(() -> candidaturaService.candidatar(10L, request))
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.existsByCandidatoIdAndVagaId(CANDIDATO_ID, VAGA_ID)).thenReturn(false);
+            when(candidaturasRepository.save(any(Candidatura.class))).thenAnswer(inv -> {
+                Candidatura c = inv.getArgument(0);
+                // Verifica que as preferências foram aplicadas antes de salvar
+                assertThat(c.isCompartilharDisponibilidade()).isFalse();
+                assertThat(c.isCompartilharTelefone()).isTrue();
+                return candidatura;
+            });
+            when(candidaturaMapper.toResponseDTO(any())).thenReturn(responseDTO);
+
+            CandidaturaResponseDTO result = candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request);
+
+            assertThat(result.compartilharObjetivoProfissional()).isTrue();
+            assertThat(result.compartilharDisponibilidade()).isFalse();
+            assertThat(result.compartilharTelefone()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção para candidatura duplicada")
+        void deveLancarExcecaoCandidaturaDuplicada() {
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
+
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.existsByCandidatoIdAndVagaId(CANDIDATO_ID, VAGA_ID)).thenReturn(true);
+
+            assertThatThrownBy(() -> candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("já se candidatou");
 
@@ -141,9 +204,12 @@ class CandidaturaServiceTest {
         @Test
         @DisplayName("Deve lançar exceção quando vaga não existe")
         void deveLancarExcecaoVagaNaoEncontrada() {
-            when(vagasRepository.findById(5L)).thenReturn(Optional.empty());
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> candidaturaService.candidatar(10L, request))
+            assertThatThrownBy(() -> candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Vaga");
         }
@@ -151,13 +217,16 @@ class CandidaturaServiceTest {
         @Test
         @DisplayName("Deve lançar exceção quando vaga não está ativa")
         void deveLancarExcecaoVagaInativa() {
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
             StatusVaga statusInativo = new StatusVaga();
             statusInativo.setDescricao("ENCERRADA");
             vaga.setStatus(statusInativo);
 
-            when(vagasRepository.findById(5L)).thenReturn(Optional.of(vaga));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
 
-            assertThatThrownBy(() -> candidaturaService.candidatar(10L, request))
+            assertThatThrownBy(() -> candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("disponível");
         }
@@ -165,8 +234,11 @@ class CandidaturaServiceTest {
         @Test
         @DisplayName("Deve lançar exceção quando candidato não existe")
         void deveLancarExcecaoCandidatoNaoEncontrado() {
-            when(vagasRepository.findById(5L)).thenReturn(Optional.of(vaga));
-            when(candidatosRepository.findById(99L)).thenReturn(Optional.empty());
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidatosRepository.findByUsuarioId(99L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> candidaturaService.candidatar(99L, request))
                     .isInstanceOf(BusinessException.class)
@@ -175,7 +247,109 @@ class CandidaturaServiceTest {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RF009 — Acompanhamento de Candidaturas (Candidato)
+    // Preferências de Compartilhamento
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Preferências de Compartilhamento")
+    class PreferenciasCompartilhamento {
+
+        @Test
+        @DisplayName("Deve aplicar defaults ao criar candidatura sem preferências")
+        void deveAplicarDefaultsNaCriacao() {
+            Candidatura[] savedCandidatura = new Candidatura[1];
+
+            CandidaturaRequestDTO request = new CandidaturaRequestDTO(
+                    VAGA_ID, null, null, null, null, null, null, null, null
+            );
+
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.existsByCandidatoIdAndVagaId(any(), any())).thenReturn(false);
+            when(candidaturasRepository.save(any(Candidatura.class))).thenAnswer(inv -> {
+                savedCandidatura[0] = inv.getArgument(0);
+                return candidatura;
+            });
+            when(candidaturaMapper.toResponseDTO(any())).thenReturn(buildResponseDTO());
+
+            candidaturaService.candidatar(USUARIO_CANDIDATO_ID, request);
+
+            Candidatura salva = savedCandidatura[0];
+            assertThat(salva.isCompartilharObjetivoProfissional()).isTrue();
+            assertThat(salva.isCompartilharDisponibilidade()).isTrue();
+            assertThat(salva.isCompartilharPretensaoSalarial()).isTrue();
+            assertThat(salva.isCompartilharCurriculo()).isTrue();
+            assertThat(salva.isCompartilharExperiencias()).isTrue();
+            assertThat(salva.isCompartilharFormacoes()).isTrue();
+            assertThat(salva.isCompartilharTelefone()).isFalse();
+            assertThat(salva.isCompartilharEndereco()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Deve atualizar preferências de candidatura existente")
+        void deveAtualizarPreferencias() {
+            candidatura.setCompartilharTelefone(false);
+            candidatura.setCompartilharPretensaoSalarial(true);
+
+            AtualizarCompartilhamentoRequestDTO dto = new AtualizarCompartilhamentoRequestDTO(
+                    true, true, false, true, true, true, true, false
+            );
+            CandidaturaResponseDTO responseAtualizado = new CandidaturaResponseDTO(
+                    CANDIDATURA_ID, CANDIDATO_ID, "Carlos Souza", VAGA_ID, "Dev Java Pleno",
+                    LocalDateTime.now(), "EM_ANALISE",
+                    true, true, false, true, true, true, true, false
+            );
+
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(candidaturasRepository.save(any())).thenReturn(candidatura);
+            when(candidaturaMapper.toResponseDTO(any())).thenReturn(responseAtualizado);
+
+            CandidaturaResponseDTO result = candidaturaService.atualizarCompartilhamento(
+                    CANDIDATURA_ID, USUARIO_CANDIDATO_ID, dto
+            );
+
+            assertThat(result.compartilharPretensaoSalarial()).isFalse();
+            assertThat(result.compartilharTelefone()).isTrue();
+            // Verifica que a entidade foi modificada
+            assertThat(candidatura.isCompartilharTelefone()).isTrue();
+            assertThat(candidatura.isCompartilharPretensaoSalarial()).isFalse();
+            verify(candidaturasRepository).save(candidatura);
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção ao atualizar candidatura de outro candidato")
+        void deveLancarExcecaoAoAtualizarCandidaturaDeOutroCanditato() {
+            AtualizarCompartilhamentoRequestDTO dto = new AtualizarCompartilhamentoRequestDTO(
+                    true, true, true, true, true, true, true, true
+            );
+
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+
+            assertThatThrownBy(() ->
+                    candidaturaService.atualizarCompartilhamento(CANDIDATURA_ID, 999L, dto))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("permissão");
+
+            verify(candidaturasRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção ao atualizar candidatura inexistente")
+        void deveLancarExcecaoCandidaturaInexistente() {
+            AtualizarCompartilhamentoRequestDTO dto = new AtualizarCompartilhamentoRequestDTO(
+                    true, true, true, true, true, true, true, true
+            );
+
+            when(candidaturasRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    candidaturaService.atualizarCompartilhamento(999L, CANDIDATO_ID, dto))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // RF009 — Acompanhamento (Candidato)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
@@ -183,37 +357,43 @@ class CandidaturaServiceTest {
     class RF009Candidato {
 
         @Test
-        @DisplayName("Deve listar todas as candidaturas do candidato com status")
-        void deveListarCandidaturasComStatus() {
-            when(candidaturasRepository.findByCandidatoId(10L)).thenReturn(List.of(candidatura));
+        @DisplayName("Deve listar candidaturas do candidato com preferências visíveis")
+        void deveListarCandidaturasComPreferencias() {
+            CandidaturaResponseDTO responseDTO = buildResponseDTO();
+
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of(candidatura));
             when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByCandidato(10L);
+            List<CandidaturaResponseDTO> result = candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).status()).isEqualTo("EM_ANALISE");
-            assertThat(result.get(0).tituloVaga()).isEqualTo("Dev Java Pleno");
+            // Candidato consegue ver suas próprias preferências
+            assertThat(result.get(0).compartilharObjetivoProfissional()).isTrue();
+            assertThat(result.get(0).compartilharTelefone()).isFalse();
         }
 
         @Test
         @DisplayName("Deve retornar lista vazia para candidato sem candidaturas")
         void deveRetornarVazioSemCandidaturas() {
-            when(candidaturasRepository.findByCandidatoId(10L)).thenReturn(List.of());
+            when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of());
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByCandidato(10L);
-
-            assertThat(result).isEmpty();
+            assertThat(candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID)).isEmpty();
         }
 
         @Test
         @DisplayName("Deve retornar detalhe de candidatura do próprio candidato")
         void deveRetornarDetalheDaCandidatura() {
-            when(candidaturasRepository.findById(100L)).thenReturn(Optional.of(candidatura));
+            CandidaturaResponseDTO responseDTO = buildResponseDTO();
+
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
             when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
 
-            CandidaturaResponseDTO result = candidaturaService.findByIdAndCandidato(100L, 10L);
+            CandidaturaResponseDTO result = candidaturaService.findByIdAndCandidato(CANDIDATURA_ID, USUARIO_CANDIDATO_ID);
 
-            assertThat(result.id()).isEqualTo(100L);
+            assertThat(result.id()).isEqualTo(CANDIDATURA_ID);
             assertThat(result.nomeCandidato()).isEqualTo("Carlos Souza");
         }
 
@@ -222,55 +402,106 @@ class CandidaturaServiceTest {
         void deveLancarExcecaoCandidaturaNaoEncontrada() {
             when(candidaturasRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> candidaturaService.findByIdAndCandidato(999L, 10L))
+            assertThatThrownBy(() -> candidaturaService.findByIdAndCandidato(999L, USUARIO_CANDIDATO_ID))
                     .isInstanceOf(ResourceNotFoundException.class);
         }
 
         @Test
         @DisplayName("Deve lançar exceção quando candidatura pertence a outro candidato")
         void deveLancarExcecaoAcessoNegado() {
-            when(candidaturasRepository.findById(100L)).thenReturn(Optional.of(candidatura));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
 
-            assertThatThrownBy(() -> candidaturaService.findByIdAndCandidato(100L, 99L))
+            assertThatThrownBy(() -> candidaturaService.findByIdAndCandidato(CANDIDATURA_ID, 999L))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("permissão");
         }
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // RF009 — Acompanhamento de Candidaturas (Empresa)
+    // RF009 — Visão da Empresa (dados filtrados por privacidade)
     // ─────────────────────────────────────────────────────────────────────────
 
     @Nested
-    @DisplayName("RF009 — Candidaturas recebidas na empresa")
+    @DisplayName("RF009 — Candidaturas recebidas pela empresa (com filtro de privacidade)")
     class RF009Empresa {
 
         @Test
-        @DisplayName("Empresa deve listar candidaturas recebidas nas suas vagas")
-        void deveListarCandidaturasRecebidas() {
-            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID))
-                    .thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID))
-                    .thenReturn(List.of(candidatura));
-            when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
+        @DisplayName("Empresa deve ver apenas dados autorizados pelo candidato")
+        void deveRetornarDadosFiltradosPorPrivacidade() {
+            // Candidato compartilha objetivo e disponibilidade, mas não pretensão nem contato
+            candidatura.setCompartilharObjetivoProfissional(true);
+            candidatura.setCompartilharDisponibilidade(true);
+            candidatura.setCompartilharPretensaoSalarial(false);
+            candidatura.setCompartilharTelefone(false);
+            candidatura.setCompartilharEndereco(false);
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+
+            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
 
             assertThat(result).hasSize(1);
-            assertThat(result.get(0).tituloVaga()).isEqualTo("Dev Java Pleno");
+            CandidaturaEmpresaResponseDTO dto = result.get(0);
+            assertThat(dto.nomeCandidato()).isEqualTo("Carlos Souza");
+            assertThat(dto.objetivoProfissional()).isEqualTo("Desenvolvedor Java Sênior");
+            assertThat(dto.disponibilidade()).isEqualTo("Imediata");
+            // Pretensão não foi compartilhada → deve ser null
+            assertThat(dto.pretensaoSalarial()).isNull();
+            // Dados de contato não compartilhados → null
+            assertThat(dto.telefones()).isNull();
+            assertThat(dto.endereco()).isNull();
+        }
+
+        @Test
+        @DisplayName("Empresa vê pretensão salarial quando candidato autoriza")
+        void deveExibirPretensaoQuandoAutorizado() {
+            candidatura.setCompartilharPretensaoSalarial(true);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+
+            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+
+            assertThat(result.get(0).pretensaoSalarial()).isEqualTo(new BigDecimal("8000.00"));
+        }
+
+        @Test
+        @DisplayName("Empresa não vê nenhum dado profissional quando candidato oculta tudo")
+        void naoDeveExibirDadosQuandoCandidatoOcultaTudo() {
+            candidatura.setCompartilharObjetivoProfissional(false);
+            candidatura.setCompartilharDisponibilidade(false);
+            candidatura.setCompartilharPretensaoSalarial(false);
+            candidatura.setCompartilharCurriculo(false);
+            candidatura.setCompartilharExperiencias(false);
+            candidatura.setCompartilharFormacoes(false);
+            candidatura.setCompartilharTelefone(false);
+            candidatura.setCompartilharEndereco(false);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+
+            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+
+            CandidaturaEmpresaResponseDTO dto = result.get(0);
+            // Somente identificação básica é sempre visível
+            assertThat(dto.nomeCandidato()).isEqualTo("Carlos Souza");
+            assertThat(dto.vagaId()).isEqualTo(VAGA_ID);
+            // Tudo mais é null
+            assertThat(dto.objetivoProfissional()).isNull();
+            assertThat(dto.disponibilidade()).isNull();
+            assertThat(dto.pretensaoSalarial()).isNull();
+            assertThat(dto.curriculoNomeArquivo()).isNull();
+            assertThat(dto.telefones()).isNull();
+            assertThat(dto.endereco()).isNull();
         }
 
         @Test
         @DisplayName("Deve retornar lista vazia quando empresa não tem candidaturas")
         void deveRetornarVazioSemCandidaturasRecebidas() {
-            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID))
-                    .thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID))
-                    .thenReturn(List.of());
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of());
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
-
-            assertThat(result).isEmpty();
+            assertThat(candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID)).isEmpty();
         }
 
         @Test
@@ -281,6 +512,88 @@ class CandidaturaServiceTest {
             assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Nenhuma empresa vinculada");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Filtro por Vaga Específica
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Filtro de Candidatos por Vaga Específica")
+    class FiltroPorVaga {
+
+        @Test
+        @DisplayName("Deve listar candidatos de uma vaga específica da empresa")
+        void deveListarCandidatosDaVaga() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidaturasRepository.findByVagaId(VAGA_ID)).thenReturn(List.of(candidatura));
+
+            List<CandidaturaEmpresaResponseDTO> result =
+                    candidaturaService.findByVagaAndEmpresa(VAGA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).vagaId()).isEqualTo(VAGA_ID);
+            assertThat(result.get(0).tituloVaga()).isEqualTo("Dev Java Pleno");
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção quando vaga não pertence à empresa")
+        void deveLancarExcecaoVagaDeOutraEmpresa() {
+            Empresas outraEmpresa = new Empresas();
+            outraEmpresa.setId(99L);
+            vaga.setEmpresas(outraEmpresa);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+
+            assertThatThrownBy(() ->
+                    candidaturaService.findByVagaAndEmpresa(VAGA_ID, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("não pertence");
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção quando vaga não existe")
+        void deveLancarExcecaoVagaInexistente() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() ->
+                    candidaturaService.findByVagaAndEmpresa(999L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("Vaga");
+        }
+
+        @Test
+        @DisplayName("Deve retornar lista vazia quando vaga não tem candidatos")
+        void deveRetornarVazioQuandoVagaSemCandidatos() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidaturasRepository.findByVagaId(VAGA_ID)).thenReturn(List.of());
+
+            List<CandidaturaEmpresaResponseDTO> result =
+                    candidaturaService.findByVagaAndEmpresa(VAGA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Filtro por vaga aplica preferências de privacidade de cada candidato")
+        void deveFiltrarPrivacidadeNaBuscaPorVaga() {
+            candidatura.setCompartilharPretensaoSalarial(false);
+            candidatura.setCompartilharTelefone(false);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidaturasRepository.findByVagaId(VAGA_ID)).thenReturn(List.of(candidatura));
+
+            List<CandidaturaEmpresaResponseDTO> result =
+                    candidaturaService.findByVagaAndEmpresa(VAGA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(result.get(0).pretensaoSalarial()).isNull();
+            assertThat(result.get(0).telefones()).isNull();
         }
     }
 }

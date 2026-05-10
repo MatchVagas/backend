@@ -1,0 +1,434 @@
+### ============================================================
+### LOOKUP - Dados de Referência (Tipos, Modalidades, etc.)
+### Endpoints públicos de leitura / ADMIN para escrita
+###
+### IMPORTANTE: os IDs de produção (tipo_vaga_id, modalidade_id,
+### escolaridade_id, status_vaga_id, cidade_id, departamento_id)
+### são capturados apenas nos GETs iniciais e NÃO são sobrescritos
+### pelos testes de CRUD (que usam variáveis _tmp).
+### ============================================================
+
+# ──────────────────────────────────────────
+# TIPOS DE VAGA
+# ──────────────────────────────────────────
+
+### [1] Listar tipos de vaga (público) — captura ID de produção
+GET {{base_url}}/api/lookup/vagas/tipos
+
+> {%
+  client.global.set("tipo_vaga_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+  client.test("Lista não vazia", function() { client.assert(response.body.length > 0); });
+%}
+
+###
+
+### [2] Criar tipo de vaga (ADMIN) — usa _tmp, não sobrescreve tipo_vaga_id
+POST {{base_url}}/api/lookup/vagas/tipos
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Estágio Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("tipo_vaga_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [3] Atualizar tipo de vaga (ADMIN)
+PUT {{base_url}}/api/lookup/vagas/tipos/{{tipo_vaga_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Estágio Remunerado Test"
+}
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [4] Excluir tipo de vaga (ADMIN) — deleta apenas o item de teste
+DELETE {{base_url}}/api/lookup/vagas/tipos/{{tipo_vaga_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se item não foi criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# MODALIDADES
+# ──────────────────────────────────────────
+
+### [5] Listar modalidades (público) — captura ID de produção
+GET {{base_url}}/api/lookup/vagas/modalidades
+
+> {%
+  client.global.set("modalidade_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [6] Criar modalidade (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/vagas/modalidades
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Híbrido Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("modalidade_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [7] Atualizar modalidade (ADMIN)
+PUT {{base_url}}/api/lookup/vagas/modalidades/{{modalidade_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Híbrido Flexível Test"
+}
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [8] Excluir modalidade (ADMIN)
+DELETE {{base_url}}/api/lookup/vagas/modalidades/{{modalidade_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se item não foi criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# ESCOLARIDADES
+# ──────────────────────────────────────────
+
+### [9] Listar escolaridades (público) — captura ID de produção
+GET {{base_url}}/api/lookup/vagas/escolaridades
+
+> {%
+  client.global.set("escolaridade_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [10] Criar escolaridade (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/vagas/escolaridades
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Pós-Graduação Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("escolaridade_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [11] Atualizar escolaridade (ADMIN)
+PUT {{base_url}}/api/lookup/vagas/escolaridades/{{escolaridade_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Pós-Graduação Stricto Sensu Test",
+  "ordem": 0
+}
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [12] Excluir escolaridade (ADMIN)
+DELETE {{base_url}}/api/lookup/vagas/escolaridades/{{escolaridade_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se item não foi criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# PORTES DE EMPRESA
+# ──────────────────────────────────────────
+
+### [13] Listar portes (público) — captura ID de produção
+GET {{base_url}}/api/lookup/vagas/portes
+
+> {%
+  client.global.set("porte_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [14] Criar porte (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/vagas/portes
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Startup Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("porte_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [15] Atualizar porte (ADMIN)
+PUT {{base_url}}/api/lookup/vagas/portes/{{porte_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Startup Emergente Test"
+}
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [16] Excluir porte (ADMIN)
+DELETE {{base_url}}/api/lookup/vagas/portes/{{porte_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se item não foi criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# RAMOS DE ATUAÇÃO
+# ──────────────────────────────────────────
+
+### [17] Listar ramos (público) — captura ID de produção
+GET {{base_url}}/api/lookup/vagas/ramos
+
+> {%
+  client.global.set("ramo_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [18] Criar ramo (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/vagas/ramos
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Agronegócio Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("ramo_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [19] Atualizar ramo (ADMIN)
+PUT {{base_url}}/api/lookup/vagas/ramos/{{ramo_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Agronegócio e Agritech Test"
+}
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [20] Excluir ramo (ADMIN)
+DELETE {{base_url}}/api/lookup/vagas/ramos/{{ramo_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se item não foi criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# STATUS DE VAGA
+# ──────────────────────────────────────────
+
+### [21] Listar status de vaga (público) — captura ID de produção (preferência: "ativa")
+GET {{base_url}}/api/lookup/vagas/status
+
+> {%
+  const ativa = response.body.find(s => s.descricao && s.descricao.toLowerCase() === "ativa");
+  client.global.set("status_vaga_id", ativa ? ativa.id : response.body[0].id);
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+  client.test("Existe status 'ativa'", function() { client.assert(ativa !== undefined); });
+%}
+
+###
+
+### [22] Criar status de vaga de teste (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/vagas/status
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "descricao": "Rascunho Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("status_vaga_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# STATUS DE CANDIDATURA
+# ──────────────────────────────────────────
+
+### [23] Listar status de candidatura (público)
+GET {{base_url}}/api/lookup/sistema/status-candidatura
+
+> {%
+  if (response.body.length > 0) {
+    client.global.set("status_candidatura_id", response.body[0].id);
+  }
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [24] Criar status de candidatura (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/sistema/status-candidatura
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "status": "Aguardando Entrevista Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("status_cand_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# TIPOS DE TELEFONE
+# ──────────────────────────────────────────
+
+### [25] Listar tipos de telefone (público)
+GET {{base_url}}/api/lookup/sistema/tipos-telefone
+
+> {%
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [26] Criar tipo de telefone (ADMIN) — usa _tmp
+POST {{base_url}}/api/lookup/sistema/tipos-telefone
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Comercial Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("tipo_telefone_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# DEPARTAMENTOS
+# ──────────────────────────────────────────
+
+### [27] Listar departamentos (público) — captura ID de produção
+GET {{base_url}}/api/lookup/sistema/departamentos
+
+> {%
+  if (response.body.length > 0) {
+    client.global.set("departamento_id", response.body[0].id);
+  }
+  client.test("Status 200 (ou 404 se item não foi criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [28] Criar departamento (ADMIN)
+# Cria departamento se ainda não existir; usa _tmp para não sobrescrever departamento_id
+POST {{base_url}}/api/lookup/sistema/departamentos
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Jurídico Test"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("departamento_tmp", response.body.id);
+    // Só atualiza departamento_id se ainda não foi definido
+    if (!client.global.get("departamento_id")) {
+      client.global.set("departamento_id", response.body.id);
+    }
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###

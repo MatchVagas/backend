@@ -1,5 +1,7 @@
 package com.matchvagas.backend.controller;
 
+import com.matchvagas.backend.dto.AtualizarCompartilhamentoRequestDTO;
+import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
@@ -18,15 +20,21 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/candidaturas")
 @RequiredArgsConstructor
-@Tag(name = "Candidaturas", description = "Candidatura e acompanhamento de vagas (RF008, RF009)")
+@Tag(name = "Candidaturas", description = "Candidatura a vagas com controle de privacidade (RF008, RF009)")
 public class CandidaturaController {
 
     private final CandidaturaService candidaturaService;
 
-    // RF008 — Candidatar-se a uma vaga (somente CANDIDATO)
+    // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
+
     @PostMapping
     @PreAuthorize("hasAuthority('CANDIDATO')")
-    @Operation(summary = "Candidatar-se a uma vaga")
+    @Operation(
+        summary = "Candidatar-se a uma vaga",
+        description = "O candidato pode definir quais dados serão visíveis para a empresa. "
+                    + "Campos não informados usam o padrão: dados profissionais compartilhados, "
+                    + "telefone e endereço privados."
+    )
     public ResponseEntity<CandidaturaResponseDTO> candidatar(
             Authentication authentication,
             @Valid @RequestBody CandidaturaRequestDTO request) {
@@ -35,19 +43,22 @@ public class CandidaturaController {
                 .body(candidaturaService.candidatar(candidatoId, request));
     }
 
-    // RF009 — Listar minhas candidaturas (CANDIDATO)
+    // ── RF009 — Listar minhas candidaturas ───────────────────────────────────
+
     @GetMapping("/minhas")
     @PreAuthorize("hasAuthority('CANDIDATO')")
-    @Operation(summary = "Listar minhas candidaturas com status")
-    public ResponseEntity<List<CandidaturaResponseDTO>> minhasCandidaturas(Authentication authentication) {
+    @Operation(summary = "Listar minhas candidaturas com preferências de compartilhamento")
+    public ResponseEntity<List<CandidaturaResponseDTO>> minhasCandidaturas(
+            Authentication authentication) {
         Long candidatoId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByCandidato(candidatoId));
     }
 
-    // RF009 — Detalhar uma candidatura (CANDIDATO)
+    // ── RF009 — Detalhar uma candidatura ─────────────────────────────────────
+
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('CANDIDATO')")
-    @Operation(summary = "Detalhar uma candidatura")
+    @Operation(summary = "Detalhar candidatura com preferências de compartilhamento atuais")
     public ResponseEntity<CandidaturaResponseDTO> findById(
             @PathVariable Long id,
             Authentication authentication) {
@@ -55,12 +66,68 @@ public class CandidaturaController {
         return ResponseEntity.ok(candidaturaService.findByIdAndCandidato(id, candidatoId));
     }
 
-    // Empresa — ver candidaturas recebidas nas vagas da minha empresa
+    // ── Atualizar preferências de compartilhamento ────────────────────────────
+
+    @PatchMapping("/{id}/compartilhamento")
+    @PreAuthorize("hasAuthority('CANDIDATO')")
+    @Operation(
+        summary = "Atualizar o que o candidato compartilha com a empresa",
+        description = "Permite que o candidato altere, a qualquer momento, quais dados "
+                    + "da sua candidatura ficam visíveis para a empresa recrutadora."
+    )
+    public ResponseEntity<CandidaturaResponseDTO> atualizarCompartilhamento(
+            @PathVariable Long id,
+            Authentication authentication,
+            @Valid @RequestBody AtualizarCompartilhamentoRequestDTO dto) {
+        Long candidatoId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(
+                candidaturaService.atualizarCompartilhamento(id, candidatoId, dto));
+    }
+
+    // ── Empresa — listar candidaturas recebidas ───────────────────────────────
+
     @GetMapping("/empresa")
-    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
-    @Operation(summary = "Listar candidaturas recebidas nas vagas da minha empresa")
-    public ResponseEntity<List<CandidaturaResponseDTO>> candidaturasEmpresa(Authentication authentication) {
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Listar candidaturas recebidas nas vagas da empresa",
+        description = "Retorna somente os dados que cada candidato autorizou compartilhar. "
+                    + "Campos não compartilhados são omitidos da resposta."
+    )
+    public ResponseEntity<List<CandidaturaEmpresaResponseDTO>> candidaturasEmpresa(
+            Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByEmpresa(usuarioId));
+    }
+
+    // ── Empresa — candidatos de uma vaga específica ───────────────────────────
+
+    @GetMapping("/empresa/vaga/{vagaId}")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Listar candidatos de uma vaga específica",
+        description = "Retorna todos os candidatos que se inscreveram em uma vaga da empresa, "
+                    + "exibindo somente os dados que cada candidato autorizou compartilhar."
+    )
+    public ResponseEntity<List<CandidaturaEmpresaResponseDTO>> candidatosPorVaga(
+            @PathVariable Long vagaId,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.findByVagaAndEmpresa(vagaId, usuarioId));
+    }
+
+    // ── Empresa — detalhar candidatura específica ─────────────────────────────
+
+    @GetMapping("/{id}/empresa")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Detalhar uma candidatura específica (visão da empresa)",
+        description = "Retorna o detalhe de uma candidatura mostrando somente o que "
+                    + "o candidato autorizou compartilhar."
+    )
+    public ResponseEntity<CandidaturaEmpresaResponseDTO> detalharCandidaturaEmpresa(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.findByIdAndEmpresa(id, usuarioId));
     }
 }

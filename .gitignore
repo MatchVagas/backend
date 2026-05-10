@@ -33,3 +33,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Claude Code ####
+/.claude
+.claude/*
+
+### Notas de desenvolvimento ###
+MODIFICACOES.md
