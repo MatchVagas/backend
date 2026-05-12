@@ -136,7 +136,7 @@ Content-Type: application/json
 
 ### ── GESTÃO DE EMPRESAS ──────────────────────────────────────────
 
-### [10] Listar todas as empresas
+### [10] Listar todas as empresas (todos os status)
 GET {{base_url}}/api/admin/empresas
 Authorization: Bearer {{token_admin}}
 
@@ -145,12 +145,33 @@ Authorization: Bearer {{token_admin}}
   client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
   if (response.body.length > 0) {
     client.global.set("empresa_id", response.body[0].id);
+    const pendente = response.body.find(e => e.status === "PENDENTE");
+    if (pendente) client.global.set("empresa_pendente_id", pendente.id);
   }
 %}
 
 ###
 
-### [11] Buscar empresa por ID
+### [11] Listar empresas pendentes de aprovação
+GET {{base_url}}/api/admin/empresas/pendentes
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  client.test("Todas são PENDENTE", function() {
+    response.body.forEach(function(e) {
+      client.assert(e.status === "PENDENTE");
+    });
+  });
+  if (response.body.length > 0) {
+    client.global.set("empresa_pendente_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [12] Buscar empresa por ID (admin vê qualquer status)
 GET {{base_url}}/api/admin/empresas/{{empresa_id}}
 Authorization: Bearer {{token_admin}}
 
@@ -159,13 +180,46 @@ Authorization: Bearer {{token_admin}}
   client.test("Tem nomeFantasia", function() {
     client.assert(response.body.nomeFantasia !== undefined);
   });
+  client.test("Tem campo status", function() {
+    client.assert(response.body.status !== undefined);
+  });
+%}
+
+###
+
+### [13] Aprovar cadastro de empresa
+PATCH {{base_url}}/api/admin/empresas/{{empresa_pendente_id}}/aprovar
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Status da empresa é APROVADA", function() {
+    client.assert(response.body.status === "APROVADA");
+  });
+%}
+
+###
+
+### [14] Rejeitar cadastro de empresa (usando empresa_id secundário se disponível)
+PATCH {{base_url}}/api/admin/empresas/{{empresa_pendente_id}}/rejeitar
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200 ou 400 (já aprovada)", function() {
+    client.assert(response.status === 200 || response.status === 400);
+  });
+  if (response.status === 200) {
+    client.test("Status da empresa é REJEITADA", function() {
+      client.assert(response.body.status === "REJEITADA");
+    });
+  }
 %}
 
 ###
 
 ### ── GESTÃO DE VAGAS ──────────────────────────────────────────────
 
-### [12] Listar todas as vagas (admin vê todas, inclusive inativas)
+### [15] Listar todas as vagas (admin vê todas, inclusive inativas)
 GET {{base_url}}/api/admin/vagas
 Authorization: Bearer {{token_admin}}
 
@@ -180,7 +234,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [13] Buscar vaga por ID
+### [16] Buscar vaga por ID
 GET {{base_url}}/api/admin/vagas/{{vaga_admin_id}}
 Authorization: Bearer {{token_admin}}
 
@@ -191,7 +245,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [14] Alterar status de uma vaga
+### [17] Alterar status de uma vaga
 # status_vaga_id = ID do status "Ativa" obtido em 02-lookup
 PATCH {{base_url}}/api/admin/vagas/{{vaga_admin_id}}/status/{{status_vaga_id}}
 Authorization: Bearer {{token_admin}}
@@ -206,7 +260,7 @@ Authorization: Bearer {{token_admin}}
 
 ### ── GESTÃO DE CANDIDATURAS ───────────────────────────────────────
 
-### [15] Listar todas as candidaturas do sistema
+### [18] Listar todas as candidaturas do sistema
 GET {{base_url}}/api/admin/candidaturas
 Authorization: Bearer {{token_admin}}
 
@@ -220,7 +274,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [16] Buscar candidatura por ID
+### [19] Buscar candidatura por ID
 GET {{base_url}}/api/admin/candidaturas/{{candidatura_admin_id}}
 Authorization: Bearer {{token_admin}}
 
@@ -230,7 +284,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [17] Alterar status de uma candidatura
+### [20] Alterar status de uma candidatura
 # status_candidatura_id precisa de um ID válido — use GET /api/lookup/sistema/status-candidatura
 GET {{base_url}}/api/lookup/sistema/status-candidatura
 
@@ -255,7 +309,7 @@ Authorization: Bearer {{token_admin}}
 
 ### ── GESTÃO DE ADMINISTRADORES ────────────────────────────────────
 
-### [18] Listar todos os administradores
+### [21] Listar todos os administradores
 GET {{base_url}}/api/admin/admins
 Authorization: Bearer {{token_admin}}
 
@@ -271,7 +325,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [19] Buscar administrador por ID
+### [22] Buscar administrador por ID
 GET {{base_url}}/api/admin/admins/{{admin_id}}
 Authorization: Bearer {{token_admin}}
 
@@ -281,7 +335,7 @@ Authorization: Bearer {{token_admin}}
 
 ###
 
-### [20] Criar administrador (promover usuário)
+### [23] Criar administrador (promover usuário)
 POST {{base_url}}/api/admin/admins
 Authorization: Bearer {{token_admin}}
 Content-Type: application/json
@@ -304,7 +358,7 @@ Content-Type: application/json
 
 ###
 
-### [21] Atualizar dados do administrador
+### [24] Atualizar dados do administrador
 PUT {{base_url}}/api/admin/admins/{{admin_id}}
 Authorization: Bearer {{token_admin}}
 Content-Type: application/json
@@ -324,7 +378,7 @@ Content-Type: application/json
 
 ### ── ESTATÍSTICAS ────────────────────────────────────────────────
 
-### [22] Estatísticas gerais do sistema
+### [25] Estatísticas gerais do sistema
 GET {{base_url}}/api/admin/estatisticas
 Authorization: Bearer {{token_admin}}
 
@@ -350,7 +404,7 @@ Authorization: Bearer {{token_admin}}
 
 ### ── TESTES DE SEGURANÇA ─────────────────────────────────────────
 
-### [23] Candidato tenta acessar endpoint admin (deve retornar 403)
+### [26] Candidato tenta acessar endpoint admin (deve retornar 403)
 GET {{base_url}}/api/admin/usuarios
 Authorization: Bearer {{token_candidato}}
 

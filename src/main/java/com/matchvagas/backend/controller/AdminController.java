@@ -111,15 +111,33 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/empresas")
-    @Operation(summary = "Listar todas as empresas")
+    @Operation(summary = "Listar todas as empresas (todos os status)")
     public ResponseEntity<List<EmpresaResponseDTO>> listarEmpresas() {
         return ResponseEntity.ok(adminService.listarEmpresas());
+    }
+
+    @GetMapping("/empresas/pendentes")
+    @Operation(summary = "Listar empresas aguardando aprovação")
+    public ResponseEntity<List<EmpresaResponseDTO>> listarEmpresasPendentes() {
+        return ResponseEntity.ok(adminService.listarEmpresasPendentes());
     }
 
     @GetMapping("/empresas/{id}")
     @Operation(summary = "Buscar empresa por ID")
     public ResponseEntity<EmpresaResponseDTO> buscarEmpresa(@PathVariable Long id) {
         return ResponseEntity.ok(adminService.buscarEmpresa(id));
+    }
+
+    @PatchMapping("/empresas/{id}/aprovar")
+    @Operation(summary = "Aprovar cadastro de empresa")
+    public ResponseEntity<EmpresaResponseDTO> aprovarEmpresa(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.aprovarEmpresa(id));
+    }
+
+    @PatchMapping("/empresas/{id}/rejeitar")
+    @Operation(summary = "Rejeitar cadastro de empresa")
+    public ResponseEntity<EmpresaResponseDTO> rejeitarEmpresa(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.rejeitarEmpresa(id));
     }
 
     @DeleteMapping("/empresas/{id}")

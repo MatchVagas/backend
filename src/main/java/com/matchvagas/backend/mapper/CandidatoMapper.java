@@ -2,9 +2,16 @@ package com.matchvagas.backend.mapper;
 
 import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
+import com.matchvagas.backend.dto.EnderecosResponseDTO;
+import com.matchvagas.backend.dto.TelefonesResponseDTO;
 import com.matchvagas.backend.entity.Candidatos;
+import com.matchvagas.backend.entity.Endereco;
+import com.matchvagas.backend.entity.Telefones;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface CandidatoMapper {
@@ -16,8 +23,26 @@ public interface CandidatoMapper {
     @Mapping(target = "objetivoProfissional", source = "resumoProfissional")
     Candidatos toEntity(CandidatoRequestDTO dto);
 
-    @Mapping(target = "nome",               source = "usuario.nome")
-    @Mapping(target = "email",              source = "usuario.email")
+    @Mapping(target = "nome",                source = "usuario.nome")
+    @Mapping(target = "email",               source = "usuario.email")
     @Mapping(target = "objetivoProfissional", source = "objetivoProfissional")
+    @Mapping(target = "localizacao",         source = "endereco")
+    @Mapping(target = "telefone",            source = "usuario.telefones", qualifiedByName = "primeiroTelefone")
     CandidatoResponseDTO toResponseDTO(Candidatos entity);
+
+    @Mapping(target = "cidadeId", ignore = true)
+    EnderecosResponseDTO toEnderecosResponseDTO(Endereco endereco);
+
+    @Named("primeiroTelefone")
+    default TelefonesResponseDTO primeiroTelefone(List<Telefones> telefones) {
+        if (telefones == null || telefones.isEmpty()) return null;
+        Telefones t = telefones.get(0);
+        return new TelefonesResponseDTO(
+                t.getId(),
+                t.getNumero(),
+                t.getTipoTelefone() != null ? t.getTipoTelefone().getId() : null,
+                t.getTipoTelefone() != null ? t.getTipoTelefone().getNome() : null,
+                t.isWpp()
+        );
+    }
 }

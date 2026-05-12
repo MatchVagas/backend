@@ -1,5 +1,6 @@
 package com.matchvagas.backend.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import org.hibernate.validator.constraints.br.CPF;
@@ -17,5 +18,11 @@ public record CandidatoRequestDTO(
         String disponibilidade,
 
         @DecimalMin(value = "0.0", message = "Pretensão salarial não pode ser negativa")
-        BigDecimal pretensaoSalarial
+        BigDecimal pretensaoSalarial,
+
+        @Valid
+        TelefonesRequestDTO telefone,
+
+        @Valid
+        LocalizacaoRequestDTO localizacao
 ) {}

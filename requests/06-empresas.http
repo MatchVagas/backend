@@ -22,7 +22,7 @@ GET {{base_url}}/api/empresas/{{empresa_id}}
 
 ###
 
-### [3] Criar empresa (EMPRESA autenticada)
+### [3] Criar empresa (EMPRESA autenticada) — fica com status PENDENTE
 # Pré-requisito: lookup 02 executado para obter porte_id e ramo_id
 POST {{base_url}}/api/empresas
 Authorization: Bearer {{token_empresa}}
@@ -39,7 +39,12 @@ Content-Type: application/json
 }
 
 > {%
-  if (response.status === 201) client.global.set("empresa_id", response.body.id);
+  if (response.status === 201) {
+    client.global.set("empresa_id", response.body.id);
+    client.test("Status da empresa é PENDENTE", function() {
+      client.assert(response.body.status === "PENDENTE");
+    });
+  }
   client.test("Status 201 (ou já existente)", function() {
     client.assert(response.status === 201 || response.status === 400 || response.status === 409);
   });

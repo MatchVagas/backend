@@ -11,5 +11,7 @@ public record CandidatoResponseDTO(
         String cpf,
         String objetivoProfissional,
         String disponibilidade,
-        BigDecimal pretensaoSalarial
+        BigDecimal pretensaoSalarial,
+        TelefonesResponseDTO telefone,
+        EnderecosResponseDTO localizacao
 ) {}

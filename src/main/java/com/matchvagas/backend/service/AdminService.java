@@ -162,10 +162,38 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
+    public List<EmpresaResponseDTO> listarEmpresasPendentes() {
+        return empresaRepository.findByStatus(Empresas.StatusEmpresa.PENDENTE)
+                .stream().map(empresaMapper::toResponseDTO).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public EmpresaResponseDTO buscarEmpresa(Long id) {
         return empresaMapper.toResponseDTO(
                 empresaRepository.findById(id)
                         .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id)));
+    }
+
+    @Transactional
+    public EmpresaResponseDTO aprovarEmpresa(Long id) {
+        Empresas empresa = empresaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
+        if (empresa.getStatus() == Empresas.StatusEmpresa.APROVADA) {
+            throw new BusinessException("Empresa já está aprovada.");
+        }
+        empresa.setStatus(Empresas.StatusEmpresa.APROVADA);
+        return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
+    }
+
+    @Transactional
+    public EmpresaResponseDTO rejeitarEmpresa(Long id) {
+        Empresas empresa = empresaRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
+        if (empresa.getStatus() == Empresas.StatusEmpresa.REJEITADA) {
+            throw new BusinessException("Empresa já está rejeitada.");
+        }
+        empresa.setStatus(Empresas.StatusEmpresa.REJEITADA);
+        return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
     }
 
     @Transactional
