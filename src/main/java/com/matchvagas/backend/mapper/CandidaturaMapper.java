@@ -12,11 +12,20 @@ import org.mapstruct.Named;
 @Mapper(componentModel = "spring")
 public interface CandidaturaMapper {
 
-    @Mapping(source = "candidato", target = "candidatoId", qualifiedByName = "mapCandidatoId")
+    @Mapping(source = "candidato", target = "candidatoId",   qualifiedByName = "mapCandidatoId")
     @Mapping(source = "candidato", target = "nomeCandidato", qualifiedByName = "mapCandidatoNome")
-    @Mapping(source = "vaga", target = "vagaId", qualifiedByName = "mapVagaId")
-    @Mapping(source = "vaga", target = "tituloVaga", qualifiedByName = "mapVagaTitulo")
-    @Mapping(source = "status", target = "status", qualifiedByName = "mapStatusToString")
+    @Mapping(source = "vaga",      target = "vagaId",        qualifiedByName = "mapVagaId")
+    @Mapping(source = "vaga",      target = "tituloVaga",    qualifiedByName = "mapVagaTitulo")
+    @Mapping(source = "status",    target = "status",        qualifiedByName = "mapStatusToString")
+    // preferências de compartilhamento — mapeadas diretamente pelos nomes
+    @Mapping(source = "compartilharObjetivoProfissional", target = "compartilharObjetivoProfissional")
+    @Mapping(source = "compartilharDisponibilidade",      target = "compartilharDisponibilidade")
+    @Mapping(source = "compartilharPretensaoSalarial",    target = "compartilharPretensaoSalarial")
+    @Mapping(source = "compartilharCurriculo",            target = "compartilharCurriculo")
+    @Mapping(source = "compartilharExperiencias",         target = "compartilharExperiencias")
+    @Mapping(source = "compartilharFormacoes",            target = "compartilharFormacoes")
+    @Mapping(source = "compartilharTelefone",             target = "compartilharTelefone")
+    @Mapping(source = "compartilharEndereco",             target = "compartilharEndereco")
     CandidaturaResponseDTO toResponseDTO(Candidatura entity);
 
     @Named("mapCandidatoId")
@@ -39,7 +48,6 @@ public interface CandidaturaMapper {
         return vaga != null ? vaga.getTitulo() : null;
     }
 
-    // Método corrigido para extrair o status da entidade StatusCandidatura
     @Named("mapStatusToString")
     default String mapStatusToString(StatusCandidatura status) {
         return status != null ? status.getStatus() : null;

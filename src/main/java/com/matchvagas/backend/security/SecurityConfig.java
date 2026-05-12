@@ -75,6 +75,23 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT,    "/api/lookup/**").hasAuthority("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/lookup/**").hasAuthority("ADMIN")
 
+                // ── Empresas — escrita restrita a EMPRESA ou ADMIN ────────
+                .requestMatchers(HttpMethod.POST,   "/api/empresas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/empresas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/empresas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+
+                // ── Vagas — escrita restrita a EMPRESA ou ADMIN ───────────
+                .requestMatchers(HttpMethod.POST,   "/api/vagas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+                .requestMatchers(HttpMethod.PUT,    "/api/vagas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/vagas/**").hasAnyAuthority("EMPRESA", "ADMIN")
+
+                // ── Candidatos — acesso restrito a CANDIDATO ─────────────
+                .requestMatchers("/api/candidatos/**").hasAuthority("CANDIDATO")
+
+                // ── Candidaturas — visualização por empresa restrita a EMPRESA ──
+                .requestMatchers(HttpMethod.GET, "/api/candidaturas/empresa").hasAuthority("EMPRESA")
+                .requestMatchers(HttpMethod.POST, "/api/candidaturas/**").hasAuthority("CANDIDATO")
+
                 // ── Qualquer outro endpoint requer autenticação ───────────
                 .anyRequest().authenticated()
             )

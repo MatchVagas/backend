@@ -1,0 +1,271 @@
+### ============================================================
+### LOCALIZAÇÃO - Países, Estados e Cidades
+### Leitura pública / Escrita somente ADMIN
+###
+### IMPORTANTE: pais_id, estado_id e cidade_id são capturados
+### nos GETs iniciais e NÃO são sobrescritos pelos testes de CRUD
+### (que usam variáveis _tmp). Assim, os arquivos 07-vagas e
+### 10-sugestoes sempre têm uma cidade válida disponível.
+### ============================================================
+
+# ──────────────────────────────────────────
+# PAÍSES
+# ──────────────────────────────────────────
+
+### [1] Listar países (público) — captura ID de produção
+GET {{base_url}}/api/localizacao/paises
+
+> {%
+  client.global.set("pais_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [2] Buscar país por ID (público)
+GET {{base_url}}/api/localizacao/paises/{{pais_id}}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+  client.test("Tem nome", function() { client.assert(response.body.nome !== undefined); });
+%}
+
+###
+
+### [3] Criar país (ADMIN) — usa _tmp, não sobrescreve pais_id
+POST {{base_url}}/api/localizacao/paises
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "País Teste",
+  "codigoIso": "XT"
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("pais_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [4] Atualizar país (ADMIN)
+PUT {{base_url}}/api/localizacao/paises/{{pais_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "País Teste Atualizado",
+  "codigoIso": "XT"
+}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [5] Excluir país de teste (ADMIN) — deleta apenas o _tmp
+DELETE {{base_url}}/api/localizacao/paises/{{pais_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se não criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+### [6] Criar país sem autenticação (deve retornar 401 ou 403)
+POST {{base_url}}/api/localizacao/paises
+Content-Type: application/json
+
+{
+  "nome": "Teste Sem Auth",
+  "codigoIso": "SA"
+}
+
+> {%
+  client.test("Bloqueado sem auth (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [7] codigoIso inválido (mais de 2 chars) — deve retornar 400
+POST {{base_url}}/api/localizacao/paises
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Código Longo",
+  "codigoIso": "TOOLONG"
+}
+
+> {%
+  client.test("codigoIso inválido → 400", function() {
+    client.assert(response.status === 400);
+  });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# ESTADOS
+# ──────────────────────────────────────────
+
+### [8] Listar estados (público) — captura ID de produção
+GET {{base_url}}/api/localizacao/estados
+
+> {%
+  client.global.set("estado_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [9] Listar estados por país (público)
+GET {{base_url}}/api/localizacao/estados?paisId={{pais_id}}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [10] Buscar estado por ID (público)
+GET {{base_url}}/api/localizacao/estados/{{estado_id}}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+  client.test("Tem nome", function() { client.assert(response.body.nome !== undefined); });
+%}
+
+###
+
+### [11] Criar estado (ADMIN) — usa _tmp
+POST {{base_url}}/api/localizacao/estados
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Estado Teste",
+  "uf": "XT",
+  "paisId": {{pais_id}}
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("estado_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [12] Atualizar estado (ADMIN)
+PUT {{base_url}}/api/localizacao/estados/{{estado_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Estado Teste Atualizado",
+  "uf": "XT",
+  "paisId": {{pais_id}}
+}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [13] Excluir estado de teste (ADMIN)
+DELETE {{base_url}}/api/localizacao/estados/{{estado_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se não criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###
+
+# ──────────────────────────────────────────
+# CIDADES
+# ──────────────────────────────────────────
+
+### [14] Listar cidades (público) — captura ID de produção
+GET {{base_url}}/api/localizacao/cidades
+
+> {%
+  client.global.set("cidade_id", response.body[0].id);
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [15] Listar cidades por estado (público)
+GET {{base_url}}/api/localizacao/cidades?estadoId={{estado_id}}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [16] Buscar cidade por ID (público)
+GET {{base_url}}/api/localizacao/cidades/{{cidade_id}}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+  client.test("Tem nome", function() { client.assert(response.body.nome !== undefined); });
+%}
+
+###
+
+### [17] Criar cidade (ADMIN) — usa _tmp
+POST {{base_url}}/api/localizacao/cidades
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Cidade Teste",
+  "estadoId": {{estado_id}}
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("cidade_tmp", response.body.id);
+  }
+  client.test("Status 201 (ou já existente)", function() { client.assert(response.status === 201 || response.status === 400 || response.status === 409); });
+%}
+
+###
+
+### [18] Atualizar cidade (ADMIN)
+PUT {{base_url}}/api/localizacao/cidades/{{cidade_tmp}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "Cidade Teste Atualizada",
+  "estadoId": {{estado_id}}
+}
+
+> {%
+  client.test("Status 200 (ou 404 se não criado)", function() { client.assert(response.status === 200 || response.status === 404); });
+%}
+
+###
+
+### [19] Excluir cidade de teste (ADMIN)
+DELETE {{base_url}}/api/localizacao/cidades/{{cidade_tmp}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204 (ou 404 se não criado)", function() { client.assert(response.status === 204 || response.status === 404); });
+%}
+
+###

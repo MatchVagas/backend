@@ -1,0 +1,208 @@
+### ============================================================
+### AUTH — Autenticação e Registro
+### Ordem de execução: este arquivo deve ser rodado PRIMEIRO
+### Os tokens são capturados automaticamente nas variáveis globais
+### ============================================================
+
+### [1] Registrar Candidato
+# Retorna 201 (criado) ou 400/409 se já existir
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "João da Silva",
+  "email": "joao.candidato@teste.com",
+  "senha": "senha123",
+  "dataNascimento": "1995-06-15T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+  client.test("Candidato registrado ou já existente", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+  if (response.status === 201) {
+    client.global.set("usuario_candidato_id", response.body.id);
+  }
+%}
+
+###
+
+### [2] Registrar Empresa
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Maria Gestora",
+  "email": "maria.empresa@teste.com",
+  "senha": "senha123",
+  "dataNascimento": "1985-03-20T00:00:00",
+  "tipoUsuario": "EMPRESA"
+}
+
+> {%
+  client.test("Empresa registrada ou já existente", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+  if (response.status === 201) {
+    client.global.set("usuario_empresa_id", response.body.id);
+  }
+%}
+
+###
+
+### [3] Registrar Admin
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Admin Sistema",
+  "email": "admin@teste.com",
+  "senha": "admin123",
+  "dataNascimento": "1980-01-10T00:00:00",
+  "tipoUsuario": "ADMIN"
+}
+
+> {%
+  client.test("Admin registrado ou já existente", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+  if (response.status === 201) {
+    client.global.set("usuario_admin_id", response.body.id);
+  }
+%}
+
+###
+
+### [4] Login — Candidato (captura token automaticamente)
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao.candidato@teste.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.global.set("token_candidato", response.body.token);
+  client.test("Login candidato OK", function() { client.assert(response.status === 200); });
+  client.test("Token presente", function() { client.assert(response.body.token !== ""); });
+%}
+
+###
+
+### [5] Login — Empresa (captura token automaticamente)
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "maria.empresa@teste.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.global.set("token_empresa", response.body.token);
+  client.test("Login empresa OK", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [6] Login — Admin (captura token automaticamente)
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@teste.com",
+  "senha": "admin123"
+}
+
+> {%
+  client.global.set("token_admin", response.body.token);
+  client.test("Login admin OK", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [7] Logout (invalida sessão no servidor)
+POST {{base_url}}/api/auth/logout
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Logout OK", function() {
+    client.assert(response.status === 200 || response.status === 204);
+  });
+%}
+
+###
+
+### ── TESTES DE ERRO ─────────────────────────────────────────────
+
+### [8] Login com senha incorreta (deve retornar 401)
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao.candidato@teste.com",
+  "senha": "senha_errada"
+}
+
+> {%
+  client.test("Senha errada bloqueada", function() {
+    client.assert(response.status === 401);
+  });
+%}
+
+###
+
+### [9] Login com e-mail inexistente (deve retornar 401)
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "nao.existe@teste.com",
+  "senha": "qualquer"
+}
+
+> {%
+  client.test("Email inexistente bloqueado", function() {
+    client.assert(response.status === 401);
+  });
+%}
+
+###
+
+### [10] Registro com e-mail inválido (deve retornar 400)
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Teste",
+  "email": "email-invalido",
+  "senha": "senha123",
+  "dataNascimento": "1990-01-01T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+  client.test("Email inválido rejeitado", function() {
+    client.assert(response.status === 400);
+  });
+%}
+
+###
+
+### [11] Re-login do candidato para restaurar token após logout
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "joao.candidato@teste.com",
+  "senha": "senha123"
+}
+
+> {%
+  client.global.set("token_candidato", response.body.token);
+  client.test("Re-login candidato OK", function() { client.assert(response.status === 200); });
+%}
+
+###

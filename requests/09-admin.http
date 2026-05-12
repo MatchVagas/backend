@@ -1,0 +1,410 @@
+### ============================================================
+### ADMIN — Gestão administrativa do sistema
+### Pré-requisito: 01-auth.http (token_admin)
+### Todos os endpoints exigem role ADMIN
+### ============================================================
+
+### ── GESTÃO DE USUÁRIOS ──────────────────────────────────────────
+
+### [1] Listar todos os usuários
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    const candidato = response.body.find(u => u.tipoUsuario === "CANDIDATO");
+    const empresa   = response.body.find(u => u.tipoUsuario === "EMPRESA");
+    if (candidato) client.global.set("usuario_candidato_id", candidato.id);
+    if (empresa)   client.global.set("usuario_empresa_id",   empresa.id);
+  }
+%}
+
+###
+
+### [2] Buscar usuário por ID
+GET {{base_url}}/api/admin/usuarios/{{usuario_candidato_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("ID correto", function() {
+    client.assert(String(response.body.id) === String(client.global.get("usuario_candidato_id")));
+  });
+%}
+
+###
+
+### [3] Atualizar dados de um usuário (ADMIN pode editar qualquer usuário)
+PUT {{base_url}}/api/admin/usuarios/{{usuario_candidato_id}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "nome": "João da Silva (editado)",
+  "email": "joao.candidato@teste.com",
+  "dataNascimento": "1995-06-15T00:00:00",
+  "tipoUsuario": "CANDIDATO",
+  "ativo": true
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Nome atualizado", function() {
+    client.assert(response.body.nome === "João da Silva (editado)");
+  });
+%}
+
+###
+
+### [4] Desativar usuário
+PATCH {{base_url}}/api/admin/usuarios/{{usuario_candidato_id}}/desativar
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204", function() { client.assert(response.status === 204); });
+%}
+
+###
+
+### [5] Ativar usuário
+PATCH {{base_url}}/api/admin/usuarios/{{usuario_candidato_id}}/ativar
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 204", function() { client.assert(response.status === 204); });
+%}
+
+###
+
+### [6] Alterar tipo de usuário (CANDIDATO → CANDIDATO, sem mudança real)
+PATCH {{base_url}}/api/admin/usuarios/{{usuario_candidato_id}}/tipo/CANDIDATO
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200 ou 204", function() {
+    client.assert(response.status === 200 || response.status === 204);
+  });
+%}
+
+###
+
+### ── GESTÃO DE CANDIDATOS ─────────────────────────────────────────
+
+### [7] Listar todos os candidatos
+GET {{base_url}}/api/admin/candidatos
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("candidato_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [8] Buscar candidato por ID
+GET {{base_url}}/api/admin/candidatos/{{candidato_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [9] Atualizar perfil de candidato (ADMIN)
+PUT {{base_url}}/api/admin/candidatos/{{candidato_id}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Desenvolvedor Java Sênior com 5 anos de experiência — editado pelo admin",
+  "disponibilidade": "30 dias",
+  "pretensaoSalarial": 9000.00
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### ── GESTÃO DE EMPRESAS ──────────────────────────────────────────
+
+### [10] Listar todas as empresas
+GET {{base_url}}/api/admin/empresas
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("empresa_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [11] Buscar empresa por ID
+GET {{base_url}}/api/admin/empresas/{{empresa_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Tem nomeFantasia", function() {
+    client.assert(response.body.nomeFantasia !== undefined);
+  });
+%}
+
+###
+
+### ── GESTÃO DE VAGAS ──────────────────────────────────────────────
+
+### [12] Listar todas as vagas (admin vê todas, inclusive inativas)
+GET {{base_url}}/api/admin/vagas
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("vaga_admin_id", response.body[0].id);
+    client.global.set("vaga_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [13] Buscar vaga por ID
+GET {{base_url}}/api/admin/vagas/{{vaga_admin_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Tem titulo", function() { client.assert(response.body.titulo !== undefined); });
+%}
+
+###
+
+### [14] Alterar status de uma vaga
+# status_vaga_id = ID do status "Ativa" obtido em 02-lookup
+PATCH {{base_url}}/api/admin/vagas/{{vaga_admin_id}}/status/{{status_vaga_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200 ou 204", function() {
+    client.assert(response.status === 200 || response.status === 204);
+  });
+%}
+
+###
+
+### ── GESTÃO DE CANDIDATURAS ───────────────────────────────────────
+
+### [15] Listar todas as candidaturas do sistema
+GET {{base_url}}/api/admin/candidaturas
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("candidatura_admin_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [16] Buscar candidatura por ID
+GET {{base_url}}/api/admin/candidaturas/{{candidatura_admin_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [17] Alterar status de uma candidatura
+# status_candidatura_id precisa de um ID válido — use GET /api/lookup/sistema/status-candidatura
+GET {{base_url}}/api/lookup/sistema/status-candidatura
+
+> {%
+  if (response.status === 200 && response.body.length > 0) {
+    client.global.set("status_candidatura_id", response.body[0].id);
+  }
+%}
+
+###
+
+PATCH {{base_url}}/api/admin/candidaturas/{{candidatura_admin_id}}/status/{{status_candidatura_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200 ou 204", function() {
+    client.assert(response.status === 200 || response.status === 204);
+  });
+%}
+
+###
+
+### ── GESTÃO DE ADMINISTRADORES ────────────────────────────────────
+
+### [18] Listar todos os administradores
+GET {{base_url}}/api/admin/admins
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  if (response.body.length > 0) {
+    client.global.set("admin_id", response.body[0].id);
+    client.global.set("usuario_admin_id", response.body[0].usuario
+      ? response.body[0].usuario.id
+      : client.global.get("usuario_admin_id"));
+  }
+%}
+
+###
+
+### [19] Buscar administrador por ID
+GET {{base_url}}/api/admin/admins/{{admin_id}}
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [20] Criar administrador (promover usuário)
+POST {{base_url}}/api/admin/admins
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "usuarioId": {{usuario_admin_id}},
+  "nivel": "GERENTE",
+  "departamentoId": {{departamento_id}},
+  "permissoes": "USUARIOS,VAGAS,EMPRESAS"
+}
+
+> {%
+  client.test("Status 201 ou 400 (já existe)", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+  if (response.status === 201) {
+    client.global.set("admin_id", response.body.id);
+  }
+%}
+
+###
+
+### [21] Atualizar dados do administrador
+PUT {{base_url}}/api/admin/admins/{{admin_id}}
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "usuarioId": {{usuario_admin_id}},
+  "nivel": "DIRETOR",
+  "departamentoId": {{departamento_id}},
+  "permissoes": "USUARIOS,VAGAS,EMPRESAS,RELATORIOS"
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### ── ESTATÍSTICAS ────────────────────────────────────────────────
+
+### [22] Estatísticas gerais do sistema
+GET {{base_url}}/api/admin/estatisticas
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Tem totalUsuarios", function() {
+    client.assert(response.body.totalUsuarios !== undefined);
+  });
+  client.test("Tem totalVagas", function() {
+    client.assert(response.body.totalVagas !== undefined);
+  });
+  client.test("Tem totalCandidaturas", function() {
+    client.assert(response.body.totalCandidaturas !== undefined);
+  });
+  client.test("Totais são numéricos e >= 0", function() {
+    client.assert(response.body.totalUsuarios >= 0);
+    client.assert(response.body.totalCandidatos >= 0);
+    client.assert(response.body.totalEmpresas >= 0);
+  });
+%}
+
+###
+
+### ── TESTES DE SEGURANÇA ─────────────────────────────────────────
+
+### [23] Candidato tenta acessar endpoint admin (deve retornar 403)
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Candidato bloqueado em /admin (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [24] Empresa tenta acessar endpoint admin (deve retornar 403)
+GET {{base_url}}/api/admin/estatisticas
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Empresa bloqueada em /admin (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [25] Sem autenticação (deve retornar 401 ou 403)
+GET {{base_url}}/api/admin/usuarios
+
+> {%
+  client.test("Sem auth bloqueado (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [26] Token inválido (deve retornar 401 ou 403)
+GET {{base_url}}/api/admin/usuarios
+Authorization: Bearer token.invalido.aqui
+
+> {%
+  client.test("Token inválido bloqueado (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [27] Usuário inexistente (deve retornar 404)
+GET {{base_url}}/api/admin/usuarios/999999
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Usuário inexistente (404)", function() {
+    client.assert(response.status === 404);
+  });
+%}
+
+###

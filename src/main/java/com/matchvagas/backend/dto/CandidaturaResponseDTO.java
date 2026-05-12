@@ -1,9 +1,6 @@
 package com.matchvagas.backend.dto;
 
-import jakarta.validation.constraints.NotNull;
-
 import java.time.LocalDateTime;
-import java.math.BigDecimal;
 
 public record CandidaturaResponseDTO(
         Long id,
@@ -12,6 +9,15 @@ public record CandidaturaResponseDTO(
         Long vagaId,
         String tituloVaga,
         LocalDateTime dataCandidatura,
-        String status
-) {
-}
+        String status,
+
+        // Preferências de compartilhamento visíveis somente ao próprio candidato
+        boolean compartilharObjetivoProfissional,
+        boolean compartilharDisponibilidade,
+        boolean compartilharPretensaoSalarial,
+        boolean compartilharCurriculo,
+        boolean compartilharExperiencias,
+        boolean compartilharFormacoes,
+        boolean compartilharTelefone,
+        boolean compartilharEndereco
+) {}

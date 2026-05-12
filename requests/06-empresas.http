@@ -1,0 +1,152 @@
+### ============================================================
+### EMPRESAS - Gestão de empresas
+### Leitura pública / Escrita para EMPRESA ou ADMIN
+### ============================================================
+
+### [1] Listar empresas (público)
+GET {{base_url}}/api/empresas
+
+> {%
+  client.global.set("empresa_id", response.body[0] ? response.body[0].id : 1);
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [2] Buscar empresa por ID (público)
+GET {{base_url}}/api/empresas/{{empresa_id}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [3] Criar empresa (EMPRESA autenticada)
+# Pré-requisito: lookup 02 executado para obter porte_id e ramo_id
+POST {{base_url}}/api/empresas
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Tech Solutions Ltda",
+  "nomeFantasia": "TechSolutions",
+  "descricao": "Empresa especializada em desenvolvimento de software e consultoria em TI.",
+  "porteId": {{porte_id}},
+  "ramoId": {{ramo_id}},
+  "site": "https://www.techsolutions.com.br"
+}
+
+> {%
+  if (response.status === 201) client.global.set("empresa_id", response.body.id);
+  client.test("Status 201 (ou já existente)", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+%}
+
+###
+
+### [4] Visualizar minha empresa (EMPRESA autenticada)
+GET {{base_url}}/api/empresas/minha-empresa
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [5] Atualizar empresa (EMPRESA ou ADMIN)
+PUT {{base_url}}/api/empresas/{{empresa_id}}
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Tech Solutions Tecnologia Ltda",
+  "nomeFantasia": "TechSolutions Brasil",
+  "descricao": "Líder em desenvolvimento de software e soluções digitais.",
+  "porteId": {{porte_id}},
+  "ramoId": {{ramo_id}},
+  "site": "https://www.techsolutionsbrasil.com.br"
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [6] Admin cria empresa vinculando a um usuário específico
+POST {{base_url}}/api/empresas
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "cnpj": "45.678.901/0001-23",
+  "razaoSocial": "Inovação Digital SA",
+  "nomeFantasia": "InovaDigital",
+  "descricao": "Empresa de inovação e transformação digital.",
+  "porteId": {{porte_id}},
+  "ramoId": {{ramo_id}},
+  "site": "https://www.inovadigital.com.br",
+  "usuarioGestorId": {{usuario_empresa_id}}
+}
+
+> {%
+  client.test("Status 201 (ou já existente)", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+%}
+
+###
+
+### [7] Buscar empresa inexistente (deve retornar 404)
+GET {{base_url}}/api/empresas/999999
+
+> {%
+  client.test("Status 404", function() { client.assert(response.status === 404); });
+%}
+
+###
+
+### [8] Criar empresa com CNPJ inválido (deve retornar 400)
+POST {{base_url}}/api/empresas
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{
+  "cnpj": "00.000.000/0000-00",
+  "razaoSocial": "Empresa Inválida",
+  "nomeFantasia": "Inválida",
+  "descricao": "Teste CNPJ inválido",
+  "porteId": {{porte_id}},
+  "ramoId": {{ramo_id}}
+}
+
+> {%
+  client.test("CNPJ inválido rejeitado", function() { client.assert(response.status === 400); });
+%}
+
+###
+
+### [9] Candidato tenta criar empresa (deve retornar 403)
+POST {{base_url}}/api/empresas
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "cnpj": "11.222.333/0001-81",
+  "razaoSocial": "Não Deve Criar",
+  "nomeFantasia": "Bloqueada",
+  "descricao": "Candidato não pode criar empresa",
+  "porteId": 1,
+  "ramoId": 1
+}
+
+> {%
+  client.test("Candidato bloqueado", function() {
+    client.assert(response.status === 403);
+  });
+%}

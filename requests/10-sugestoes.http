@@ -1,0 +1,322 @@
+### ============================================================
+### SUGESTÃO DE VAGAS — Sistema de recomendação por perfil
+### Pré-requisitos (rodar em ordem):
+###   01-auth.http  → tokens
+###   02-lookup.http → status_vaga_id, tipo_vaga_id, etc.
+###   03-localizacao.http → cidade_id
+###   06-empresas.http → empresa_id
+###   07-vagas.http → vagas Java ativas no banco
+### ============================================================
+
+### ── SETUP: candidato dedicado para sugestões ────────────────────
+
+### [1] Registrar candidato de sugestão (idempotente)
+POST {{base_url}}/api/auth/register
+Content-Type: application/json
+
+{
+  "nome": "Lucas Sugestao Tester",
+  "email": "lucas.sugestao@matchvagas.com",
+  "senha": "Teste@123",
+  "dataNascimento": "1995-06-15T00:00:00",
+  "tipoUsuario": "CANDIDATO"
+}
+
+> {%
+  client.test("Registro OK ou já existente", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+%}
+
+###
+
+### [2] Login do candidato de sugestão
+POST {{base_url}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "lucas.sugestao@matchvagas.com",
+  "senha": "Teste@123"
+}
+
+> {%
+  client.global.set("token_sugestao", response.body.token);
+  client.test("Login OK", function() { client.assert(response.status === 200); });
+  client.test("Token presente", function() { client.assert(response.body.token !== ""); });
+%}
+
+###
+
+### [3] Criar perfil com objetivo profissional Java (POST cria, PUT atualiza)
+POST {{base_url}}/api/candidatos
+Authorization: Bearer {{token_sugestao}}
+Content-Type: application/json
+
+{
+  "cpf": "104.332.181-00",
+  "resumoProfissional": "Desenvolvedor Java com experiência em Spring Boot e APIs REST",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 7500.00
+}
+
+> {%
+  client.test("Perfil criado (201) ou já existente (400/409)", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+%}
+
+###
+
+### [4] Atualizar perfil (garante dados corretos mesmo se já criado)
+PUT {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token_sugestao}}
+Content-Type: application/json
+
+{
+  "cpf": "104.332.181-00",
+  "resumoProfissional": "Desenvolvedor Java com experiência em Spring Boot e APIs REST",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 7500.00
+}
+
+> {%
+  client.test("Perfil atualizado (200)", function() { client.assert(response.status === 200); });
+  client.test("objetivoProfissional preenchido", function() {
+    client.assert(response.body.objetivoProfissional !== null);
+  });
+%}
+
+###
+
+### ── SETUP: vaga Java ativa dedicada para o teste ─────────────────
+
+### [5] Criar vaga Java ativa exclusiva para o teste de sugestão
+POST {{base_url}}/api/vagas
+Authorization: Bearer {{token_admin}}
+Content-Type: application/json
+
+{
+  "empresaId": {{empresa_id}},
+  "titulo": "Desenvolvedor Java Backend Sugestao Test",
+  "descricao": "Vaga de teste para o sistema de sugestão automatizado.",
+  "requisitos": "Java Spring Boot REST APIs SQL Git",
+  "tipoVagaId": {{tipo_vaga_id}},
+  "modalidadeId": {{modalidade_id}},
+  "salarioMinimo": 6000.00,
+  "salarioMaximo": 9000.00,
+  "beneficios": "VR, VT",
+  "cargaHoraria": "40h semanais",
+  "idadeMinima": 18,
+  "idadeMaxima": 45,
+  "escolaridadeId": {{escolaridade_id}},
+  "areaAtuacao": "Tecnologia da Informação Java",
+  "dataExpiracao": "2027-12-31T23:59:59",
+  "statusVagaId": {{status_vaga_id}},
+  "numeroVagas": 1,
+  "cidadeId": {{cidade_id}}
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("vaga_sugestao_id", response.body.id);
+  }
+  client.test("Vaga de sugestão criada (201)", function() {
+    client.assert(response.status === 201);
+  });
+  client.test("Área de atuação com Java", function() {
+    client.assert(response.body.areaAtuacao.includes("Java"));
+  });
+%}
+
+###
+
+### ── TESTES PRINCIPAIS ────────────────────────────────────────────
+
+### [6] Obter sugestões — perfil Java, pretensão R$ 7.500
+GET {{base_url}}/api/candidatos/sugestoes
+Authorization: Bearer {{token_sugestao}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Retorna array", function() { client.assert(Array.isArray(response.body)); });
+  client.test("Lista não vazia — existe vaga Java ativa", function() {
+    client.assert(response.body.length > 0,
+      "Nenhuma sugestão retornada. Verifique se a vaga do passo [5] foi criada com status ativo.");
+  });
+  client.test("Pontuação máxima acima do limiar (> 15)", function() {
+    client.assert(response.body[0].pontuacao > 15);
+  });
+  client.test("Ordenado por pontuação decrescente", function() {
+    if (response.body.length >= 2) {
+      client.assert(response.body[0].pontuacao >= response.body[1].pontuacao);
+    }
+  });
+  client.test("Máximo 10 sugestões", function() {
+    client.assert(response.body.length <= 10);
+  });
+  client.test("Cada item tem campo 'vaga'", function() {
+    client.assert(response.body[0].vaga !== undefined);
+  });
+  client.test("Cada item tem campo 'motivos' não vazio", function() {
+    client.assert(Array.isArray(response.body[0].motivos));
+    client.assert(response.body[0].motivos.length > 0);
+  });
+  client.test("Cada item tem campo 'pontuacao'", function() {
+    client.assert(typeof response.body[0].pontuacao === "number");
+  });
+
+  if (response.body.length > 0) {
+    client.global.set("vaga_sugerida_id", response.body[0].vaga.id);
+    client.global.set("pontuacao_maxima", response.body[0].pontuacao);
+  }
+%}
+
+###
+
+### [7] Verificar pontuação máxima da vaga Java recém-criada
+# Ela deve aparecer com pontuação alta (30 área + 15 título + 15 requisitos + 25 salário = 85+)
+GET {{base_url}}/api/candidatos/sugestoes
+Authorization: Bearer {{token_sugestao}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  if (response.body.length > 0) {
+    const vagaSugestao = response.body.find(s => s.vaga.id === parseInt(client.global.get("vaga_sugestao_id")));
+    client.test("Vaga dedicada de Java aparece nas sugestões", function() {
+      client.assert(vagaSugestao !== undefined,
+        "A vaga 'Desenvolvedor Java Backend Sugestao Test' não apareceu. Verifique se está com status ativo.");
+    });
+    if (vagaSugestao) {
+      client.test("Pontuação da vaga Java >= 55 pts (área+título+requisitos+salário)", function() {
+        client.assert(vagaSugestao.pontuacao >= 55);
+      });
+    }
+  }
+%}
+
+###
+
+### [8] Candidatar-se à vaga mais bem pontuada
+POST {{base_url}}/api/candidaturas
+Authorization: Bearer {{token_sugestao}}
+Content-Type: application/json
+
+{
+  "vagaId": {{vaga_sugerida_id}}
+}
+
+> {%
+  client.test("Candidatura criada (201) ou duplicada (400)", function() {
+    client.assert(response.status === 201 || response.status === 400);
+  });
+  if (response.status === 201) {
+    client.global.set("candidatura_sugestao_id", response.body.id);
+    client.test("candidatoId preenchido", function() {
+      client.assert(response.body.candidatoId !== undefined);
+    });
+  }
+%}
+
+###
+
+### [9] Após candidatura — vaga aplicada deve sumir das sugestões
+GET {{base_url}}/api/candidatos/sugestoes
+Authorization: Bearer {{token_sugestao}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Vaga já candidatada não aparece mais nas sugestões", function() {
+    const vagaId = parseInt(client.global.get("vaga_sugerida_id"));
+    const aparece = response.body.some(s => s.vaga.id === vagaId);
+    client.assert(!aparece, "Vaga candidatada ainda está nas sugestões — deveria ser filtrada.");
+  });
+%}
+
+###
+
+### ── COMPARTILHAMENTO NA CANDIDATURA ──────────────────────────────
+
+### [10] Atualizar compartilhamento da candidatura de sugestão
+PATCH {{base_url}}/api/candidaturas/{{candidatura_sugestao_id}}/compartilhamento
+Authorization: Bearer {{token_sugestao}}
+Content-Type: application/json
+
+{
+  "compartilharObjetivoProfissional": true,
+  "compartilharDisponibilidade": true,
+  "compartilharPretensaoSalarial": false,
+  "compartilharCurriculo": false,
+  "compartilharExperiencias": true,
+  "compartilharFormacoes": true,
+  "compartilharTelefone": false,
+  "compartilharEndereco": false
+}
+
+> {%
+  client.test("Compartilhamento atualizado (200)", function() {
+    client.assert(response.status === 200);
+  });
+  client.test("pretensaoSalarial = false", function() {
+    client.assert(response.body.compartilharPretensaoSalarial === false);
+  });
+%}
+
+###
+
+### [11] Empresa vê candidatos da vaga — pretensão ausente (não compartilhada)
+GET {{base_url}}/api/candidaturas/empresa/vaga/{{vaga_sugestao_id}}
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Status 200 ou 403 (vaga de outra empresa)", function() {
+    client.assert(response.status === 200 || response.status === 403 || response.status === 400);
+  });
+  if (response.status === 200 && response.body.length > 0) {
+    const cand = response.body[0];
+    client.test("pretensaoSalarial nula (não compartilhada)", function() {
+      client.assert(cand.pretensaoSalarial === undefined || cand.pretensaoSalarial === null);
+    });
+    client.test("nomeCandidato sempre visível", function() {
+      client.assert(cand.nomeCandidato !== undefined && cand.nomeCandidato !== null);
+    });
+  }
+%}
+
+###
+
+### ── SEGURANÇA ─────────────────────────────────────────────────────
+
+### [12] Empresa tenta acessar sugestões (403)
+GET {{base_url}}/api/candidatos/sugestoes
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Empresa bloqueada (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [13] Admin tenta acessar sugestões (403 — somente CANDIDATO)
+GET {{base_url}}/api/candidatos/sugestoes
+Authorization: Bearer {{token_admin}}
+
+> {%
+  client.test("Admin bloqueado em /sugestoes (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [14] Sem autenticação (401 ou 403)
+GET {{base_url}}/api/candidatos/sugestoes
+
+> {%
+  client.test("Sem auth bloqueado (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###

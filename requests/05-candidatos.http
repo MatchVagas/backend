@@ -1,0 +1,100 @@
+### ============================================================
+### CANDIDATOS - Perfil do candidato
+### Requer autenticação como CANDIDATO
+### ============================================================
+
+### [1] Criar perfil do candidato (CANDIDATO autenticado)
+POST {{base_url}}/api/candidatos
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Desenvolvedor Java com 3 anos de experiência em Spring Boot e microserviços.",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 5000.00
+}
+
+> {%
+  client.test("Status 201 (ou já existente)", function() {
+    client.assert(response.status === 201 || response.status === 400 || response.status === 409);
+  });
+%}
+
+###
+
+### [2] Visualizar meu perfil de candidato
+GET {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Tem CPF", function() { client.assert(response.body.cpf !== undefined); });
+%}
+
+###
+
+### [3] Atualizar meu perfil de candidato
+PUT {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Desenvolvedor Java Sênior com 5 anos de experiência em Spring Boot, Kubernetes e AWS.",
+  "disponibilidade": "30 dias",
+  "pretensaoSalarial": 8000.00
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+%}
+
+###
+
+### [4] Tentar criar perfil candidato sem autenticação (deve retornar 401)
+POST {{base_url}}/api/candidatos
+Content-Type: application/json
+
+{
+  "cpf": "529.982.247-25",
+  "resumoProfissional": "Teste sem auth",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 3000.00
+}
+
+> {%
+  client.test("Bloqueado sem auth", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [5] Tentar acessar perfil candidato com token de empresa (deve retornar 403)
+GET {{base_url}}/api/candidatos/meu-perfil
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Empresa não acessa perfil candidato", function() {
+    client.assert(response.status === 403 || response.status === 404);
+  });
+%}
+
+###
+
+### [6] Criar candidato com CPF inválido (deve retornar 400)
+POST {{base_url}}/api/candidatos
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "cpf": "000.000.000-00",
+  "resumoProfissional": "Teste CPF inválido",
+  "disponibilidade": "Imediata",
+  "pretensaoSalarial": 3000.00
+}
+
+> {%
+  client.test("CPF inválido rejeitado", function() { client.assert(response.status === 400); });
+%}

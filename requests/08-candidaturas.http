@@ -1,0 +1,304 @@
+### ============================================================
+### CANDIDATURAS — Candidatura a vagas e acompanhamento
+### Pré-requisito: 01-auth.http (tokens), 07-vagas.http (vaga_id)
+### ============================================================
+
+### ── RF008 — Candidatar-se a uma vaga ──────────────────────────
+
+### [1] Candidatar-se a uma vaga (CANDIDATO)
+POST {{base_url}}/api/candidaturas
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "vagaId": {{vaga_id}}
+}
+
+> {%
+  if (response.status === 201) {
+    client.global.set("candidatura_id", response.body.id);
+  }
+  client.test("Status 201 ou 400 (duplicada)", function() {
+    client.assert(response.status === 201 || response.status === 400);
+  });
+  if (response.status === 201) {
+    client.test("Tem vagaId", function() { client.assert(response.body.vagaId !== undefined); });
+    client.test("Preferências padrão — objetivo compartilhado", function() {
+      client.assert(response.body.compartilharObjetivoProfissional === true);
+    });
+    client.test("Preferências padrão — telefone não compartilhado", function() {
+      client.assert(response.body.compartilharTelefone === false);
+    });
+  }
+%}
+
+###
+
+### [2] Candidatura com preferências de compartilhamento explícitas
+POST {{base_url}}/api/candidaturas
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "vagaId": {{vaga_id}},
+  "compartilharObjetivoProfissional": true,
+  "compartilharDisponibilidade": true,
+  "compartilharPretensaoSalarial": false,
+  "compartilharCurriculo": false,
+  "compartilharExperiencias": true,
+  "compartilharFormacoes": true,
+  "compartilharTelefone": false,
+  "compartilharEndereco": false
+}
+
+> {%
+  client.test("Candidatura com preferências (201 ou 400 duplicada)", function() {
+    client.assert(response.status === 201 || response.status === 400);
+  });
+%}
+
+###
+
+### ── RF009 — Acompanhar candidaturas (CANDIDATO) ────────────────
+
+### [3] Listar minhas candidaturas (CANDIDATO)
+GET {{base_url}}/api/candidaturas/minhas
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("candidatura_id", response.body[0].id);
+  }
+%}
+
+###
+
+### [4] Buscar candidatura por ID (CANDIDATO — própria)
+GET {{base_url}}/api/candidaturas/{{candidatura_id}}
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("Tem campo status", function() {
+    client.assert(response.body.status !== undefined || response.body.status === null);
+  });
+%}
+
+###
+
+### ── Preferências de compartilhamento ──────────────────────────
+
+### [5] Atualizar preferências de compartilhamento da candidatura
+PATCH {{base_url}}/api/candidaturas/{{candidatura_id}}/compartilhamento
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "compartilharObjetivoProfissional": true,
+  "compartilharDisponibilidade": true,
+  "compartilharPretensaoSalarial": false,
+  "compartilharCurriculo": false,
+  "compartilharExperiencias": true,
+  "compartilharFormacoes": true,
+  "compartilharTelefone": false,
+  "compartilharEndereco": false
+}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("pretensaoSalarial não compartilhada", function() {
+    client.assert(response.body.compartilharPretensaoSalarial === false);
+  });
+  client.test("objetivo compartilhado", function() {
+    client.assert(response.body.compartilharObjetivoProfissional === true);
+  });
+%}
+
+###
+
+### [6] Tornar candidatura totalmente privada
+PATCH {{base_url}}/api/candidaturas/{{candidatura_id}}/compartilhamento
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "compartilharObjetivoProfissional": false,
+  "compartilharDisponibilidade": false,
+  "compartilharPretensaoSalarial": false,
+  "compartilharCurriculo": false,
+  "compartilharExperiencias": false,
+  "compartilharFormacoes": false,
+  "compartilharTelefone": false,
+  "compartilharEndereco": false
+}
+
+> {%
+  client.test("Modo privado aplicado", function() { client.assert(response.status === 200); });
+  client.test("Todos os campos em false", function() {
+    client.assert(response.body.compartilharObjetivoProfissional === false);
+    client.assert(response.body.compartilharPretensaoSalarial === false);
+    client.assert(response.body.compartilharTelefone === false);
+  });
+%}
+
+###
+
+### ── Visão da Empresa (dados filtrados por privacidade) ─────────
+
+### [7] Listar candidaturas recebidas pela empresa (EMPRESA)
+GET {{base_url}}/api/candidaturas/empresa
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Status 200", function() { client.assert(response.status === 200); });
+  client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  if (response.body.length > 0) {
+    client.global.set("candidatura_empresa_id", response.body[0].id);
+    client.test("Dados profissionais filtrados (objetivo null — candidato privatizou)", function() {
+      client.assert(response.body[0].objetivoProfissional === null || response.body[0].objetivoProfissional === undefined);
+    });
+    client.test("Nome do candidato sempre visível", function() {
+      client.assert(response.body[0].nomeCandidato !== undefined);
+    });
+  }
+%}
+
+###
+
+### [8] Candidaturas de uma vaga específica (EMPRESA)
+GET {{base_url}}/api/candidaturas/empresa/vaga/{{vaga_id}}
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Status 200, 400, 403 ou 404", function() {
+    client.assert(response.status === 200 || response.status === 403 || response.status === 400 || response.status === 404);
+  });
+  if (response.status === 200) {
+    client.test("É uma lista", function() { client.assert(Array.isArray(response.body)); });
+  }
+%}
+
+###
+
+### [9] Detalhar candidatura específica (EMPRESA)
+GET {{base_url}}/api/candidaturas/{{candidatura_empresa_id}}/empresa
+Authorization: Bearer {{token_empresa}}
+
+> {%
+  client.test("Status 200 ou 403/404", function() {
+    client.assert(response.status === 200 || response.status === 403 || response.status === 404);
+  });
+%}
+
+###
+
+### ── TESTES DE SEGURANÇA ────────────────────────────────────────
+
+### [10] Empresa tenta se candidatar (deve retornar 403)
+POST {{base_url}}/api/candidaturas
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{
+  "vagaId": {{vaga_id}}
+}
+
+> {%
+  client.test("Empresa bloqueada de candidatar (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [11] Sem autenticação (deve retornar 401)
+POST {{base_url}}/api/candidaturas
+Content-Type: application/json
+
+{
+  "vagaId": {{vaga_id}}
+}
+
+> {%
+  client.test("Sem auth bloqueado (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [12] Candidatura em vaga inexistente (deve retornar 404 ou 400)
+POST {{base_url}}/api/candidaturas
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "vagaId": 999999
+}
+
+> {%
+  client.test("Vaga inexistente (400 ou 404)", function() {
+    client.assert(response.status === 400 || response.status === 404);
+  });
+%}
+
+###
+
+### [13] Candidato não acessa lista da empresa (deve retornar 403)
+GET {{base_url}}/api/candidaturas/empresa
+Authorization: Bearer {{token_candidato}}
+
+> {%
+  client.test("Candidato bloqueado de ver candidaturas da empresa (403)", function() {
+    client.assert(response.status === 403);
+  });
+%}
+
+###
+
+### [14] Alterar compartilhamento sem autenticação (deve retornar 401)
+PATCH {{base_url}}/api/candidaturas/{{candidatura_id}}/compartilhamento
+Content-Type: application/json
+
+{
+  "compartilharObjetivoProfissional": true,
+  "compartilharDisponibilidade": true,
+  "compartilharPretensaoSalarial": true,
+  "compartilharCurriculo": true,
+  "compartilharExperiencias": true,
+  "compartilharFormacoes": true,
+  "compartilharTelefone": true,
+  "compartilharEndereco": true
+}
+
+> {%
+  client.test("Sem auth bloqueado no PATCH (401 ou 403)", function() {
+    client.assert(response.status === 401 || response.status === 403);
+  });
+%}
+
+###
+
+### [15] Restaurar compartilhamento ao estado padrão
+PATCH {{base_url}}/api/candidaturas/{{candidatura_id}}/compartilhamento
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{
+  "compartilharObjetivoProfissional": true,
+  "compartilharDisponibilidade": true,
+  "compartilharPretensaoSalarial": true,
+  "compartilharCurriculo": true,
+  "compartilharExperiencias": true,
+  "compartilharFormacoes": true,
+  "compartilharTelefone": false,
+  "compartilharEndereco": false
+}
+
+> {%
+  client.test("Compartilhamento restaurado", function() { client.assert(response.status === 200); });
+%}
+
+###
