@@ -33,7 +33,7 @@ public class EmpresaService {
 
     @Transactional(readOnly = true)
     public List<EmpresaResponseDTO> findAll() {
-        return empresaRepository.findAll()
+        return empresaRepository.findByStatus(Empresas.StatusEmpresa.APROVADA)
                 .stream()
                 .map(empresaMapper::toResponseDTO)
                 .collect(Collectors.toList());
@@ -42,6 +42,7 @@ public class EmpresaService {
     @Transactional(readOnly = true)
     public EmpresaResponseDTO findById(Long id) {
         Empresas empresa = empresaRepository.findById(id)
+                .filter(e -> e.getStatus() == Empresas.StatusEmpresa.APROVADA)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
         return empresaMapper.toResponseDTO(empresa);
     }
@@ -90,6 +91,8 @@ public class EmpresaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Porte não encontrado")));
         empresa.setRamoAtuacao(ramoAtuacaoRepository.findById(dto.ramoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Ramo de atuação não encontrado")));
+        // Admin cria empresa já aprovada; EMPRESA user fica pendente para revisão
+        empresa.setStatus(isAdmin ? Empresas.StatusEmpresa.APROVADA : Empresas.StatusEmpresa.PENDENTE);
 
         return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
     }

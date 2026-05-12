@@ -14,4 +14,5 @@ public interface EmpresaRepository extends JpaRepository<Empresas, Long> {
     Optional<Empresas> findByCnpjContainingIgnoreCase(String cnpj);
     List<Empresas> findByRamoAtuacao(RamoAtuacao ramoAtuacao);
     Optional<Empresas> findByUsuarioId(Long usuarioId);
+    List<Empresas> findByStatus(Empresas.StatusEmpresa status);
 }

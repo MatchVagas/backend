@@ -3,6 +3,8 @@ package com.matchvagas.backend.entity;
 import java.util.List;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -18,6 +20,10 @@ import lombok.Data;
 @Entity
 @Table(name = "empresas")
 public class Empresas {
+
+    public enum StatusEmpresa {
+        PENDENTE, APROVADA, REJEITADA
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -53,6 +59,10 @@ public class Empresas {
         inverseJoinColumns = @JoinColumn(name = "telefone_id")
     )
     private List<Telefones> telefones;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private StatusEmpresa status = StatusEmpresa.PENDENTE;
 
     // Usuário gestor da empresa — um usuário EMPRESA gerencia uma empresa
     @ManyToOne

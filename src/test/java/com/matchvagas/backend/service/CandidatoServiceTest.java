@@ -34,6 +34,8 @@ class CandidatoServiceTest {
     @Mock CandidatoRepository candidatoRepository;
     @Mock UsuariosRepository usuariosRepository;
     @Mock CandidatoMapper candidatoMapper;
+    @Mock com.matchvagas.backend.repository.TelefoneRepository telefoneRepository;
+    @Mock com.matchvagas.backend.repository.TipoTelefoneRepository tipoTelefoneRepository;
 
     @InjectMocks CandidatoService candidatoService;
 
@@ -62,13 +64,16 @@ class CandidatoServiceTest {
                 "123.456.789-00",
                 "Desenvolvedor Java Pleno",
                 "Imediata",
-                new BigDecimal("5000.00")
+                new BigDecimal("5000.00"),
+                null,
+                null
         );
 
         responseDTO = new CandidatoResponseDTO(
                 10L, "Maria Oliveira", "maria@email.com",
                 "123.456.789-00", "Desenvolvedor Java Pleno",
-                "Imediata", new BigDecimal("5000.00")
+                "Imediata", new BigDecimal("5000.00"),
+                null, null
         );
     }
 
@@ -150,12 +155,12 @@ class CandidatoServiceTest {
         @DisplayName("Deve atualizar objetivo profissional e disponibilidade")
         void deveAtualizarPerfil() {
             CandidatoRequestDTO requestAtualizado = new CandidatoRequestDTO(
-                    null, "Arquiteto de Software", "30 dias", new BigDecimal("8000.00"));
+                    null, "Arquiteto de Software", "30 dias", new BigDecimal("8000.00"), null, null);
 
             CandidatoResponseDTO responseAtualizado = new CandidatoResponseDTO(
                     10L, "Maria Oliveira", "maria@email.com",
                     "123.456.789-00", "Arquiteto de Software",
-                    "30 dias", new BigDecimal("8000.00"));
+                    "30 dias", new BigDecimal("8000.00"), null, null);
 
             when(candidatoRepository.findByUsuarioId(1L)).thenReturn(Optional.of(candidato));
             when(candidatoRepository.save(any())).thenReturn(candidato);

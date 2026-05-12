@@ -13,6 +13,7 @@ public record EmpresaResponseDTO(
         String ramoAtuacao,
         String site,
         Integer totalVagasAtivas,
-        Long usuarioGestorId,       // ADICIONADO
-        String nomeGestor           // ADICIONADO
+        Long usuarioGestorId,
+        String nomeGestor,
+        String status
 ) {}

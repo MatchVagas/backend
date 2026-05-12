@@ -83,6 +83,7 @@ class EmpresaServiceTest {
         empresa.setPorte(porte);
         empresa.setRamoAtuacao(ramo);
         empresa.setSite("https://techcorp.com");
+        empresa.setStatus(Empresas.StatusEmpresa.APROVADA);
         empresa.setUsuario(usuario); // ADICIONADO — vínculo com gestor
 
         // ATUALIZADO — EmpresaRequestDTO agora tem usuarioGestorId
@@ -97,13 +98,11 @@ class EmpresaServiceTest {
                 null // usuarioGestorId — null para EMPRESA (vincula automaticamente)
         );
 
-        // ATUALIZADO — EmpresaResponseDTO agora tem usuarioGestorId e nomeGestor
         responseDTO = new EmpresaResponseDTO(
                 1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
                 "Empresa de tecnologia", "Médio Porte", "Tecnologia",
                 "https://techcorp.com", null,
-                USUARIO_ID,          // usuarioGestorId — ADICIONADO
-                "Gestor Tech Corp"   // nomeGestor — ADICIONADO
+                USUARIO_ID, "Gestor Tech Corp", "APROVADA"
         );
     }
 
@@ -272,7 +271,7 @@ class EmpresaServiceTest {
             EmpresaResponseDTO responseAtualizado = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "TechCorp 2.0",
                     "Nova descrição", "Médio Porte", "Tecnologia",
-                    "https://techcorp2.com", null, USUARIO_ID, "Gestor Tech Corp");
+                    "https://techcorp2.com", null, USUARIO_ID, "Gestor Tech Corp", "APROVADA");
 
             when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
             when(porteRepository.findById(1L)).thenReturn(Optional.of(porte));
@@ -338,9 +337,9 @@ class EmpresaServiceTest {
     class ListarEmpresas {
 
         @Test
-        @DisplayName("Deve retornar lista de todas as empresas")
+        @DisplayName("Deve retornar lista de todas as empresas aprovadas")
         void deveRetornarListaDeEmpresas() {
-            when(empresaRepository.findAll()).thenReturn(List.of(empresa));
+            when(empresaRepository.findByStatus(Empresas.StatusEmpresa.APROVADA)).thenReturn(List.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(responseDTO);
 
             List<EmpresaResponseDTO> result = empresaService.findAll();
