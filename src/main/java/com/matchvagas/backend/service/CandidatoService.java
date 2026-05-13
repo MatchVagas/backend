@@ -4,6 +4,8 @@ import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
 import com.matchvagas.backend.dto.LocalizacaoRequestDTO;
 import com.matchvagas.backend.dto.TelefonesRequestDTO;
+import java.time.LocalDate;
+import java.time.Period;
 import com.matchvagas.backend.entity.Candidatos;
 import com.matchvagas.backend.entity.Endereco;
 import com.matchvagas.backend.entity.Telefones;
@@ -58,6 +60,8 @@ public class CandidatoService {
         Usuarios usuario = usuariosRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + usuarioId));
 
+        atualizarDadosPessoais(dto, usuario);
+
         Candidatos candidato = candidatoMapper.toEntity(dto);
         candidato.setUsuario(usuario);
 
@@ -79,6 +83,8 @@ public class CandidatoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
 
+        atualizarDadosPessoais(dto, candidato.getUsuario());
+
         candidato.setCpf(dto.cpf() != null ? dto.cpf() : candidato.getCpf());
         candidato.setObjetivoProfissional(dto.resumoProfissional());
         candidato.setDisponibilidade(dto.disponibilidade());
@@ -97,6 +103,22 @@ public class CandidatoService {
         }
 
         return candidatoMapper.toResponseDTO(candidatoRepository.save(candidato));
+    }
+
+    private void atualizarDadosPessoais(CandidatoRequestDTO dto, Usuarios usuario) {
+        if (dto.nomeCompleto() != null && !dto.nomeCompleto().isBlank()) {
+            usuario.setNome(dto.nomeCompleto());
+        }
+        if (dto.email() != null && !dto.email().isBlank() && !dto.email().equalsIgnoreCase(usuario.getEmail())) {
+            if (usuariosRepository.existsByEmail(dto.email())) {
+                throw new BusinessException("Já existe um usuário cadastrado com este email.");
+            }
+            usuario.setEmail(dto.email());
+        }
+        if (dto.dataNascimento() != null) {
+            usuario.setDataNascimento(java.sql.Date.valueOf(dto.dataNascimento()));
+            usuario.setIdade(Period.between(dto.dataNascimento(), LocalDate.now()).getYears());
+        }
     }
 
     private Endereco toEndereco(LocalizacaoRequestDTO loc) {
