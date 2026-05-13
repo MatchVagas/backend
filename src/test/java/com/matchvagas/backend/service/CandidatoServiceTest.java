@@ -62,6 +62,9 @@ class CandidatoServiceTest {
 
         request = new CandidatoRequestDTO(
                 "123.456.789-00",
+                null,
+                null,
+                null,
                 "Desenvolvedor Java Pleno",
                 "Imediata",
                 new BigDecimal("5000.00"),
@@ -71,7 +74,7 @@ class CandidatoServiceTest {
 
         responseDTO = new CandidatoResponseDTO(
                 10L, "Maria Oliveira", "maria@email.com",
-                "123.456.789-00", "Desenvolvedor Java Pleno",
+                null, "123.456.789-00", "Desenvolvedor Java Pleno",
                 "Imediata", new BigDecimal("5000.00"),
                 null, null
         );
@@ -155,11 +158,11 @@ class CandidatoServiceTest {
         @DisplayName("Deve atualizar objetivo profissional e disponibilidade")
         void deveAtualizarPerfil() {
             CandidatoRequestDTO requestAtualizado = new CandidatoRequestDTO(
-                    null, "Arquiteto de Software", "30 dias", new BigDecimal("8000.00"), null, null);
+                    null, null, null, null, "Arquiteto de Software", "30 dias", new BigDecimal("8000.00"), null, null);
 
             CandidatoResponseDTO responseAtualizado = new CandidatoResponseDTO(
                     10L, "Maria Oliveira", "maria@email.com",
-                    "123.456.789-00", "Arquiteto de Software",
+                    null, "123.456.789-00", "Arquiteto de Software",
                     "30 dias", new BigDecimal("8000.00"), null, null);
 
             when(candidatoRepository.findByUsuarioId(1L)).thenReturn(Optional.of(candidato));

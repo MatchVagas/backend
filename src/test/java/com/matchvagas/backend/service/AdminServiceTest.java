@@ -278,7 +278,7 @@ class AdminServiceTest {
         @DisplayName("Deve listar todos os candidatos")
         void deveListarCandidatos() {
             CandidatoResponseDTO dto = new CandidatoResponseDTO(
-                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null);
+                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null);
 
             when(candidatoRepository.findAll()).thenReturn(List.of(candidato));
             when(candidatoMapper.toResponseDTO(candidato)).thenReturn(dto);
@@ -290,7 +290,7 @@ class AdminServiceTest {
         @DisplayName("Deve buscar candidato por ID")
         void deveBuscarCandidatoPorId() {
             CandidatoResponseDTO dto = new CandidatoResponseDTO(
-                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null);
+                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null);
 
             when(candidatoRepository.findById(1L)).thenReturn(Optional.of(candidato));
             when(candidatoMapper.toResponseDTO(candidato)).thenReturn(dto);
