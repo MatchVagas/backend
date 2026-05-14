@@ -331,7 +331,7 @@ class AdminServiceTest {
         void deveListarEmpresas() {
             EmpresaResponseDTO dto = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
-                    null, null, null, null, null, 1L, "Gestor", "PENDENTE");
+                    null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
 
             when(empresaRepository.findAll()).thenReturn(List.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);
@@ -344,7 +344,7 @@ class AdminServiceTest {
         void deveBuscarEmpresaPorId() {
             EmpresaResponseDTO dto = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
-                    null, null, null, null, null, 1L, "Gestor", "PENDENTE");
+                    null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
 
             when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);

@@ -45,6 +45,34 @@ public class AdminController {
         return ResponseEntity.ok(adminService.atualizarUsuario(id, dto));
     }
 
+    @GetMapping("/usuarios/empresa/pendentes")
+    @Operation(
+        summary = "Listar usuários EMPRESA aguardando aprovação",
+        description = "Retorna todos os usuários do tipo EMPRESA com cadastro pendente de aprovação pelo administrador."
+    )
+    public ResponseEntity<List<UsuarioResponseDTO>> listarUsuariosEmpresaPendentes() {
+        return ResponseEntity.ok(adminService.listarUsuariosEmpresaPendentes());
+    }
+
+    @PatchMapping("/usuarios/{id}/aprovar")
+    @Operation(
+        summary = "Aprovar usuário EMPRESA",
+        description = "Ativa o acesso de um usuário do tipo EMPRESA, permitindo que ele faça login e cadastre sua empresa."
+    )
+    public ResponseEntity<UsuarioResponseDTO> aprovarUsuarioEmpresa(@PathVariable Long id) {
+        return ResponseEntity.ok(adminService.aprovarUsuarioEmpresa(id));
+    }
+
+    @DeleteMapping("/usuarios/{id}/rejeitar")
+    @Operation(
+        summary = "Rejeitar usuário EMPRESA",
+        description = "Remove permanentemente o cadastro de um usuário EMPRESA pendente de aprovação."
+    )
+    public ResponseEntity<Void> rejeitarUsuarioEmpresa(@PathVariable Long id) {
+        adminService.rejeitarUsuarioEmpresa(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PatchMapping("/usuarios/{id}/ativar")
     @Operation(summary = "Ativar usuário")
     public ResponseEntity<Void> ativarUsuario(@PathVariable Long id) {

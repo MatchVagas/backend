@@ -108,6 +108,39 @@ public class AdminService {
         usuariosRepository.deleteById(id);
     }
 
+    @Transactional(readOnly = true)
+    public List<UsuarioResponseDTO> listarUsuariosEmpresaPendentes() {
+        return usuariosRepository.findByTipoUsuarioAndAtivo(Usuarios.TipoUsuario.EMPRESA, false)
+                .stream().map(usuarioMapper::toResponseDTO).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UsuarioResponseDTO aprovarUsuarioEmpresa(Long id) {
+        Usuarios usuario = usuariosRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
+        if (usuario.getTipoUsuario() != Usuarios.TipoUsuario.EMPRESA) {
+            throw new BusinessException("Este usuário não é do tipo EMPRESA.");
+        }
+        if (Boolean.TRUE.equals(usuario.getAtivo())) {
+            throw new BusinessException("Usuário já está aprovado.");
+        }
+        usuario.setAtivo(true);
+        return usuarioMapper.toResponseDTO(usuariosRepository.save(usuario));
+    }
+
+    @Transactional
+    public void rejeitarUsuarioEmpresa(Long id) {
+        Usuarios usuario = usuariosRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
+        if (usuario.getTipoUsuario() != Usuarios.TipoUsuario.EMPRESA) {
+            throw new BusinessException("Este usuário não é do tipo EMPRESA.");
+        }
+        if (Boolean.TRUE.equals(usuario.getAtivo())) {
+            throw new BusinessException("Não é possível rejeitar um usuário já aprovado. Use desativar.");
+        }
+        usuariosRepository.deleteById(id);
+    }
+
     // ═══════════════════════════════════════════════════════════
     //  GESTÃO DE CANDIDATOS
     // ═══════════════════════════════════════════════════════════

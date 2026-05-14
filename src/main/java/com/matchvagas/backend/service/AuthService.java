@@ -43,6 +43,11 @@ public class AuthService {
             usuario.setIdade(idade);
         }
 
+        // Usuários EMPRESA ficam inativos até aprovação de um ADMIN
+        if (request.tipoUsuario() == Usuarios.TipoUsuario.EMPRESA) {
+            usuario.setAtivo(false);
+        }
+
         Usuarios salvo = usuariosRepository.save(usuario);
         return usuariosMapper.toDTO(salvo);
     }

@@ -95,13 +95,14 @@ class EmpresaServiceTest {
                 1L,
                 2L,
                 "https://techcorp.com",
-                null // usuarioGestorId — null para EMPRESA (vincula automaticamente)
+                null, // telefone
+                null  // usuarioGestorId — null para EMPRESA (vincula automaticamente)
         );
 
         responseDTO = new EmpresaResponseDTO(
                 1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
                 "Empresa de tecnologia", "Médio Porte", "Tecnologia",
-                "https://techcorp.com", null,
+                "https://techcorp.com", null, null,
                 USUARIO_ID, "Gestor Tech Corp", "APROVADA"
         );
     }
@@ -170,6 +171,7 @@ class EmpresaServiceTest {
             EmpresaRequestDTO requestAdmin = new EmpresaRequestDTO(
                     "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
                     "Empresa de tecnologia", 1L, 2L, "https://techcorp.com",
+                    null, // telefone
                     outroUsuarioId // ADMIN informa o usuário gestor
             );
 
@@ -266,12 +268,12 @@ class EmpresaServiceTest {
 
             EmpresaRequestDTO requestAtualizado = new EmpresaRequestDTO(
                     "12.345.678/0001-90", "Tech Corp Ltda", "TechCorp 2.0",
-                    "Nova descrição", 1L, 2L, "https://techcorp2.com", null);
+                    "Nova descrição", 1L, 2L, "https://techcorp2.com", null, null);
 
             EmpresaResponseDTO responseAtualizado = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "TechCorp 2.0",
                     "Nova descrição", "Médio Porte", "Tecnologia",
-                    "https://techcorp2.com", null, USUARIO_ID, "Gestor Tech Corp", "APROVADA");
+                    "https://techcorp2.com", null, null, USUARIO_ID, "Gestor Tech Corp", "APROVADA");
 
             when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
             when(porteRepository.findById(1L)).thenReturn(Optional.of(porte));

@@ -13,4 +13,6 @@ public interface UsuariosRepository extends JpaRepository<Usuarios, Long> {
     boolean existsByEmail(String email);
 
     List<Usuarios> findByAtivo(Boolean ativo);
+
+    List<Usuarios> findByTipoUsuarioAndAtivo(Usuarios.TipoUsuario tipoUsuario, Boolean ativo);
 }
