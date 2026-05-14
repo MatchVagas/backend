@@ -54,7 +54,9 @@ public class Usuarios {
     protected void onCreate() {
         this.dataCadastro = LocalDateTime.now();
         this.dataUltimoAcesso = LocalDateTime.now();
-        this.ativo = true;
+        if (this.ativo == null) {
+            this.ativo = true;
+        }
     }
 
     // Enum interno para o tipo de usuário

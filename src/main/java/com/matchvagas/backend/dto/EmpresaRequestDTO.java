@@ -1,5 +1,6 @@
 package com.matchvagas.backend.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import org.hibernate.validator.constraints.br.CNPJ;
 
@@ -28,6 +29,9 @@ public record EmpresaRequestDTO(
 
         @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
         String site,
+
+        @Valid
+        TelefonesRequestDTO telefone,
 
         // Usado apenas por ADMIN para vincular a empresa a um usuário específico
         // Usuários EMPRESA ignoram este campo — a empresa é vinculada a eles automaticamente
