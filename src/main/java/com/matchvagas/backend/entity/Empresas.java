@@ -61,7 +61,7 @@ public class Empresas {
     private List<Telefones> telefones;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
+    @Column(name = "status", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'PENDENTE'")
     private StatusEmpresa status = StatusEmpresa.PENDENTE;
 
     // Usuário gestor da empresa — um usuário EMPRESA gerencia uma empresa
