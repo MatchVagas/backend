@@ -130,4 +130,17 @@ public class CandidaturaController {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByIdAndEmpresa(id, usuarioId));
     }
+
+    // ── Empresa — atualizar status da candidatura ─────────────────────────────
+
+    @PatchMapping("/{id}/empresa/status/{statusId}")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Atualizar status de uma candidatura (visão da empresa)")
+    public ResponseEntity<CandidaturaEmpresaResponseDTO> atualizarStatusEmpresa(
+            @PathVariable Long id,
+            @PathVariable Long statusId,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.atualizarStatusEmpresa(id, statusId, usuarioId));
+    }
 }

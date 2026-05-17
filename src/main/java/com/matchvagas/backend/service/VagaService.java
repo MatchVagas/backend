@@ -97,6 +97,11 @@ public class VagaService {
                             "Nenhuma empresa vinculada a este usuário. Cadastre sua empresa primeiro."));
         }
 
+        if (empresa.getStatus() != Empresas.StatusEmpresa.APROVADA) {
+            throw new BusinessException(
+                    "Sua empresa ainda não foi aprovada. Aguarde a aprovação do administrador.");
+        }
+
         vaga.setEmpresas(empresa);
         vaga.setTipoVaga(tipoVagaRepository.findById(dto.tipoVagaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Tipo de vaga não encontrado")));

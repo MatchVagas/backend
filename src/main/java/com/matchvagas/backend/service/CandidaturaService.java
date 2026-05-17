@@ -11,6 +11,7 @@ import com.matchvagas.backend.mapper.CandidaturaMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
+import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,11 +25,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CandidaturaService {
 
-    private final CandidaturaRepository candidaturasRepository;
-    private final CandidatoRepository   candidatosRepository;
-    private final VagaRepository        vagasRepository;
-    private final EmpresaRepository     empresaRepository;
-    private final CandidaturaMapper     candidaturaMapper;
+    private final CandidaturaRepository       candidaturasRepository;
+    private final CandidatoRepository         candidatosRepository;
+    private final VagaRepository              vagasRepository;
+    private final EmpresaRepository           empresaRepository;
+    private final CandidaturaMapper           candidaturaMapper;
+    private final StatusCandidaturaRepository statusCandidaturaRepository;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -149,6 +151,24 @@ public class CandidaturaService {
             throw new BusinessException("Esta candidatura não pertence a uma vaga da sua empresa");
 
         return toEmpresaResponseDTO(candidatura);
+    }
+
+    @Transactional
+    public CandidaturaEmpresaResponseDTO atualizarStatusEmpresa(Long candidaturaId, Long statusId, Long usuarioId) {
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+
+        Candidatura candidatura = candidaturasRepository.findById(candidaturaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidatura não encontrada"));
+
+        if (!candidatura.getVaga().getEmpresas().getId().equals(empresa.getId()))
+            throw new BusinessException("Esta candidatura não pertence a uma vaga da sua empresa");
+
+        StatusCandidatura novoStatus = statusCandidaturaRepository.findById(statusId)
+                .orElseThrow(() -> new ResourceNotFoundException("Status não encontrado"));
+
+        candidatura.setStatus(novoStatus);
+        return toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
     }
 
     // ── Interno: monta o DTO filtrado para a empresa ──────────────────────────
