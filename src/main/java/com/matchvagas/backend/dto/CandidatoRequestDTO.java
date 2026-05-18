@@ -1,5 +1,6 @@
 package com.matchvagas.backend.dto;
 
+import com.matchvagas.backend.entity.Genero;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -30,6 +31,8 @@ public record CandidatoRequestDTO(
 
         @DecimalMin(value = "0.0", message = "Pretensão salarial não pode ser negativa")
         BigDecimal pretensaoSalarial,
+
+        Genero genero,
 
         @Valid
         TelefonesRequestDTO telefone,

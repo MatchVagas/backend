@@ -89,6 +89,7 @@ public class CandidatoService {
         candidato.setObjetivoProfissional(dto.resumoProfissional());
         candidato.setDisponibilidade(dto.disponibilidade());
         candidato.setPretensaoSalarial(dto.pretensaoSalarial());
+        if (dto.genero() != null) candidato.setGenero(dto.genero());
 
         if (dto.localizacao() != null) {
             if (candidato.getEndereco() == null) {

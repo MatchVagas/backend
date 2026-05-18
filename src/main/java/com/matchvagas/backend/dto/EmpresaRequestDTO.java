@@ -18,7 +18,7 @@ public record EmpresaRequestDTO(
         @Size(max = 150, message = "Nome fantasia deve ter no máximo 150 caracteres")
         String nomeFantasia,
 
-        @Size(max = 500, message = "Descrição deve ter no máximo 500 caracteres")
+        @Size(max = 5000, message = "Descrição deve ter no máximo 5000 caracteres")
         String descricao,
 
         @NotNull(message = "Porte da empresa é obrigatório")

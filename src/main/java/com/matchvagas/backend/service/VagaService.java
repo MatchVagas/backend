@@ -59,19 +59,19 @@ public class VagaService {
                 .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
     }
 
-    // RF007 — Busca e filtragem de vagas
+    // RF007 — Busca e filtragem de vagas (todos os filtros combinados)
     @Transactional(readOnly = true)
-    public List<VagaResponseDTO> search(String titulo, String areaAtuacao, Long tipoVagaId, Long modalidadeId) {
-        if (titulo != null && !titulo.isBlank())
-            return vagaRepository.findByTituloContaining(titulo)
-                    .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        if (areaAtuacao != null && !areaAtuacao.isBlank())
-            return vagaRepository.findByDescricaoContaining(areaAtuacao)
-                    .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        if (tipoVagaId != null && modalidadeId != null)
-            return vagaRepository.findByEmpresasIdAndTipoVagaIdAndModalidadeId(null, tipoVagaId, modalidadeId)
-                    .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
-        return findAll();
+    public List<VagaResponseDTO> search(String titulo, String areaAtuacao,
+                                        Long tipoVagaId, Long modalidadeId, String nomeEmpresa) {
+        String t = blankToNull(titulo);
+        String a = blankToNull(areaAtuacao);
+        String e = blankToNull(nomeEmpresa);
+        return vagaRepository.searchComFiltros(t, a, tipoVagaId, modalidadeId, e)
+                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
+    }
+
+    private static String blankToNull(String s) {
+        return (s == null || s.isBlank()) ? null : s;
     }
 
     // RF005 — Cadastrar vaga

@@ -38,7 +38,7 @@ public class Empresas {
     @Column(name = "nome_fantasia", length = 150)
     private String nomeFantasia;
 
-    @Column(name = "descricao")
+    @Column(name = "descricao", columnDefinition = "TEXT")
     private String descricao;
 
     @ManyToOne
