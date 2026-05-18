@@ -37,11 +37,11 @@ public record CandidaturaEmpresaResponseDTO(
         String curriculoNomeArquivo,
         String curriculoCaminho,
 
-        /** Experiências profissionais (texto livre por ora) */
-        String experienciasInfo,
+        /** Experiências profissionais — null se o candidato não autorizou compartilhamento */
+        List<ExperienciaResponseDTO> experiencias,
 
-        /** Formações acadêmicas (texto livre por ora) */
-        String formacoesInfo,
+        /** Formações acadêmicas — null se o candidato não autorizou compartilhamento */
+        List<FormacaoResponseDTO> formacoes,
 
         // ── Dados de contato pessoal (privados por padrão) ──────────────────
 

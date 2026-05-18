@@ -5,6 +5,8 @@ import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
+import com.matchvagas.backend.service.CurriculoService;
+import org.springframework.core.io.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -24,6 +26,7 @@ import java.util.List;
 public class CandidaturaController {
 
     private final CandidaturaService candidaturaService;
+    private final CurriculoService   curriculoService;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -129,5 +132,39 @@ public class CandidaturaController {
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByIdAndEmpresa(id, usuarioId));
+    }
+
+    // ── Empresa — download do currículo do candidato ──────────────────────────
+
+    @GetMapping("/{id}/curriculo/download")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Baixar currículo do candidato (visão da empresa)",
+        description = """
+            Permite que a empresa baixe o currículo do candidato. \
+            Bloqueado automaticamente se:
+            - A candidatura não pertencer a uma vaga da empresa;
+            - O candidato não tiver autorizado o compartilhamento do currículo;
+            - O candidato não possuir currículo cadastrado.
+            """
+    )
+    public ResponseEntity<Resource> downloadCurriculoCandidato(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return curriculoService.downloadParaEmpresa(id, usuarioId);
+    }
+
+    // ── Empresa — atualizar status da candidatura ─────────────────────────────
+
+    @PatchMapping("/{id}/empresa/status/{statusId}")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Atualizar status de uma candidatura (visão da empresa)")
+    public ResponseEntity<CandidaturaEmpresaResponseDTO> atualizarStatusEmpresa(
+            @PathVariable Long id,
+            @PathVariable Long statusId,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.atualizarStatusEmpresa(id, statusId, usuarioId));
     }
 }

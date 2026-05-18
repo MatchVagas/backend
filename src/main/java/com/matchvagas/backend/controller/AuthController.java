@@ -2,6 +2,7 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.AuthResponse;
 import com.matchvagas.backend.dto.LoginRequestDTO;
+import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.service.AuthService;
@@ -57,6 +58,20 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register-empresa")
+    @Operation(
+        summary = "Cadastrar empresa (usuário + empresa em uma única operação atômica)",
+        description = "Cria o usuário e a empresa numa única transação. Se qualquer etapa falhar, nada é persistido."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Empresa cadastrada — token JWT retornado"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos, CNPJ inválido ou e-mail já em uso",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<AuthResponse> registerEmpresa(@Valid @RequestBody RegisterEmpresaRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
     }
 
     @PostMapping("/logout")

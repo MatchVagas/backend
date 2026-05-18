@@ -40,6 +40,7 @@ public interface CandidatoMapper {
     @Named("dateToLocalDate")
     default LocalDate dateToLocalDate(Date date) {
         if (date == null) return null;
+        if (date instanceof java.sql.Date sqlDate) return sqlDate.toLocalDate();
         return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
     }
 

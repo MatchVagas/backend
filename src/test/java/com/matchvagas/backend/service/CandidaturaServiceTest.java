@@ -11,6 +11,9 @@ import com.matchvagas.backend.mapper.CandidaturaMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
+import com.matchvagas.backend.repository.ExperienciaRepository;
+import com.matchvagas.backend.repository.FormacaoRepository;
+import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,11 +39,14 @@ import static org.mockito.Mockito.*;
 @DisplayName("RF008 e RF009 — Candidatura e Acompanhamento")
 class CandidaturaServiceTest {
 
-    @Mock CandidaturaRepository candidaturasRepository;
-    @Mock CandidatoRepository   candidatosRepository;
-    @Mock VagaRepository        vagasRepository;
-    @Mock EmpresaRepository     empresaRepository;
-    @Mock CandidaturaMapper     candidaturaMapper;
+    @Mock CandidaturaRepository       candidaturasRepository;
+    @Mock CandidatoRepository         candidatosRepository;
+    @Mock VagaRepository              vagasRepository;
+    @Mock EmpresaRepository           empresaRepository;
+    @Mock ExperienciaRepository       experienciaRepository;
+    @Mock FormacaoRepository          formacaoRepository;
+    @Mock StatusCandidaturaRepository statusCandidaturaRepository;
+    @Mock CandidaturaMapper           candidaturaMapper;
 
     @InjectMocks CandidaturaService candidaturaService;
 

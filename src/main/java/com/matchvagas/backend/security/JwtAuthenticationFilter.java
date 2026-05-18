@@ -30,20 +30,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = getTokenFromRequest(request);
 
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            // Carrega o usuário pelo email (claim "email") para validar credenciais
-            String email = jwtTokenProvider.getEmailFromToken(token);
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+            try {
+                String email = jwtTokenProvider.getEmailFromToken(token);
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
 
-            // Usa o ID (subject do token) como o nome do principal —
-            // assim Authentication.getName() nos controllers retorna o ID do usuário
-            UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(
-                            jwtTokenProvider.getUserIdFromToken(token), // principal = ID
-                            null,
-                            userDetails.getAuthorities()
-                    );
+                UsernamePasswordAuthenticationToken authenticationToken =
+                        new UsernamePasswordAuthenticationToken(
+                                jwtTokenProvider.getUserIdFromToken(token),
+                                null,
+                                userDetails.getAuthorities()
+                        );
 
-            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+                SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+            } catch (Exception e) {
+                // Token estruturalmente válido mas usuário não existe no banco
+                // (ex.: banco limpo, token de sessão anterior) — ignora e continua sem autenticar
+                SecurityContextHolder.clearContext();
+            }
         }
 
         filterChain.doFilter(request, response);

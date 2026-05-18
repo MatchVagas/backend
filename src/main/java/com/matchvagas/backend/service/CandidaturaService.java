@@ -4,6 +4,8 @@ import com.matchvagas.backend.dto.AtualizarCompartilhamentoRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
+import com.matchvagas.backend.dto.ExperienciaResponseDTO;
+import com.matchvagas.backend.dto.FormacaoResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -11,6 +13,9 @@ import com.matchvagas.backend.mapper.CandidaturaMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
+import com.matchvagas.backend.repository.ExperienciaRepository;
+import com.matchvagas.backend.repository.FormacaoRepository;
+import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -24,11 +29,14 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CandidaturaService {
 
-    private final CandidaturaRepository candidaturasRepository;
-    private final CandidatoRepository   candidatosRepository;
-    private final VagaRepository        vagasRepository;
-    private final EmpresaRepository     empresaRepository;
-    private final CandidaturaMapper     candidaturaMapper;
+    private final CandidaturaRepository       candidaturasRepository;
+    private final CandidatoRepository         candidatosRepository;
+    private final VagaRepository              vagasRepository;
+    private final EmpresaRepository           empresaRepository;
+    private final CandidaturaMapper           candidaturaMapper;
+    private final StatusCandidaturaRepository statusCandidaturaRepository;
+    private final ExperienciaRepository       experienciaRepository;
+    private final FormacaoRepository          formacaoRepository;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -151,6 +159,24 @@ public class CandidaturaService {
         return toEmpresaResponseDTO(candidatura);
     }
 
+    @Transactional
+    public CandidaturaEmpresaResponseDTO atualizarStatusEmpresa(Long candidaturaId, Long statusId, Long usuarioId) {
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+
+        Candidatura candidatura = candidaturasRepository.findById(candidaturaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidatura não encontrada"));
+
+        if (!candidatura.getVaga().getEmpresas().getId().equals(empresa.getId()))
+            throw new BusinessException("Esta candidatura não pertence a uma vaga da sua empresa");
+
+        StatusCandidatura novoStatus = statusCandidaturaRepository.findById(statusId)
+                .orElseThrow(() -> new ResourceNotFoundException("Status não encontrado"));
+
+        candidatura.setStatus(novoStatus);
+        return toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
+    }
+
     // ── Interno: monta o DTO filtrado para a empresa ──────────────────────────
 
     private CandidaturaEmpresaResponseDTO toEmpresaResponseDTO(Candidatura c) {
@@ -167,10 +193,23 @@ public class CandidaturaService {
             curriculoCaminho = cand.getCurriculo().getCaminhoArquivo();
         }
 
-        // Experiências e Formações: placeholder — serão expandidos quando as
-        // entidades Experiencia/Formacao estiverem vinculadas a Candidatos
-        String experienciasInfo = c.isCompartilharExperiencias() ? "Disponível" : null;
-        String formacoesInfo    = c.isCompartilharFormacoes()    ? "Disponível" : null;
+        List<ExperienciaResponseDTO> experiencias = null;
+        if (c.isCompartilharExperiencias()) {
+            experiencias = experienciaRepository.findByCandidatoId(cand.getId()).stream()
+                    .map(e -> new ExperienciaResponseDTO(
+                            e.getId(), cand.getId(), e.getEmpresa(), e.getCargo(),
+                            e.getDescricao(), e.getDataInicio(), e.getDataFim()))
+                    .collect(Collectors.toList());
+        }
+
+        List<FormacaoResponseDTO> formacoes = null;
+        if (c.isCompartilharFormacoes()) {
+            formacoes = formacaoRepository.findByCandidatoId(cand.getId()).stream()
+                    .map(f -> new FormacaoResponseDTO(
+                            f.getId(), cand.getId(), f.getInstituicao(), f.getCurso(),
+                            f.getNivel(), f.getDataInicio(), f.getDataFim()))
+                    .collect(Collectors.toList());
+        }
 
         List<String> telefones = null;
         if (c.isCompartilharTelefone() && cand.getUsuario() != null
@@ -209,8 +248,8 @@ public class CandidaturaService {
                 pretensaoSalarial,
                 curriculoNome,
                 curriculoCaminho,
-                experienciasInfo,
-                formacoesInfo,
+                experiencias,
+                formacoes,
                 telefones,
                 endereco
         );

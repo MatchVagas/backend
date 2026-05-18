@@ -50,11 +50,11 @@ public class Vagas {
     @Column(name = "carga_horaria", nullable = false, length = 50)
     private String cargaHoraria;
 
-    @Column(name = "idade_minima", nullable = false)
-    private int idadeMinima;
+    @Column(name = "idade_minima")
+    private Integer idadeMinima;
 
-    @Column(name = "idade_maxima", nullable = false)
-    private int idadeMaxima;
+    @Column(name = "idade_maxima")
+    private Integer idadeMaxima;
 
     // CORRIGIDO: @ManyToOne
     @ManyToOne
