@@ -6,7 +6,6 @@ import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
 import com.matchvagas.backend.service.CurriculoService;
-import org.springframework.core.io.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -148,7 +147,7 @@ public class CandidaturaController {
             - O candidato não possuir currículo cadastrado.
             """
     )
-    public ResponseEntity<Resource> downloadCurriculoCandidato(
+    public ResponseEntity<Void> downloadCurriculoCandidato(
             @PathVariable Long id,
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());

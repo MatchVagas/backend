@@ -2,7 +2,6 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.CurriculoResponseDTO;
 import com.matchvagas.backend.service.CurriculoService;
-import org.springframework.core.io.Resource;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -32,8 +31,8 @@ public class CurriculoController {
     }
 
     @GetMapping("/download")
-    @Operation(summary = "Baixar o arquivo de currículo")
-    public ResponseEntity<Resource> download(Authentication authentication) {
+    @Operation(summary = "Redireciona para URL assinada do currículo (válida por 1 hora)")
+    public ResponseEntity<Void> download(Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return curriculoService.download(usuarioId);
     }
