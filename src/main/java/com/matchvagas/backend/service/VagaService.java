@@ -63,15 +63,17 @@ public class VagaService {
     @Transactional(readOnly = true)
     public List<VagaResponseDTO> search(String titulo, String areaAtuacao,
                                         Long tipoVagaId, Long modalidadeId, String nomeEmpresa) {
-        String t = blankToNull(titulo);
-        String a = blankToNull(areaAtuacao);
-        String e = blankToNull(nomeEmpresa);
-        return vagaRepository.searchComFiltros(t, a, tipoVagaId, modalidadeId, e)
+        return vagaRepository.searchComFiltros(
+                        blankToEmpty(titulo),
+                        blankToEmpty(areaAtuacao),
+                        tipoVagaId,
+                        modalidadeId,
+                        blankToEmpty(nomeEmpresa))
                 .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
     }
 
-    private static String blankToNull(String s) {
-        return (s == null || s.isBlank()) ? null : s;
+    private static String blankToEmpty(String s) {
+        return (s == null || s.isBlank()) ? "" : s;
     }
 
     // RF005 — Cadastrar vaga
