@@ -15,13 +15,16 @@ public interface VagaRepository extends JpaRepository<Vagas, Long>{
     @Query("SELECT v FROM Vagas v WHERE LOWER(v.status.descricao) = 'ativa' AND v.dataExpiracao >= :agora")
     List<Vagas> findVagasAtivas(@Param("agora") LocalDateTime agora);
 
+    // Parâmetros String nunca são null aqui: o service passa "" quando ausente,
+    // produzindo LIKE '%%' (bate com tudo). Evita o problema do PostgreSQL que
+    // infere bytea para parâmetros nulos em "? IS NULL" no JPQL.
     @Query("""
         SELECT v FROM Vagas v
-        WHERE (:titulo      IS NULL OR LOWER(v.titulo)                   LIKE LOWER(CONCAT('%', :titulo,      '%')))
-          AND (:areaAtuacao IS NULL OR LOWER(v.areaAtuacao)              LIKE LOWER(CONCAT('%', :areaAtuacao, '%')))
-          AND (:tipoVagaId  IS NULL OR v.tipoVaga.id   = :tipoVagaId)
+        WHERE LOWER(v.titulo)              LIKE LOWER(CONCAT('%', :titulo,      '%'))
+          AND LOWER(v.areaAtuacao)         LIKE LOWER(CONCAT('%', :areaAtuacao, '%'))
+          AND (:tipoVagaId   IS NULL OR v.tipoVaga.id   = :tipoVagaId)
           AND (:modalidadeId IS NULL OR v.modalidade.id = :modalidadeId)
-          AND (:nomeEmpresa IS NULL OR LOWER(v.empresas.nomeFantasia)    LIKE LOWER(CONCAT('%', :nomeEmpresa, '%')))
+          AND LOWER(v.empresas.nomeFantasia) LIKE LOWER(CONCAT('%', :nomeEmpresa, '%'))
         """)
     List<Vagas> searchComFiltros(
             @Param("titulo")       String titulo,
