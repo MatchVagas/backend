@@ -7,23 +7,24 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", unmappedTargetPolicy = org.mapstruct.ReportingPolicy.IGNORE)
 public interface NotificacaoMapper {
 
-    /**
-     * Converte Request → Entity (para criação)
-     */
-    @Mapping(target = "id", ignore = true)   // ID gerado pelo banco
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tipo", ignore = true)
+    @Mapping(target = "dataEnvio", ignore = true)
+    @Mapping(target = "lida", ignore = true)
+    @Mapping(target = "usuario", ignore = true)
     Notificacao toEntity(NotificacoesRequestDTO request);
 
-    /**
-     * Converte Entity → DTO (para resposta)
-     */
+    @Mapping(target = "tipoNotificacao", source = "tipo.status")
+    @Mapping(target = "usuarioId", source = "usuario.id")
     NotificacoesResponseDTO toDTO(Notificacao notificacao);
 
-    /**
-     * Atualização parcial (útil para PUT ou PATCH)
-     */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tipo", ignore = true)
+    @Mapping(target = "dataEnvio", ignore = true)
+    @Mapping(target = "lida", ignore = true)
+    @Mapping(target = "usuario", ignore = true)
     void updateEntityFromRequest(NotificacoesRequestDTO request, @MappingTarget Notificacao notificacao);
 }

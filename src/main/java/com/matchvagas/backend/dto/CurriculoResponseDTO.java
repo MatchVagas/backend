@@ -12,5 +12,6 @@ public record CurriculoResponseDTO(
     String caminhoArquivo,
     LocalDateTime dataUpload,
     BigInteger tamanhoArquivo,
-    String formatoArquivo
+    String formatoArquivo,
+    String urlArquivo      // URL assinada temporária (válida por 1 hora); null em operações de escrita
 ) {}
