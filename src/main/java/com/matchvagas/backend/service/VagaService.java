@@ -28,6 +28,7 @@ public class VagaService {
     private final EscolaridadeRepository escolaridadeRepository;
     private final StatusVagaRepository statusVagaRepository;
     private final CidadeRepository cidadeRepository;
+    private final CandidaturaRepository candidaturaRepository;
     private final VagasMapper vagasMapper;
 
     @Transactional(readOnly = true)
@@ -192,6 +193,7 @@ public class VagaService {
                 throw new BusinessException("Você não tem permissão para remover esta vaga.");
         }
 
+        candidaturaRepository.deleteByVagaId(id);
         vagaRepository.deleteById(id);
     }
 
