@@ -1,11 +1,14 @@
 package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.AuthResponse;
+import com.matchvagas.backend.dto.EsqueceuSenhaRequestDTO;
 import com.matchvagas.backend.dto.LoginRequestDTO;
+import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
 import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.service.AuthService;
+import com.matchvagas.backend.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     @Operation(
@@ -72,6 +76,34 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponse> registerEmpresa(@Valid @RequestBody RegisterEmpresaRequestDTO request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
+    }
+
+    @PostMapping("/esqueceu-senha")
+    @Operation(
+        summary = "Solicitar redefinição de senha",
+        description = "Envia um e-mail com link para redefinição de senha. Sempre retorna 200 para não expor quais e-mails estão cadastrados."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Solicitação processada — se o e-mail existir, um link será enviado")
+    })
+    public ResponseEntity<Void> esqueceuSenha(@Valid @RequestBody EsqueceuSenhaRequestDTO request) {
+        passwordResetService.solicitarRedefinicao(request.email());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/redefinir-senha")
+    @Operation(
+        summary = "Redefinir senha com token",
+        description = "Valida o token recebido por e-mail e define a nova senha do usuário. O token expira em 1 hora e só pode ser usado uma vez."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Senha redefinida com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request) {
+        passwordResetService.redefinirSenha(request.token(), request.novaSenha());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/logout")
