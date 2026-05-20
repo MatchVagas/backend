@@ -16,7 +16,7 @@ public class PasswordResetToken {
     @Column(nullable = false, unique = true)
     private String token;
 
-    @Column(nullable = false, length = 6)
+    @Column(length = 6)
     private String codigo;
 
     @ManyToOne(fetch = FetchType.LAZY)
