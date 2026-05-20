@@ -7,6 +7,8 @@ import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
 import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
+import com.matchvagas.backend.dto.VerificarCodigoRequestDTO;
+import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
 import com.matchvagas.backend.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -91,10 +93,25 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/verificar-codigo")
+    @Operation(
+        summary = "Verificar código de redefinição",
+        description = "Valida o código de 6 dígitos recebido por e-mail e retorna um token para redefinir a senha."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Código válido — token retornado"),
+        @ApiResponse(responseCode = "400", description = "Código inválido ou expirado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request) {
+        String token = passwordResetService.verificarCodigo(request.email(), request.codigo());
+        return ResponseEntity.ok(new VerificarCodigoResponseDTO(token));
+    }
+
     @PostMapping("/redefinir-senha")
     @Operation(
         summary = "Redefinir senha com token",
-        description = "Valida o token recebido por e-mail e define a nova senha do usuário. O token expira em 1 hora e só pode ser usado uma vez."
+        description = "Usa o token obtido em /verificar-codigo para definir a nova senha. O token expira em 1 hora e só pode ser usado uma vez."
     )
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Senha redefinida com sucesso"),
