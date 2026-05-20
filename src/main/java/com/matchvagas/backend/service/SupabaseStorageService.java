@@ -25,6 +25,9 @@ public class SupabaseStorageService {
     @Value("${supabase.storage.bucket:curriculos}")
     private String bucket;
 
+    @Value("${supabase.storage.images-bucket:imagens-perfil}")
+    private String imagesBucket;
+
     private RestClient client;
 
     @PostConstruct
@@ -99,5 +102,46 @@ public class SupabaseStorageService {
         } catch (RestClientException e) {
             throw new BusinessException("Falha ao remover arquivo do storage: " + e.getMessage());
         }
+    }
+
+    /**
+     * Faz upload de uma imagem para o bucket de imagens de perfil (público).
+     */
+    public void uploadImagem(String objectPath, byte[] bytes, String contentType) {
+        try {
+            client.put()
+                    .uri("/object/" + imagesBucket + "/" + objectPath)
+                    .header("x-upsert", "true")
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .body(bytes)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            throw new BusinessException("Falha ao enviar imagem para o storage: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Remove uma imagem do bucket de imagens de perfil.
+     */
+    public void deletarImagem(String objectPath) {
+        try {
+            client.method(HttpMethod.DELETE)
+                    .uri("/object/" + imagesBucket)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("prefixes", List.of(objectPath)))
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            throw new BusinessException("Falha ao remover imagem do storage: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Retorna a URL pública de uma imagem no bucket de imagens de perfil.
+     * O bucket deve estar configurado como público no Supabase.
+     */
+    public String getPublicUrl(String objectPath) {
+        return supabaseUrl + "/storage/v1/object/public/" + imagesBucket + "/" + objectPath;
     }
 }

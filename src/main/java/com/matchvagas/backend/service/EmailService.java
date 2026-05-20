@@ -5,6 +5,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
@@ -14,7 +15,7 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     @Autowired(required = false)
-    private JavaMailSender mailSender;
+    private JavaMailSender  mailSender;
 
     @Value("${spring.mail.username:}")
     private String fromAddress;
@@ -33,7 +34,7 @@ public class EmailService {
             helper.setText(corpoHtml, true);
             mailSender.send(message);
             log.info("Email enviado para {}", para);
-        } catch (MessagingException e) {
+        } catch (MessagingException | MailException e) {
             log.error("Falha ao enviar email para {}: {}", para, e.getMessage());
         }
     }

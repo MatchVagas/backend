@@ -46,6 +46,9 @@ public class Candidatos {
     @JoinColumn(name = "usuario_id", referencedColumnName = "id")
     private Usuarios usuario;
 
+    @Column(name = "foto_perfil_url", columnDefinition = "TEXT")
+    private String fotoPerfilUrl;
+
     @ElementCollection
     @CollectionTable(name = "candidato_habilidades", joinColumns = @JoinColumn(name = "candidato_id"))
     private List<Habilidade> habilidades = new ArrayList<>();
