@@ -42,6 +42,7 @@ class VagaServiceTest {
     @Mock EscolaridadeRepository escolaridadeRepository;
     @Mock StatusVagaRepository statusVagaRepository;
     @Mock CidadeRepository cidadeRepository;
+    @Mock CandidaturaRepository candidaturaRepository;
     @Mock VagasMapper vagasMapper;
 
     @InjectMocks VagaService vagaService;
@@ -425,7 +426,7 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve retornar todas as vagas quando sem filtros")
         void deveRetornarTodasVagasSemFiltro() {
-            when(vagaRepository.searchComFiltros(null, null, null, null, null)).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
             List<VagaResponseDTO> result = vagaService.search(null, null, null, null, null);
@@ -436,7 +437,7 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve filtrar vagas por título")
         void deveFiltrarPorTitulo() {
-            when(vagaRepository.searchComFiltros("Java", null, null, null, null)).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("Java", "", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
             List<VagaResponseDTO> result = vagaService.search("Java", null, null, null, null);
@@ -448,7 +449,7 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve filtrar vagas por área de atuação")
         void deveFiltrarPorAreaAtuacao() {
-            when(vagaRepository.searchComFiltros(null, "Tecnologia", null, null, null)).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "Tecnologia", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
             List<VagaResponseDTO> result = vagaService.search(null, "Tecnologia", null, null, null);
@@ -459,7 +460,7 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve retornar lista vazia quando nenhuma vaga bate com o filtro")
         void deveRetornarVazioQuandoSemCorrespondencia() {
-            when(vagaRepository.searchComFiltros("Python", null, null, null, null)).thenReturn(List.of());
+            when(vagaRepository.searchComFiltros("Python", "", null, null, "")).thenReturn(List.of());
 
             List<VagaResponseDTO> result = vagaService.search("Python", null, null, null, null);
 

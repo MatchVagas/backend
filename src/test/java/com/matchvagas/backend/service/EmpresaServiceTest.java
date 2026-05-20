@@ -102,7 +102,7 @@ class EmpresaServiceTest {
         responseDTO = new EmpresaResponseDTO(
                 1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
                 "Empresa de tecnologia", "Médio Porte", "Tecnologia",
-                "https://techcorp.com", null, null,
+                "https://techcorp.com", null, null, null,
                 USUARIO_ID, "Gestor Tech Corp", "APROVADA"
         );
     }
@@ -273,7 +273,7 @@ class EmpresaServiceTest {
             EmpresaResponseDTO responseAtualizado = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "TechCorp 2.0",
                     "Nova descrição", "Médio Porte", "Tecnologia",
-                    "https://techcorp2.com", null, null, USUARIO_ID, "Gestor Tech Corp", "APROVADA");
+                    "https://techcorp2.com", null, null, null, USUARIO_ID, "Gestor Tech Corp", "APROVADA");
 
             when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
             when(porteRepository.findById(1L)).thenReturn(Optional.of(porte));
