@@ -1,40 +1,41 @@
 package com.matchvagas.backend.service;
 
-import jakarta.mail.MessagingException;
-import jakarta.mail.internet.MimeMessage;
+import com.resend.Resend;
+import com.resend.core.exception.ResendException;
+import com.resend.services.emails.model.CreateEmailOptions;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.MailException;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class EmailService {
 
-    @Autowired(required = false)
-    private JavaMailSender  mailSender;
+    private final Resend resend;
+    private final String fromAddress;
 
-    @Value("${spring.mail.username:}")
-    private String fromAddress;
+    public EmailService(
+            @Value("${resend.api-key:}") String apiKey,
+            @Value("${resend.from:}") String fromAddress) {
+        this.fromAddress = fromAddress;
+        this.resend = apiKey.isBlank() ? null : new Resend(apiKey);
+    }
 
     public void enviarEmail(String para, String assunto, String corpoHtml) {
-        if (mailSender == null) {
-            log.warn("JavaMailSender não configurado — email não enviado para {}", para);
+        if (resend == null) {
+            log.warn("Resend não configurado (RESEND_API_KEY ausente) — email não enviado para {}", para);
             return;
         }
         try {
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
-            helper.setFrom(fromAddress);
-            helper.setTo(para);
-            helper.setSubject(assunto);
-            helper.setText(corpoHtml, true);
-            mailSender.send(message);
+            CreateEmailOptions options = CreateEmailOptions.builder()
+                    .from(fromAddress)
+                    .to(para)
+                    .subject(assunto)
+                    .html(corpoHtml)
+                    .build();
+            resend.emails().send(options);
             log.info("Email enviado para {}", para);
-        } catch (MessagingException | MailException e) {
+        } catch (ResendException e) {
             log.error("Falha ao enviar email para {}: {}", para, e.getMessage());
         }
     }
