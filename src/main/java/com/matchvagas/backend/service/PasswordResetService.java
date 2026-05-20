@@ -7,6 +7,7 @@ import com.matchvagas.backend.repository.PasswordResetTokenRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class PasswordResetService {
+
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     private final UsuariosRepository usuariosRepository;
     private final PasswordResetTokenRepository tokenRepository;
@@ -62,7 +66,7 @@ public class PasswordResetService {
     }
 
     private void enviarEmailRedefinicao(Usuarios usuario, String token) {
-        String link = "http://localhost:3000/redefinir-senha?token=" + token;
+        String link = frontendUrl + "/redefinir-senha?token=" + token;
         String corpo = """
                 <html><body style="font-family:Arial,sans-serif;color:#333">
                   <h2>Redefinição de senha — MatchVagas</h2>
