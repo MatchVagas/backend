@@ -16,6 +16,7 @@ public record CandidatoResponseDTO(
         String disponibilidade,
         BigDecimal pretensaoSalarial,
         Genero genero,
+        String fotoPerfilUrl,
         TelefonesResponseDTO telefone,
         EnderecosResponseDTO localizacao
 ) {}

@@ -24,6 +24,7 @@ public interface EmpresaMapper {
 
     @Mapping(target = "porte",            source = "porte.descricao")
     @Mapping(target = "ramoAtuacao",      source = "ramoAtuacao.descricao")
+    @Mapping(target = "logoUrl",          source = "logoUrl")
     @Mapping(target = "telefone",         source = "telefones", qualifiedByName = "primeiroTelefone")
     @Mapping(target = "totalVagasAtivas", ignore = true)
     @Mapping(target = "usuarioGestorId",  source = "usuario.id")

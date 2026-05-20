@@ -64,6 +64,9 @@ public class Empresas {
     @Column(name = "status", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'PENDENTE'")
     private StatusEmpresa status = StatusEmpresa.PENDENTE;
 
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    private String logoUrl;
+
     // Usuário gestor da empresa — um usuário EMPRESA gerencia uma empresa
     @ManyToOne
     @JoinColumn(name = "usuario_id", unique = true)

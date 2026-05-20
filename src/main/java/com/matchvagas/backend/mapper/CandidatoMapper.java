@@ -30,6 +30,7 @@ public interface CandidatoMapper {
     @Mapping(target = "email",               source = "usuario.email")
     @Mapping(target = "dataNascimento",      source = "usuario.dataNascimento", qualifiedByName = "dateToLocalDate")
     @Mapping(target = "objetivoProfissional", source = "objetivoProfissional")
+    @Mapping(target = "fotoPerfilUrl",       source = "fotoPerfilUrl")
     @Mapping(target = "localizacao",         source = "endereco")
     @Mapping(target = "telefone",            source = "usuario.telefones", qualifiedByName = "primeiroTelefone")
     CandidatoResponseDTO toResponseDTO(Candidatos entity);

@@ -12,6 +12,7 @@ public record EmpresaResponseDTO(
         String porte,
         String ramoAtuacao,
         String site,
+        String logoUrl,
         TelefonesResponseDTO telefone,
         Integer totalVagasAtivas,
         Long usuarioGestorId,

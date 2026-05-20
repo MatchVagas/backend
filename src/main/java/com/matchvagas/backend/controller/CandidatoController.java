@@ -4,15 +4,18 @@ import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
 import com.matchvagas.backend.dto.SugestaoVagaResponseDTO;
 import com.matchvagas.backend.service.CandidatoService;
+import com.matchvagas.backend.service.FotoPerfilService;
 import com.matchvagas.backend.service.SugestaoVagaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -24,6 +27,7 @@ public class CandidatoController {
 
     private final CandidatoService    candidatoService;
     private final SugestaoVagaService sugestaoVagaService;
+    private final FotoPerfilService   fotoPerfilService;
 
     // RF003 — Visualizar próprio perfil
     @GetMapping("/meu-perfil")
@@ -52,6 +56,24 @@ public class CandidatoController {
             @Valid @RequestBody CandidatoRequestDTO dto) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidatoService.update(usuarioId, dto));
+    }
+
+    @PostMapping(value = "/meu-perfil/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Enviar foto de perfil do candidato (JPG, PNG ou WebP — máx. 5 MB)")
+    public ResponseEntity<String> uploadFoto(
+            Authentication authentication,
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        String url = fotoPerfilService.uploadCandidato(usuarioId, arquivo);
+        return ResponseEntity.status(HttpStatus.CREATED).body(url);
+    }
+
+    @DeleteMapping("/meu-perfil/foto")
+    @Operation(summary = "Remover foto de perfil do candidato")
+    public ResponseEntity<Void> deletarFoto(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        fotoPerfilService.deletarCandidato(usuarioId);
+        return ResponseEntity.noContent().build();
     }
 
     // Sugestão de vagas baseada no perfil do candidato
