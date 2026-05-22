@@ -36,6 +36,12 @@ public class FotoPerfilService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
 
+        if (candidato.getFotoPerfilUrl() != null) {
+            try {
+                supabaseStorageService.deletarImagem(extrairObjectPath(candidato.getFotoPerfilUrl()));
+            } catch (Exception ignored) {}
+        }
+
         String objectPath = buildPath("candidatos", candidato.getId(), arquivo);
         enviar(arquivo, objectPath);
 
@@ -69,6 +75,12 @@ public class FotoPerfilService {
         Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Nenhuma empresa vinculada ao usuário ID: " + usuarioId));
+
+        if (empresa.getLogoUrl() != null) {
+            try {
+                supabaseStorageService.deletarImagem(extrairObjectPath(empresa.getLogoUrl()));
+            } catch (Exception ignored) {}
+        }
 
         String objectPath = buildPath("empresas", empresa.getId(), arquivo);
         enviar(arquivo, objectPath);

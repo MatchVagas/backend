@@ -68,6 +68,16 @@ public class CandidatoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(url);
     }
 
+    @PutMapping(value = "/meu-perfil/foto", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Atualizar foto de perfil do candidato (JPG, PNG ou WebP — máx. 5 MB)")
+    public ResponseEntity<String> atualizarFoto(
+            Authentication authentication,
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        String url = fotoPerfilService.uploadCandidato(usuarioId, arquivo);
+        return ResponseEntity.ok(url);
+    }
+
     @DeleteMapping("/meu-perfil/foto")
     @Operation(summary = "Remover foto de perfil do candidato")
     public ResponseEntity<Void> deletarFoto(Authentication authentication) {

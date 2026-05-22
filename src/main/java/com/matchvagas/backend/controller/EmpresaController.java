@@ -58,6 +58,17 @@ public class EmpresaController {
         return ResponseEntity.status(HttpStatus.CREATED).body(url);
     }
 
+    @PutMapping(value = "/minha-empresa/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Atualizar logo da empresa (JPG, PNG ou WebP — máx. 5 MB)")
+    public ResponseEntity<String> atualizarLogo(
+            Authentication authentication,
+            @RequestParam("arquivo") MultipartFile arquivo) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        String url = fotoPerfilService.uploadEmpresa(usuarioId, arquivo);
+        return ResponseEntity.ok(url);
+    }
+
     @DeleteMapping("/minha-empresa/logo")
     @PreAuthorize("hasAuthority('EMPRESA')")
     @Operation(summary = "Remover logo da empresa")
