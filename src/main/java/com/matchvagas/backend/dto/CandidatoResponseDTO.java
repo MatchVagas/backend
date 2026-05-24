@@ -1,6 +1,7 @@
 package com.matchvagas.backend.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.matchvagas.backend.entity.Genero;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
@@ -14,6 +15,8 @@ public record CandidatoResponseDTO(
         String objetivoProfissional,
         String disponibilidade,
         BigDecimal pretensaoSalarial,
+        Genero genero,
+        String fotoPerfilUrl,
         TelefonesResponseDTO telefone,
         EnderecosResponseDTO localizacao
 ) {}

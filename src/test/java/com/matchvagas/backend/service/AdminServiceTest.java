@@ -278,7 +278,7 @@ class AdminServiceTest {
         @DisplayName("Deve listar todos os candidatos")
         void deveListarCandidatos() {
             CandidatoResponseDTO dto = new CandidatoResponseDTO(
-                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null);
+                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null, null, null);
 
             when(candidatoRepository.findAll()).thenReturn(List.of(candidato));
             when(candidatoMapper.toResponseDTO(candidato)).thenReturn(dto);
@@ -290,7 +290,7 @@ class AdminServiceTest {
         @DisplayName("Deve buscar candidato por ID")
         void deveBuscarCandidatoPorId() {
             CandidatoResponseDTO dto = new CandidatoResponseDTO(
-                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null);
+                    1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null, null, null);
 
             when(candidatoRepository.findById(1L)).thenReturn(Optional.of(candidato));
             when(candidatoMapper.toResponseDTO(candidato)).thenReturn(dto);
@@ -331,7 +331,7 @@ class AdminServiceTest {
         void deveListarEmpresas() {
             EmpresaResponseDTO dto = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
-                    null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
+                    null, null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
 
             when(empresaRepository.findAll()).thenReturn(List.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);
@@ -344,7 +344,7 @@ class AdminServiceTest {
         void deveBuscarEmpresaPorId() {
             EmpresaResponseDTO dto = new EmpresaResponseDTO(
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
-                    null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
+                    null, null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
 
             when(empresaRepository.findById(1L)).thenReturn(Optional.of(empresa));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);

@@ -42,6 +42,7 @@ class VagaServiceTest {
     @Mock EscolaridadeRepository escolaridadeRepository;
     @Mock StatusVagaRepository statusVagaRepository;
     @Mock CidadeRepository cidadeRepository;
+    @Mock CandidaturaRepository candidaturaRepository;
     @Mock VagasMapper vagasMapper;
 
     @InjectMocks VagaService vagaService;
@@ -99,6 +100,7 @@ class VagaServiceTest {
         empresa.setId(EMPRESA_ID);
         empresa.setNomeFantasia("Tech Corp");
         empresa.setUsuario(usuario);
+        empresa.setStatus(Empresas.StatusEmpresa.APROVADA);
 
         // Vaga completa
         vaga = new Vagas();
@@ -424,10 +426,10 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve retornar todas as vagas quando sem filtros")
         void deveRetornarTodasVagasSemFiltro() {
-            when(vagaRepository.findAll()).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search(null, null, null, null);
+            List<VagaResponseDTO> result = vagaService.search(null, null, null, null, null);
 
             assertThat(result).hasSize(1);
         }
@@ -435,10 +437,10 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve filtrar vagas por título")
         void deveFiltrarPorTitulo() {
-            when(vagaRepository.findByTituloContaining("Java")).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("Java", "", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search("Java", null, null, null);
+            List<VagaResponseDTO> result = vagaService.search("Java", null, null, null, null);
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).titulo()).isEqualTo("Dev Java Pleno");
@@ -447,10 +449,10 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve filtrar vagas por área de atuação")
         void deveFiltrarPorAreaAtuacao() {
-            when(vagaRepository.findByDescricaoContaining("Tecnologia")).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "Tecnologia", null, null, "")).thenReturn(List.of(vaga));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search(null, "Tecnologia", null, null);
+            List<VagaResponseDTO> result = vagaService.search(null, "Tecnologia", null, null, null);
 
             assertThat(result).hasSize(1);
         }
@@ -458,9 +460,9 @@ class VagaServiceTest {
         @Test
         @DisplayName("Deve retornar lista vazia quando nenhuma vaga bate com o filtro")
         void deveRetornarVazioQuandoSemCorrespondencia() {
-            when(vagaRepository.findByTituloContaining("Python")).thenReturn(List.of());
+            when(vagaRepository.searchComFiltros("Python", "", null, null, "")).thenReturn(List.of());
 
-            List<VagaResponseDTO> result = vagaService.search("Python", null, null, null);
+            List<VagaResponseDTO> result = vagaService.search("Python", null, null, null, null);
 
             assertThat(result).isEmpty();
         }

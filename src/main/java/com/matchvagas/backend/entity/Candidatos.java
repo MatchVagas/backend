@@ -38,9 +38,16 @@ public class Candidatos {
     @Column(name = "disponibilidade", length = 100)
     private String disponibilidade;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "genero", length = 30)
+    private Genero genero;
+
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "usuario_id", referencedColumnName = "id")
     private Usuarios usuario;
+
+    @Column(name = "foto_perfil_url", columnDefinition = "TEXT")
+    private String fotoPerfilUrl;
 
     @ElementCollection
     @CollectionTable(name = "candidato_habilidades", joinColumns = @JoinColumn(name = "candidato_id"))

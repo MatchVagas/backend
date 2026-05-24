@@ -29,8 +29,9 @@ public class VagaController {
             @RequestParam(required = false) String titulo,
             @RequestParam(required = false) String areaAtuacao,
             @RequestParam(required = false) Long tipoVagaId,
-            @RequestParam(required = false) Long modalidadeId) {
-        return ResponseEntity.ok(vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId));
+            @RequestParam(required = false) Long modalidadeId,
+            @RequestParam(required = false) String nomeEmpresa) {
+        return ResponseEntity.ok(vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId, nomeEmpresa));
     }
 
     @GetMapping("/{id}")

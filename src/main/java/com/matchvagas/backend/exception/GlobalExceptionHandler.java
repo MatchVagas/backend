@@ -9,7 +9,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,6 +43,18 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingPart(MissingServletRequestPartException ex) {
+        log.warn("Campo multipart ausente: {}", ex.getRequestPartName());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Campo obrigatório ausente",
+                "O campo '" + ex.getRequestPartName() + "' é obrigatório e não foi enviado.",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -88,6 +102,10 @@ public class GlobalExceptionHandler {
     // Fallback para exceções inesperadas
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception exception) {
+        if (isClientAbort(exception)) {
+            log.debug("Cliente encerrou a conexão antes da resposta ser enviada: {}", exception.getMessage());
+            return null;
+        }
         log.error("Erro inesperado: {}", exception.getMessage(), exception);
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -96,5 +114,14 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    private boolean isClientAbort(Throwable ex) {
+        if (ex == null) return false;
+        String className = ex.getClass().getName();
+        if (className.contains("ClientAbortException")) return true;
+        String message = ex.getMessage();
+        if (ex instanceof IOException && message != null && message.contains("Broken pipe")) return true;
+        return isClientAbort(ex.getCause());
     }
 }

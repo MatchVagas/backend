@@ -38,7 +38,7 @@ public class Empresas {
     @Column(name = "nome_fantasia", length = 150)
     private String nomeFantasia;
 
-    @Column(name = "descricao")
+    @Column(name = "descricao", columnDefinition = "TEXT")
     private String descricao;
 
     @ManyToOne
@@ -63,6 +63,9 @@ public class Empresas {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20, columnDefinition = "VARCHAR(20) DEFAULT 'PENDENTE'")
     private StatusEmpresa status = StatusEmpresa.PENDENTE;
+
+    @Column(name = "logo_url", columnDefinition = "TEXT")
+    private String logoUrl;
 
     // Usuário gestor da empresa — um usuário EMPRESA gerencia uma empresa
     @ManyToOne

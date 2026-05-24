@@ -1,10 +1,16 @@
 package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.AuthResponse;
+import com.matchvagas.backend.dto.EsqueceuSenhaRequestDTO;
 import com.matchvagas.backend.dto.LoginRequestDTO;
+import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
+import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
+import com.matchvagas.backend.dto.VerificarCodigoRequestDTO;
+import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
+import com.matchvagas.backend.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +34,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
     @Operation(
@@ -57,6 +64,63 @@ public class AuthController {
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequestDTO request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register-empresa")
+    @Operation(
+        summary = "Cadastrar empresa (usuário + empresa em uma única operação atômica)",
+        description = "Cria o usuário e a empresa numa única transação. Se qualquer etapa falhar, nada é persistido."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Empresa cadastrada — token JWT retornado"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos, CNPJ inválido ou e-mail já em uso",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<AuthResponse> registerEmpresa(@Valid @RequestBody RegisterEmpresaRequestDTO request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
+    }
+
+    @PostMapping("/esqueceu-senha")
+    @Operation(
+        summary = "Solicitar redefinição de senha",
+        description = "Envia um e-mail com link para redefinição de senha. Sempre retorna 200 para não expor quais e-mails estão cadastrados."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Solicitação processada — se o e-mail existir, um link será enviado")
+    })
+    public ResponseEntity<Void> esqueceuSenha(@Valid @RequestBody EsqueceuSenhaRequestDTO request) {
+        passwordResetService.solicitarRedefinicao(request.email());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/verificar-codigo")
+    @Operation(
+        summary = "Verificar código de redefinição",
+        description = "Valida o código de 6 dígitos recebido por e-mail e retorna um token para redefinir a senha."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Código válido — token retornado"),
+        @ApiResponse(responseCode = "400", description = "Código inválido ou expirado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request) {
+        String token = passwordResetService.verificarCodigo(request.email(), request.codigo());
+        return ResponseEntity.ok(new VerificarCodigoResponseDTO(token));
+    }
+
+    @PostMapping("/redefinir-senha")
+    @Operation(
+        summary = "Redefinir senha com token",
+        description = "Usa o token obtido em /verificar-codigo para definir a nova senha. O token expira em 1 hora e só pode ser usado uma vez."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Senha redefinida com sucesso"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request) {
+        passwordResetService.redefinirSenha(request.token(), request.novaSenha());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/logout")
