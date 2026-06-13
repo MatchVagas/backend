@@ -350,6 +350,7 @@ public class CandidaturaService {
                 statusDesc,
                 cand.getId(),
                 cand.getUsuario().getNome(),
+                cand.getUsuario() != null ? cand.getUsuario().getEmail() : null,
                 objetivoProfissional,
                 disponibilidade,
                 pretensaoSalarial,
