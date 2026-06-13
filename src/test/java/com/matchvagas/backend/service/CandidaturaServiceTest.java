@@ -4,6 +4,7 @@ import com.matchvagas.backend.dto.AtualizarCompartilhamentoRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
+import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -13,6 +14,7 @@ import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
 import com.matchvagas.backend.repository.ExperienciaRepository;
 import com.matchvagas.backend.repository.FormacaoRepository;
+import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
 import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +22,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -48,6 +51,7 @@ class CandidaturaServiceTest {
     @Mock StatusCandidaturaRepository statusCandidaturaRepository;
     @Mock CandidaturaMapper           candidaturaMapper;
     @Mock NotificacaoService          notificacaoService;
+    @Mock HistoricoStatusCandidaturaRepository historicoStatusRepository;
 
     @InjectMocks CandidaturaService candidaturaService;
 
@@ -601,6 +605,115 @@ class CandidaturaServiceTest {
 
             assertThat(result.get(0).pretensaoSalarial()).isNull();
             assertThat(result.get(0).telefones()).isNull();
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Atualização de Status (empresa) — guard de no-op + histórico
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Atualização de status da candidatura (empresa)")
+    class AtualizarStatus {
+
+        private StatusCandidatura novoStatus() {
+            StatusCandidatura s = new StatusCandidatura();
+            s.setId(2);
+            s.setStatus("APROVADO");
+            return s;
+        }
+
+        @Test
+        @DisplayName("Deve mudar o status, registrar histórico e notificar o candidato")
+        void deveMudarStatusRegistrarHistoricoENotificar() {
+            StatusCandidatura novo = novoStatus();
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(statusCandidaturaRepository.findById(2L)).thenReturn(Optional.of(novo));
+            when(candidaturasRepository.save(any())).thenReturn(candidatura);
+
+            candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 2L, USUARIO_EMPRESA_ID);
+
+            // Status aplicado na entidade
+            assertThat(candidatura.getStatus().getStatus()).isEqualTo("APROVADO");
+
+            // Histórico registrado com origem, destino e autor corretos
+            ArgumentCaptor<HistoricoStatusCandidatura> captor =
+                    ArgumentCaptor.forClass(HistoricoStatusCandidatura.class);
+            verify(historicoStatusRepository).save(captor.capture());
+            HistoricoStatusCandidatura h = captor.getValue();
+            assertThat(h.getStatusAnterior().getStatus()).isEqualTo("EM_ANALISE");
+            assertThat(h.getStatusNovo().getStatus()).isEqualTo("APROVADO");
+            assertThat(h.getUsuario().getId()).isEqualTo(USUARIO_EMPRESA_ID);
+            assertThat(h.getCandidatura()).isSameAs(candidatura);
+
+            // Candidato notificado
+            verify(notificacaoService).notificarPorTipo(eq(USUARIO_CANDIDATO_ID), any(), any(), eq("Candidatura"));
+        }
+
+        @Test
+        @DisplayName("No-op: status igual ao atual não persiste, não registra histórico nem notifica")
+        void deveIgnorarQuandoStatusInalterado() {
+            // Status atual da candidatura no setUp tem id=1
+            StatusCandidatura mesmoStatus = new StatusCandidatura();
+            mesmoStatus.setId(1);
+            mesmoStatus.setStatus("EM_ANALISE");
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(statusCandidaturaRepository.findById(1L)).thenReturn(Optional.of(mesmoStatus));
+
+            candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 1L, USUARIO_EMPRESA_ID);
+
+            verify(candidaturasRepository, never()).save(any());
+            verify(historicoStatusRepository, never()).save(any());
+            verifyNoInteractions(notificacaoService);
+        }
+
+        @Test
+        @DisplayName("Deve lançar exceção quando a candidatura não pertence à empresa")
+        void deveLancarExcecaoCandidaturaDeOutraEmpresa() {
+            Empresas outraEmpresa = new Empresas();
+            outraEmpresa.setId(99L);
+            vaga.setEmpresas(outraEmpresa);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+
+            assertThatThrownBy(() ->
+                    candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 2L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("não pertence");
+
+            verify(historicoStatusRepository, never()).save(any());
+            verifyNoInteractions(notificacaoService);
+        }
+
+        @Test
+        @DisplayName("Deve listar o histórico de status da candidatura")
+        void deveListarHistorico() {
+            StatusCandidatura aprovado = novoStatus();
+
+            HistoricoStatusCandidatura h = new HistoricoStatusCandidatura();
+            h.setId(1L);
+            h.setCandidatura(candidatura);
+            h.setStatusAnterior(candidatura.getStatus());
+            h.setStatusNovo(aprovado);
+            h.setUsuario(empresa.getUsuario());
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(historicoStatusRepository.findByCandidaturaIdOrderByDataHoraDesc(CANDIDATURA_ID))
+                    .thenReturn(List.of(h));
+
+            List<HistoricoStatusResponseDTO> result =
+                    candidaturaService.listarHistoricoEmpresa(CANDIDATURA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).statusAnterior()).isEqualTo("EM_ANALISE");
+            assertThat(result.get(0).statusNovo()).isEqualTo("APROVADO");
+            assertThat(result.get(0).usuarioId()).isEqualTo(USUARIO_EMPRESA_ID);
         }
     }
 }

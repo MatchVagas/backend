@@ -6,6 +6,7 @@ import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.ExperienciaResponseDTO;
 import com.matchvagas.backend.dto.FormacaoResponseDTO;
+import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -15,6 +16,7 @@ import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
 import com.matchvagas.backend.repository.ExperienciaRepository;
 import com.matchvagas.backend.repository.FormacaoRepository;
+import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
 import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +44,7 @@ public class CandidaturaService {
     private final ExperienciaRepository       experienciaRepository;
     private final FormacaoRepository          formacaoRepository;
     private final NotificacaoService          notificacaoService;
+    private final HistoricoStatusCandidaturaRepository historicoStatusRepository;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -186,8 +189,17 @@ public class CandidaturaService {
         StatusCandidatura novoStatus = statusCandidaturaRepository.findById(statusId)
                 .orElseThrow(() -> new ResourceNotFoundException("Status não encontrado"));
 
+        StatusCandidatura statusAnterior = candidatura.getStatus();
+
+        // Guard de no-op: status inalterado → não persiste, não registra histórico, não notifica
+        if (statusAnterior != null && statusAnterior.getId() == novoStatus.getId()) {
+            return toEmpresaResponseDTO(candidatura);
+        }
+
         candidatura.setStatus(novoStatus);
         CandidaturaEmpresaResponseDTO response = toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
+
+        registrarHistorico(candidatura, statusAnterior, novoStatus, empresa.getUsuario());
 
         notificar(
                 candidatura.getCandidato().getUsuario().getId(),
@@ -196,6 +208,45 @@ public class CandidaturaService {
                         + "\" foi atualizado para: " + novoStatus.getStatus() + ".");
 
         return response;
+    }
+
+    // ── Empresa — histórico de mudanças de status de uma candidatura ──────────
+
+    @Transactional(readOnly = true)
+    public List<HistoricoStatusResponseDTO> listarHistoricoEmpresa(Long candidaturaId, Long usuarioId) {
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+
+        Candidatura candidatura = candidaturasRepository.findById(candidaturaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Candidatura não encontrada"));
+
+        if (!candidatura.getVaga().getEmpresas().getId().equals(empresa.getId()))
+            throw new BusinessException("Esta candidatura não pertence a uma vaga da sua empresa");
+
+        return historicoStatusRepository.findByCandidaturaIdOrderByDataHoraDesc(candidaturaId)
+                .stream().map(this::toHistoricoDTO).collect(Collectors.toList());
+    }
+
+    private HistoricoStatusResponseDTO toHistoricoDTO(HistoricoStatusCandidatura h) {
+        return new HistoricoStatusResponseDTO(
+                h.getId(),
+                h.getStatusAnterior() != null ? h.getStatusAnterior().getStatus() : null,
+                h.getStatusNovo().getStatus(),
+                h.getUsuario().getId(),
+                h.getUsuario().getNome(),
+                h.getDataHora());
+    }
+
+    // ── Interno: registra a mudança de status na trilha de auditoria ──────────
+
+    private void registrarHistorico(Candidatura candidatura, StatusCandidatura statusAnterior,
+                                    StatusCandidatura statusNovo, Usuarios usuario) {
+        HistoricoStatusCandidatura historico = new HistoricoStatusCandidatura();
+        historico.setCandidatura(candidatura);
+        historico.setStatusAnterior(statusAnterior);
+        historico.setStatusNovo(statusNovo);
+        historico.setUsuario(usuario);
+        historicoStatusRepository.save(historico);
     }
 
     // ── Interno: notifica o candidato (best-effort — não afeta a operação principal) ──

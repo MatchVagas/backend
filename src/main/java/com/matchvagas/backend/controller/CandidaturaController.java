@@ -4,6 +4,7 @@ import com.matchvagas.backend.dto.AtualizarCompartilhamentoRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
+import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
 import com.matchvagas.backend.service.CurriculoService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -165,5 +166,21 @@ public class CandidaturaController {
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.atualizarStatusEmpresa(id, statusId, usuarioId));
+    }
+
+    // ── Empresa — histórico de mudanças de status ─────────────────────────────
+
+    @GetMapping("/{id}/empresa/historico")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Listar o histórico de mudanças de status de uma candidatura",
+        description = "Trilha de auditoria com status anterior, novo status, quem efetuou "
+                    + "a mudança e quando, em ordem decrescente de data."
+    )
+    public ResponseEntity<List<HistoricoStatusResponseDTO>> historicoStatusEmpresa(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.listarHistoricoEmpresa(id, usuarioId));
     }
 }
