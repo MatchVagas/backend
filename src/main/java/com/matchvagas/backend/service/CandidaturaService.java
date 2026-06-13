@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -196,6 +197,8 @@ public class CandidaturaService {
             return toEmpresaResponseDTO(candidatura);
         }
 
+        validarTransicao(statusAnterior, novoStatus);
+
         candidatura.setStatus(novoStatus);
         CandidaturaEmpresaResponseDTO response = toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
 
@@ -235,6 +238,28 @@ public class CandidaturaService {
                 h.getUsuario().getId(),
                 h.getUsuario().getNome(),
                 h.getDataHora());
+    }
+
+    // ── Interno: valida se a transição de status é permitida pelo fluxo ───────
+
+    private void validarTransicao(StatusCandidatura statusAtual, StatusCandidatura novoStatus) {
+        // Sem status de origem (candidatura recém-criada) → qualquer destino é válido
+        if (statusAtual == null) return;
+
+        Optional<FluxoStatusCandidatura> origem = FluxoStatusCandidatura.fromNome(statusAtual.getStatus());
+        Optional<FluxoStatusCandidatura> destino = FluxoStatusCandidatura.fromNome(novoStatus.getStatus());
+
+        // Status fora do fluxo conhecido (customizado) → não há regra a aplicar
+        if (origem.isEmpty() || destino.isEmpty()) return;
+
+        if (!origem.get().podeTransicionarPara(destino.get())) {
+            String motivo = origem.get().ehTerminal()
+                    ? "A candidatura está em um status final (\"" + statusAtual.getStatus()
+                            + "\") e não pode ser reaberta."
+                    : "Não é permitido mudar o status de \"" + statusAtual.getStatus()
+                            + "\" para \"" + novoStatus.getStatus() + "\".";
+            throw new BusinessException(motivo);
+        }
     }
 
     // ── Interno: registra a mudança de status na trilha de auditoria ──────────
