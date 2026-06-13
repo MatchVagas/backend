@@ -715,5 +715,72 @@ class CandidaturaServiceTest {
             assertThat(result.get(0).statusNovo()).isEqualTo("APROVADO");
             assertThat(result.get(0).usuarioId()).isEqualTo(USUARIO_EMPRESA_ID);
         }
+
+        private void candidaturaComStatus(int id, String nome) {
+            StatusCandidatura s = new StatusCandidatura();
+            s.setId(id);
+            s.setStatus(nome);
+            candidatura.setStatus(s);
+        }
+
+        @Test
+        @DisplayName("Não deve permitir mudar de Reprovado para Aprovado (status terminal)")
+        void naoDevePermitirReprovadoParaAprovado() {
+            candidaturaComStatus(3, "Reprovado");
+            StatusCandidatura aprovado = novoStatus(); // id=2, "APROVADO"
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(statusCandidaturaRepository.findById(2L)).thenReturn(Optional.of(aprovado));
+
+            assertThatThrownBy(() ->
+                    candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 2L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("final");
+
+            verify(candidaturasRepository, never()).save(any());
+            verify(historicoStatusRepository, never()).save(any());
+            verifyNoInteractions(notificacaoService);
+        }
+
+        @Test
+        @DisplayName("Não deve permitir mudar de Reprovado para Em Análise (status terminal)")
+        void naoDevePermitirReprovadoParaEmAnalise() {
+            candidaturaComStatus(3, "Reprovado");
+            StatusCandidatura emAnalise = new StatusCandidatura();
+            emAnalise.setId(1);
+            emAnalise.setStatus("Em Análise");
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(statusCandidaturaRepository.findById(1L)).thenReturn(Optional.of(emAnalise));
+
+            assertThatThrownBy(() ->
+                    candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 1L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class);
+
+            verify(candidaturasRepository, never()).save(any());
+            verify(historicoStatusRepository, never()).save(any());
+            verifyNoInteractions(notificacaoService);
+        }
+
+        @Test
+        @DisplayName("Deve permitir avançar de Em Análise para Entrevista Agendada")
+        void devePermitirEmAnaliseParaEntrevista() {
+            StatusCandidatura entrevista = new StatusCandidatura();
+            entrevista.setId(4);
+            entrevista.setStatus("Entrevista Agendada");
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(candidaturasRepository.findById(CANDIDATURA_ID)).thenReturn(Optional.of(candidatura));
+            when(statusCandidaturaRepository.findById(4L)).thenReturn(Optional.of(entrevista));
+            when(candidaturasRepository.save(any())).thenReturn(candidatura);
+
+            candidaturaService.atualizarStatusEmpresa(CANDIDATURA_ID, 4L, USUARIO_EMPRESA_ID);
+
+            assertThat(candidatura.getStatus().getStatus()).isEqualTo("Entrevista Agendada");
+            verify(historicoStatusRepository).save(any());
+            verify(notificacaoService).notificarPorTipo(eq(USUARIO_CANDIDATO_ID), any(), any(), eq("Candidatura"));
+        }
     }
 }
