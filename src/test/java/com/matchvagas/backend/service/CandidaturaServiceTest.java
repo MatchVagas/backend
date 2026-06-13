@@ -47,6 +47,7 @@ class CandidaturaServiceTest {
     @Mock FormacaoRepository          formacaoRepository;
     @Mock StatusCandidaturaRepository statusCandidaturaRepository;
     @Mock CandidaturaMapper           candidaturaMapper;
+    @Mock NotificacaoService          notificacaoService;
 
     @InjectMocks CandidaturaService candidaturaService;
 

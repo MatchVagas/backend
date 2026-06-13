@@ -13,6 +13,7 @@ import com.matchvagas.backend.repository.TipoNotificacaoRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -53,6 +54,20 @@ public class NotificacaoService {
         enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
 
         return notificacaoMapper.toDTO(salva);
+    }
+
+    /**
+     * Cria uma notificação (in-app + email) para um usuário, resolvendo o tipo pelo nome.
+     * Executa em transação própria (REQUIRES_NEW) para que, quando disparada como efeito
+     * colateral de outra operação (ex.: atualização de candidatura), uma eventual falha aqui
+     * não desfaça a operação principal. Chamadores devem tratar exceções (best-effort).
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notificarPorTipo(Long usuarioId, String titulo, String mensagem, String tipoNome) {
+        Long tipoId = tipoNome == null ? null
+                : tipoNotificacaoRepository.findByStatusIgnoreCase(tipoNome)
+                        .map(t -> (long) t.getId()).orElse(null);
+        criar(new NotificacoesRequestDTO(titulo, mensagem, usuarioId, tipoId));
     }
 
     @Transactional(readOnly = true)
