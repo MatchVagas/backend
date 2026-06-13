@@ -18,6 +18,7 @@ import com.matchvagas.backend.repository.FormacaoRepository;
 import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +26,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CandidaturaService {
+
+    private static final String TIPO_NOTIFICACAO_CANDIDATURA = "Candidatura";
 
     private final CandidaturaRepository       candidaturasRepository;
     private final CandidatoRepository         candidatosRepository;
@@ -37,6 +41,7 @@ public class CandidaturaService {
     private final StatusCandidaturaRepository statusCandidaturaRepository;
     private final ExperienciaRepository       experienciaRepository;
     private final FormacaoRepository          formacaoRepository;
+    private final NotificacaoService          notificacaoService;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -61,7 +66,15 @@ public class CandidaturaService {
         // Aplicar preferências de compartilhamento (null = mantém o default da entidade)
         aplicarPreferencias(candidatura, request);
 
-        return candidaturaMapper.toResponseDTO(candidaturasRepository.save(candidatura));
+        Candidatura salva = candidaturasRepository.save(candidatura);
+
+        notificar(
+                candidato.getUsuario().getId(),
+                "Candidatura enviada",
+                "Sua candidatura para a vaga \"" + vaga.getTitulo() + "\" foi enviada com sucesso. "
+                        + "Acompanhe o andamento pela plataforma.");
+
+        return candidaturaMapper.toResponseDTO(salva);
     }
 
     // ── RF009 — Listar candidaturas do candidato ──────────────────────────────
@@ -174,7 +187,25 @@ public class CandidaturaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Status não encontrado"));
 
         candidatura.setStatus(novoStatus);
-        return toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
+        CandidaturaEmpresaResponseDTO response = toEmpresaResponseDTO(candidaturasRepository.save(candidatura));
+
+        notificar(
+                candidatura.getCandidato().getUsuario().getId(),
+                "Status da candidatura atualizado",
+                "O status da sua candidatura para a vaga \"" + candidatura.getVaga().getTitulo()
+                        + "\" foi atualizado para: " + novoStatus.getStatus() + ".");
+
+        return response;
+    }
+
+    // ── Interno: notifica o candidato (best-effort — não afeta a operação principal) ──
+
+    private void notificar(Long usuarioId, String titulo, String mensagem) {
+        try {
+            notificacaoService.notificarPorTipo(usuarioId, titulo, mensagem, TIPO_NOTIFICACAO_CANDIDATURA);
+        } catch (Exception e) {
+            log.warn("Falha ao gerar notificação para o usuário {}: {}", usuarioId, e.getMessage());
+        }
     }
 
     // ── Interno: monta o DTO filtrado para a empresa ──────────────────────────
