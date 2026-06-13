@@ -56,7 +56,7 @@ public class OpenApiConfig {
                 // Servidores disponíveis no dropdown do Swagger UI
                 .servers(List.of(
                         new Server().url("http://localhost:8080").description("Desenvolvimento local"),
-                        new Server().url("https://backend-tgi8.onrender.com/").description("Produção")
+                        new Server().url("https://backend-production-7396d.up.railway.app/").description("Produção")
                 ))
 
                 // Esquema de autenticação JWT — aparece no botão Authorize
