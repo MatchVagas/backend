@@ -22,6 +22,9 @@ public record CandidaturaEmpresaResponseDTO(
         Long candidatoId,
         String nomeCandidato,
 
+        /** Email de contato — identificador básico, sempre visível para a empresa */
+        String email,
+
         // ── Dados profissionais (visíveis conforme preferência) ──────────────
 
         /** Objetivo/resumo profissional */
