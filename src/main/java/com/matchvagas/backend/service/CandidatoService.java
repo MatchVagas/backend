@@ -57,6 +57,11 @@ public class CandidatoService {
             throw new BusinessException("Já existe um perfil de candidato para este usuário.");
         }
 
+        if (dto.cpf() != null && !dto.cpf().isBlank()
+                && candidatoRepository.findByCpf(dto.cpf()).isPresent()) {
+            throw new BusinessException("CPF já cadastrado para outro candidato.");
+        }
+
         Usuarios usuario = usuariosRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + usuarioId));
 
@@ -85,7 +90,12 @@ public class CandidatoService {
 
         atualizarDadosPessoais(dto, candidato.getUsuario());
 
-        candidato.setCpf(dto.cpf() != null ? dto.cpf() : candidato.getCpf());
+        if (dto.cpf() != null && !dto.cpf().isBlank()) {
+            candidatoRepository.findByCpf(dto.cpf())
+                    .filter(c -> !c.getId().equals(candidato.getId()))
+                    .ifPresent(c -> { throw new BusinessException("CPF já cadastrado para outro candidato."); });
+            candidato.setCpf(dto.cpf());
+        }
         candidato.setObjetivoProfissional(dto.resumoProfissional());
         candidato.setDisponibilidade(dto.disponibilidade());
         candidato.setPretensaoSalarial(dto.pretensaoSalarial());
