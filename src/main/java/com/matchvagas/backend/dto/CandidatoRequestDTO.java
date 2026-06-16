@@ -1,6 +1,7 @@
 package com.matchvagas.backend.dto;
 
 import com.matchvagas.backend.entity.Genero;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
@@ -37,6 +38,11 @@ public record CandidatoRequestDTO(
         @Valid
         TelefonesRequestDTO telefone,
 
+        // LGPD Art. 9º — finalidade do tratamento do endereço informada ao titular
+        @Schema(description = "Endereço do candidato. Finalidade (LGPD Art. 9º): personalização "
+                + "de vagas por localidade e exibição à empresa apenas quando o candidato autorizar "
+                + "(compartilharEndereco). O endereço é pseudoanonimizado após longa inatividade "
+                + "da conta (política de retenção).")
         @Valid
         LocalizacaoRequestDTO localizacao
 ) {}

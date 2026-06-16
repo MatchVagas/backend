@@ -1,5 +1,6 @@
 package com.matchvagas.backend.repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,8 @@ public interface UsuariosRepository extends JpaRepository<Usuarios, Long> {
     List<Usuarios> findByAtivo(Boolean ativo);
 
     List<Usuarios> findByTipoUsuarioAndAtivo(Usuarios.TipoUsuario tipoUsuario, Boolean ativo);
+
+    // Usuários ativos de um tipo cujo último acesso é anterior ao limite (LGPD-09)
+    List<Usuarios> findByTipoUsuarioAndAtivoAndDataUltimoAcessoBefore(
+            Usuarios.TipoUsuario tipoUsuario, Boolean ativo, LocalDateTime limite);
 }
