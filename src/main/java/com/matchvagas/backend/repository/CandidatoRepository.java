@@ -10,8 +10,8 @@ import com.matchvagas.backend.entity.Candidatos;
 @Repository
 public interface CandidatoRepository extends JpaRepository<Candidatos, Long> {
 
-    //@EntityGraph(attributePaths = {"cpf"})
-    Optional<Candidatos> findByCpf(String cpf);
+    // LGPD-04 — busca por unicidade via hash determinístico do CPF
+    Optional<Candidatos> findByCpfHash(String cpfHash);
     Optional<Candidatos> findByUsuarioId(Long usuarioId);
  
 }

@@ -27,6 +27,7 @@ import com.matchvagas.backend.repository.PasswordResetTokenRepository;
 import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.TipoTelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
+import com.matchvagas.backend.util.CpfCrypto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,7 +80,7 @@ public class CandidatoService {
         }
 
         if (dto.cpf() != null && !dto.cpf().isBlank()
-                && candidatoRepository.findByCpf(dto.cpf()).isPresent()) {
+                && candidatoRepository.findByCpfHash(CpfCrypto.hash(dto.cpf())).isPresent()) {
             throw new BusinessException("CPF já cadastrado para outro candidato.");
         }
 
@@ -112,7 +113,7 @@ public class CandidatoService {
         atualizarDadosPessoais(dto, candidato.getUsuario());
 
         if (dto.cpf() != null && !dto.cpf().isBlank()) {
-            candidatoRepository.findByCpf(dto.cpf())
+            candidatoRepository.findByCpfHash(CpfCrypto.hash(dto.cpf()))
                     .filter(c -> !c.getId().equals(candidato.getId()))
                     .ifPresent(c -> { throw new BusinessException("CPF já cadastrado para outro candidato."); });
             candidato.setCpf(dto.cpf());

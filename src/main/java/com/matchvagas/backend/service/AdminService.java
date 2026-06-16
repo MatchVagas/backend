@@ -6,6 +6,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.*;
 import com.matchvagas.backend.repository.*;
+import com.matchvagas.backend.util.CpfCrypto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -164,7 +165,7 @@ public class AdminService {
                 .orElseThrow(() -> new ResourceNotFoundException("Candidato não encontrado com ID: " + id));
 
         if (dto.cpf() != null && !dto.cpf().isBlank()) {
-            candidatoRepository.findByCpf(dto.cpf())
+            candidatoRepository.findByCpfHash(CpfCrypto.hash(dto.cpf()))
                     .filter(c -> !c.getId().equals(id))
                     .ifPresent(c -> { throw new BusinessException("CPF já cadastrado para outro candidato."); });
             candidato.setCpf(dto.cpf());

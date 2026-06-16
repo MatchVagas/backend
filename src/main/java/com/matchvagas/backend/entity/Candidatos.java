@@ -1,5 +1,7 @@
 package com.matchvagas.backend.entity;
 
+import com.matchvagas.backend.util.CpfCrypto;
+import com.matchvagas.backend.util.CpfCryptoConverter;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -18,8 +20,16 @@ public class Candidatos {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "cpf", nullable = false, unique = true, length = 20)
+    // LGPD-04 — CPF cifrado (AES-GCM) em repouso. O valor cifrado é maior que o
+    // CPF original e não é determinístico, por isso a unicidade é garantida pelo
+    // hash determinístico em cpfHash (não mais por unique nesta coluna).
+    @Convert(converter = CpfCryptoConverter.class)
+    @Column(name = "cpf", nullable = false, length = 255)
     private String cpf;
+
+    // Hash HMAC-SHA256 determinístico do CPF, usado para checar unicidade.
+    @Column(name = "cpf_hash", length = 64, unique = true)
+    private String cpfHash;
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "endereco_id", referencedColumnName = "id")
@@ -52,4 +62,11 @@ public class Candidatos {
     @ElementCollection
     @CollectionTable(name = "candidato_habilidades", joinColumns = @JoinColumn(name = "candidato_id"))
     private List<Habilidade> habilidades = new ArrayList<>();
+
+    // Mantém o hash do CPF sincronizado com o valor (em texto puro) na memória.
+    @PrePersist
+    @PreUpdate
+    void sincronizarCpfHash() {
+        this.cpfHash = (cpf == null || cpf.isBlank()) ? null : CpfCrypto.hash(cpf);
+    }
 }
