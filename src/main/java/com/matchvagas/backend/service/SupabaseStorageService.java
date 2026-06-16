@@ -140,8 +140,37 @@ public class SupabaseStorageService {
     /**
      * Retorna a URL pública de uma imagem no bucket de imagens de perfil.
      * O bucket deve estar configurado como público no Supabase.
+     *
+     * @deprecated As imagens passaram a ficar em bucket privado (LGPD-08).
+     *             Use {@link #gerarUrlAssinadaImagem(String, int)}.
      */
+    @Deprecated
     public String getPublicUrl(String objectPath) {
         return supabaseUrl + "/storage/v1/object/public/" + imagesBucket + "/" + objectPath;
+    }
+
+    /**
+     * Gera uma URL assinada temporária para uma imagem no bucket de imagens de
+     * perfil (privado) — LGPD-08.
+     *
+     * @param objectPath      caminho do objeto dentro do bucket de imagens
+     * @param expiresInSeconds validade da URL em segundos
+     */
+    public String gerarUrlAssinadaImagem(String objectPath, int expiresInSeconds) {
+        try {
+            Map<?, ?> response = client.post()
+                    .uri("/object/sign/" + imagesBucket + "/" + objectPath)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(Map.of("expiresIn", expiresInSeconds))
+                    .retrieve()
+                    .body(Map.class);
+
+            if (response == null || !response.containsKey("signedURL")) {
+                throw new BusinessException("Resposta inválida ao gerar URL assinada da imagem.");
+            }
+            return supabaseUrl + response.get("signedURL");
+        } catch (RestClientException e) {
+            throw new BusinessException("Falha ao gerar URL de acesso à imagem: " + e.getMessage());
+        }
     }
 }

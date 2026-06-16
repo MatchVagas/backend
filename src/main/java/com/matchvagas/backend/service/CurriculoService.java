@@ -48,6 +48,7 @@ public class CurriculoService {
     private final EmpresaRepository      empresaRepository;
     private final CurriculoMapper        curriculoMapper;
     private final SupabaseStorageService supabaseStorageService;
+    private final AuditoriaService       auditoriaService;
 
     @Transactional
     public CurriculoResponseDTO upload(Long usuarioId, MultipartFile arquivo) {
@@ -147,6 +148,10 @@ public class CurriculoService {
 
         String url = supabaseStorageService.gerarUrlAssinada(
                 curriculo.getCaminhoArquivo(), URL_EXPIRACAO_SEGUNDOS);
+
+        // LGPD Art. 37 — registra o acesso da empresa ao currículo do candidato
+        auditoriaService.registrar(usuarioId, candidatura.getCandidato().getId(),
+                "CURRICULO", "READ");
 
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header(HttpHeaders.LOCATION, url)

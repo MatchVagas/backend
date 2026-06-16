@@ -21,6 +21,7 @@ import java.util.UUID;
 public class FotoPerfilService {
 
     private static final long MAX_BYTES = 5L * 1024 * 1024;
+    private static final int  URL_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
     private static final List<String> MIME_ACEITOS = List.of(
             "image/jpeg", "image/png", "image/webp"
     );
@@ -46,10 +47,11 @@ public class FotoPerfilService {
         String objectPath = buildPath("candidatos", candidato.getId(), arquivo);
         enviar(arquivo, objectPath);
 
-        candidato.setFotoPerfilUrl(supabaseStorageService.getPublicUrl(objectPath));
+        // LGPD-08 — armazena o object path; o acesso é via URL assinada (bucket privado)
+        candidato.setFotoPerfilUrl(objectPath);
         candidatoRepository.save(candidato);
 
-        return candidato.getFotoPerfilUrl();
+        return supabaseStorageService.gerarUrlAssinadaImagem(objectPath, URL_EXPIRACAO_SEGUNDOS);
     }
 
     @Transactional
@@ -86,10 +88,11 @@ public class FotoPerfilService {
         String objectPath = buildPath("empresas", empresa.getId(), arquivo);
         enviar(arquivo, objectPath);
 
-        empresa.setLogoUrl(supabaseStorageService.getPublicUrl(objectPath));
+        // LGPD-08 — armazena o object path; o acesso é via URL assinada (bucket privado)
+        empresa.setLogoUrl(objectPath);
         empresaRepository.save(empresa);
 
-        return empresa.getLogoUrl();
+        return supabaseStorageService.gerarUrlAssinadaImagem(objectPath, URL_EXPIRACAO_SEGUNDOS);
     }
 
     @Transactional

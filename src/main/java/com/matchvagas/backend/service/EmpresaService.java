@@ -38,12 +38,16 @@ public class EmpresaService {
     private final TelefoneRepository telefoneRepository;
     private final TipoTelefoneRepository tipoTelefoneRepository;
     private final EmpresaMapper empresaMapper;
+    private final SupabaseStorageService supabaseStorageService;
+
+    private static final int URL_LOGO_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
 
     @Transactional(readOnly = true)
     public List<EmpresaResponseDTO> findAll() {
         return empresaRepository.findByStatus(Empresas.StatusEmpresa.APROVADA)
                 .stream()
                 .map(empresaMapper::toResponseDTO)
+                .map(this::comLogoAssinado)
                 .collect(Collectors.toList());
     }
 
@@ -52,7 +56,7 @@ public class EmpresaService {
         Empresas empresa = empresaRepository.findById(id)
                 .filter(e -> e.getStatus() == Empresas.StatusEmpresa.APROVADA)
                 .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada com ID: " + id));
-        return empresaMapper.toResponseDTO(empresa);
+        return comLogoAssinado(empresaMapper.toResponseDTO(empresa));
     }
 
     @Transactional(readOnly = true)
@@ -60,7 +64,7 @@ public class EmpresaService {
         Long usuarioId = getUsuarioIdAutenticado();
         Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Nenhuma empresa vinculada a este usuário."));
-        return empresaMapper.toResponseDTO(empresa);
+        return comLogoAssinado(empresaMapper.toResponseDTO(empresa));
     }
 
     @Transactional
@@ -109,7 +113,7 @@ public class EmpresaService {
             empresaRepository.save(salva);
         }
 
-        return empresaMapper.toResponseDTO(salva);
+        return comLogoAssinado(empresaMapper.toResponseDTO(salva));
     }
 
     @Transactional
@@ -144,7 +148,23 @@ public class EmpresaService {
             vincularTelefone(dto.telefone(), empresa);
         }
 
-        return empresaMapper.toResponseDTO(empresaRepository.save(empresa));
+        return comLogoAssinado(empresaMapper.toResponseDTO(empresaRepository.save(empresa)));
+    }
+
+    /**
+     * Substitui o object path da logo por uma URL assinada temporária,
+     * já que o bucket de imagens é privado (LGPD-08).
+     */
+    private EmpresaResponseDTO comLogoAssinado(EmpresaResponseDTO dto) {
+        if (dto.logoUrl() == null || dto.logoUrl().isBlank()) {
+            return dto;
+        }
+        String url = supabaseStorageService.gerarUrlAssinadaImagem(
+                dto.logoUrl(), URL_LOGO_EXPIRACAO_SEGUNDOS);
+        return new EmpresaResponseDTO(
+                dto.id(), dto.cnpj(), dto.razaoSocial(), dto.nomeFantasia(), dto.descricao(),
+                dto.porte(), dto.ramoAtuacao(), dto.site(), url, dto.telefone(),
+                dto.totalVagasAtivas(), dto.usuarioGestorId(), dto.nomeGestor(), dto.status());
     }
 
     private void vincularTelefone(TelefonesRequestDTO dto, Empresas empresa) {

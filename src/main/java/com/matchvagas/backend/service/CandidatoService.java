@@ -51,6 +51,9 @@ public class CandidatoService {
     private final FotoPerfilService fotoPerfilService;
     private final ExperienciaRepository experienciaRepository;
     private final FormacaoRepository formacaoRepository;
+    private final SupabaseStorageService supabaseStorageService;
+
+    private static final int URL_FOTO_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
 
     // RF003 — Buscar perfil do candidato pelo ID do usuário autenticado
     @Transactional(readOnly = true)
@@ -58,14 +61,14 @@ public class CandidatoService {
         Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
-        return candidatoMapper.toResponseDTO(candidato);
+        return comFotoAssinada(candidatoMapper.toResponseDTO(candidato));
     }
 
     @Transactional(readOnly = true)
     public CandidatoResponseDTO findById(Long id) {
         Candidatos candidato = candidatoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidato não encontrado com ID: " + id));
-        return candidatoMapper.toResponseDTO(candidato);
+        return comFotoAssinada(candidatoMapper.toResponseDTO(candidato));
     }
 
     // RF003 — Criar perfil de candidato vinculado ao usuário autenticado
@@ -96,7 +99,7 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), usuario);
         }
 
-        return candidatoMapper.toResponseDTO(candidatoRepository.save(candidato));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
     }
 
     // RF003 — Atualizar perfil do candidato
@@ -131,7 +134,7 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), candidato.getUsuario());
         }
 
-        return candidatoMapper.toResponseDTO(candidatoRepository.save(candidato));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
     }
 
     /**
@@ -250,6 +253,22 @@ public class CandidatoService {
 
         // 4. Remove o candidato — cascateia endereço, currículo e o próprio usuário
         candidatoRepository.delete(candidato);
+    }
+
+    /**
+     * Substitui o object path da foto (armazenado na entidade) por uma URL
+     * assinada temporária, já que o bucket de imagens é privado (LGPD-08).
+     */
+    private CandidatoResponseDTO comFotoAssinada(CandidatoResponseDTO dto) {
+        if (dto.fotoPerfilUrl() == null || dto.fotoPerfilUrl().isBlank()) {
+            return dto;
+        }
+        String url = supabaseStorageService.gerarUrlAssinadaImagem(
+                dto.fotoPerfilUrl(), URL_FOTO_EXPIRACAO_SEGUNDOS);
+        return new CandidatoResponseDTO(
+                dto.id(), dto.nome(), dto.email(), dto.dataNascimento(), dto.cpf(),
+                dto.objetivoProfissional(), dto.disponibilidade(), dto.pretensaoSalarial(),
+                dto.genero(), url, dto.telefone(), dto.localizacao());
     }
 
     private void atualizarDadosPessoais(CandidatoRequestDTO dto, Usuarios usuario) {
