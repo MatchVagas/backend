@@ -80,7 +80,9 @@ public class SupabaseStorageService {
             if (response == null || !response.containsKey("signedURL")) {
                 throw new BusinessException("Resposta inválida ao gerar URL assinada.");
             }
-            return supabaseUrl + response.get("signedURL");
+            // O signedURL vem relativo ("/object/sign/..."); o acesso público
+            // exige o prefixo "/storage/v1" do endpoint de storage.
+            return supabaseUrl + "/storage/v1" + response.get("signedURL");
         } catch (RestClientException e) {
             throw new BusinessException("Falha ao gerar URL de acesso: " + e.getMessage());
         }
@@ -168,7 +170,9 @@ public class SupabaseStorageService {
             if (response == null || !response.containsKey("signedURL")) {
                 throw new BusinessException("Resposta inválida ao gerar URL assinada da imagem.");
             }
-            return supabaseUrl + response.get("signedURL");
+            // O signedURL vem relativo ("/object/sign/..."); o acesso público
+            // exige o prefixo "/storage/v1" do endpoint de storage.
+            return supabaseUrl + "/storage/v1" + response.get("signedURL");
         } catch (RestClientException e) {
             throw new BusinessException("Falha ao gerar URL de acesso à imagem: " + e.getMessage());
         }
