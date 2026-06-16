@@ -3,8 +3,10 @@ package com.matchvagas.backend.service;
 import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
 import com.matchvagas.backend.dto.LocalizacaoRequestDTO;
+import com.matchvagas.backend.dto.MeusDadosExportDTO;
 import com.matchvagas.backend.dto.TelefonesRequestDTO;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Period;
 import com.matchvagas.backend.entity.Candidatos;
 import com.matchvagas.backend.entity.Candidatura;
@@ -17,6 +19,8 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidatoMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.ExperienciaRepository;
+import com.matchvagas.backend.repository.FormacaoRepository;
 import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
 import com.matchvagas.backend.repository.NotificacaoRepository;
 import com.matchvagas.backend.repository.PasswordResetTokenRepository;
@@ -45,6 +49,8 @@ public class CandidatoService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final CurriculoService curriculoService;
     private final FotoPerfilService fotoPerfilService;
+    private final ExperienciaRepository experienciaRepository;
+    private final FormacaoRepository formacaoRepository;
 
     // RF003 — Buscar perfil do candidato pelo ID do usuário autenticado
     @Transactional(readOnly = true)
@@ -126,6 +132,87 @@ public class CandidatoService {
         }
 
         return candidatoMapper.toResponseDTO(candidatoRepository.save(candidato));
+    }
+
+    /**
+     * LGPD Art. 18, V — Portabilidade / acesso facilitado.
+     * Exporta todos os dados pessoais do candidato em formato estruturado.
+     */
+    @Transactional(readOnly = true)
+    public MeusDadosExportDTO exportarDados(Long usuarioId) {
+        Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
+        Usuarios usuario = candidato.getUsuario();
+
+        MeusDadosExportDTO.Usuario usuarioDto = new MeusDadosExportDTO.Usuario(
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getDataCadastro(),
+                usuario.getIdade(),
+                usuario.getConsentimentoLgpdEm(),
+                usuario.getVersaoPoliticaPrivacidade());
+
+        MeusDadosExportDTO.Endereco enderecoDto = null;
+        Endereco e = candidato.getEndereco();
+        if (e != null) {
+            enderecoDto = new MeusDadosExportDTO.Endereco(
+                    e.getLogradouro(), e.getNumero(), e.getCompleto(),
+                    e.getBairro(), e.getCidade(), e.getEstado(), e.getCep());
+        }
+
+        List<MeusDadosExportDTO.Habilidade> habilidades = candidato.getHabilidades() == null
+                ? List.of()
+                : candidato.getHabilidades().stream()
+                        .map(h -> new MeusDadosExportDTO.Habilidade(
+                                h.getNome(), h.getNivel() != null ? h.getNivel().name() : null))
+                        .toList();
+
+        List<MeusDadosExportDTO.Telefone> telefones = usuario.getTelefones() == null
+                ? List.of()
+                : usuario.getTelefones().stream()
+                        .map(t -> new MeusDadosExportDTO.Telefone(
+                                t.getNumero(), t.isWpp(),
+                                t.getTipoTelefone() != null ? t.getTipoTelefone().getNome() : null))
+                        .toList();
+
+        MeusDadosExportDTO.Candidato candidatoDto = new MeusDadosExportDTO.Candidato(
+                candidato.getCpf(),
+                candidato.getObjetivoProfissional(),
+                candidato.getDisponibilidade(),
+                candidato.getPretensaoSalarial(),
+                candidato.getGenero() != null ? candidato.getGenero().name() : null,
+                enderecoDto,
+                habilidades,
+                telefones);
+
+        List<MeusDadosExportDTO.Experiencia> experiencias =
+                experienciaRepository.findByCandidatoId(candidato.getId()).stream()
+                        .map(x -> new MeusDadosExportDTO.Experiencia(
+                                x.getEmpresa(), x.getCargo(), x.getDescricao(),
+                                x.getDataInicio(), x.getDataFim()))
+                        .toList();
+
+        List<MeusDadosExportDTO.Formacao> formacoes =
+                formacaoRepository.findByCandidatoId(candidato.getId()).stream()
+                        .map(f -> new MeusDadosExportDTO.Formacao(
+                                f.getInstituicao(), f.getCurso(), f.getNivel(),
+                                f.getDataInicio(), f.getDataFim()))
+                        .toList();
+
+        List<MeusDadosExportDTO.Candidatura> candidaturas =
+                candidaturaRepository.findByCandidatoId(candidato.getId()).stream()
+                        .map(c -> new MeusDadosExportDTO.Candidatura(
+                                c.getVaga() != null ? c.getVaga().getTitulo() : null,
+                                c.getVaga() != null && c.getVaga().getEmpresas() != null
+                                        ? c.getVaga().getEmpresas().getNomeFantasia() : null,
+                                c.getStatus() != null ? c.getStatus().getStatus() : null,
+                                c.getDataCandidatura()))
+                        .toList();
+
+        return new MeusDadosExportDTO(
+                LocalDateTime.now(), usuarioDto, candidatoDto,
+                experiencias, formacoes, candidaturas);
     }
 
     /**

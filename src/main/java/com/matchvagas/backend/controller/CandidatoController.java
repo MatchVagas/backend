@@ -2,6 +2,7 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
+import com.matchvagas.backend.dto.MeusDadosExportDTO;
 import com.matchvagas.backend.dto.SugestaoVagaResponseDTO;
 import com.matchvagas.backend.service.CandidatoService;
 import com.matchvagas.backend.service.FotoPerfilService;
@@ -84,6 +85,19 @@ public class CandidatoController {
         Long usuarioId = Long.parseLong(authentication.getName());
         fotoPerfilService.deletarCandidato(usuarioId);
         return ResponseEntity.noContent().build();
+    }
+
+    // LGPD Art. 18, V — Portabilidade / acesso aos dados
+    @GetMapping("/meus-dados")
+    @Operation(
+        summary = "Exportar todos os meus dados (portabilidade — LGPD Art. 18, V)",
+        description = "Retorna, em formato estruturado (JSON), todos os dados pessoais do candidato: "
+                    + "dados cadastrais, perfil, endereço, telefones, habilidades, experiências, "
+                    + "formações e candidaturas."
+    )
+    public ResponseEntity<MeusDadosExportDTO> exportarMeusDados(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidatoService.exportarDados(usuarioId));
     }
 
     // LGPD Art. 18, VI — Direito ao esquecimento
