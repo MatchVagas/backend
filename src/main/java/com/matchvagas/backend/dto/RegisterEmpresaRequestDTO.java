@@ -1,6 +1,7 @@
 package com.matchvagas.backend.dto;
 
 import jakarta.validation.constraints.*;
+import org.hibernate.validator.constraints.br.CNPJ;
 import java.time.LocalDateTime;
 
 public record RegisterEmpresaRequestDTO(
@@ -23,8 +24,7 @@ public record RegisterEmpresaRequestDTO(
 
         // ── Dados da empresa ────────────────────────────────────
         @NotBlank(message = "CNPJ é obrigatório")
-        @Pattern(regexp = "^\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}$|^\\d{14}$",
-                 message = "CNPJ deve ter 14 dígitos (XX.XXX.XXX/XXXX-XX)")
+        @CNPJ(message = "CNPJ inválido")
         String cnpj,
 
         @NotBlank(message = "Razão social é obrigatória")
@@ -45,5 +45,10 @@ public record RegisterEmpresaRequestDTO(
         Long ramoId,
 
         @Pattern(regexp = "^(http|https)://.*$", message = "URL do site inválida")
-        String site
+        String site,
+
+        // LGPD Art. 7º/8º — aceite explícito dos termos e da política de privacidade
+        @NotNull(message = "É necessário aceitar os termos de uso e a política de privacidade")
+        @AssertTrue(message = "É necessário aceitar os termos de uso e a política de privacidade")
+        Boolean aceitouTermos
 ) {}

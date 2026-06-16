@@ -2,12 +2,12 @@ package com.matchvagas.backend.dto;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import org.hibernate.validator.constraints.br.CNPJ;
 
 public record EmpresaRequestDTO(
 
         @NotBlank(message = "CNPJ é obrigatório")
-        @Pattern(regexp = "^\\d{2}\\.\\d{3}\\.\\d{3}/\\d{4}-\\d{2}$|^\\d{14}$",
-                 message = "CNPJ deve ter 14 dígitos (XX.XXX.XXX/XXXX-XX)")
+        @CNPJ(message = "CNPJ inválido")
         String cnpj,
 
         @NotBlank(message = "Razão social é obrigatória")

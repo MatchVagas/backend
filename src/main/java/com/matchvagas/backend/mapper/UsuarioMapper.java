@@ -24,6 +24,8 @@ public interface UsuarioMapper {
     @Mapping(target = "ativo", ignore = true)
     @Mapping(target = "senha", ignore = true)
     @Mapping(target = "telefones", ignore = true)
+    @Mapping(target = "consentimentoLgpdEm", ignore = true)
+    @Mapping(target = "versaoPoliticaPrivacidade", ignore = true)
     Usuarios toEntity(UsuariosRequestDTO dto);
 
     @Mapping(target = "id", ignore = true)
@@ -33,5 +35,7 @@ public interface UsuarioMapper {
     @Mapping(target = "ativo", ignore = true)
     @Mapping(target = "senha", ignore = true)
     @Mapping(target = "telefones", ignore = true)
+    @Mapping(target = "consentimentoLgpdEm", ignore = true)
+    @Mapping(target = "versaoPoliticaPrivacidade", ignore = true)
     void updateEntityFromDTO(UsuariosRequestDTO dto, @MappingTarget Usuarios entity);
 }

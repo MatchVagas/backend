@@ -12,6 +12,7 @@ import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
 import com.matchvagas.backend.repository.CurriculoRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
+import com.matchvagas.backend.util.FileSignatureValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -190,6 +191,18 @@ public class CurriculoService {
         String mime = arquivo.getContentType();
         if (mime == null || !MIME_ACEITOS.contains(mime)) {
             throw new BusinessException("Formato não aceito. Use PDF, DOC ou DOCX.");
+        }
+        // SEC-05 — valida o conteúdo real (magic bytes), não só o Content-Type
+        if (!FileSignatureValidator.matches(lerCabecalho(arquivo), mime)) {
+            throw new BusinessException("O conteúdo do arquivo não corresponde ao formato declarado.");
+        }
+    }
+
+    private byte[] lerCabecalho(MultipartFile arquivo) {
+        try (var is = arquivo.getInputStream()) {
+            return is.readNBytes(12);
+        } catch (IOException e) {
+            throw new BusinessException("Falha ao ler o arquivo enviado: " + e.getMessage());
         }
     }
 

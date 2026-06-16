@@ -26,5 +26,10 @@ public record UsuariosRequestDTO(
         @NotNull(message = "Tipo de usuário é obrigatório (CANDIDATO, EMPRESA ou ADMIN)")
         TipoUsuario tipoUsuario,
 
-        Boolean ativo
+        Boolean ativo,
+
+        // LGPD Art. 7º/8º — aceite explícito dos termos e da política de privacidade
+        @NotNull(message = "É necessário aceitar os termos de uso e a política de privacidade")
+        @AssertTrue(message = "É necessário aceitar os termos de uso e a política de privacidade")
+        Boolean aceitouTermos
 ) {}

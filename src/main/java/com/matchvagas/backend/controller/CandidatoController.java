@@ -86,6 +86,20 @@ public class CandidatoController {
         return ResponseEntity.noContent().build();
     }
 
+    // LGPD Art. 18, VI — Direito ao esquecimento
+    @DeleteMapping("/minha-conta")
+    @Operation(
+        summary = "Excluir minha conta e todos os meus dados (direito ao esquecimento — LGPD Art. 18, VI)",
+        description = "Remove permanentemente a conta do candidato e todos os dados associados: "
+                    + "candidaturas e histórico, currículo e foto, notificações, endereço, "
+                    + "telefones e o usuário. Esta operação é irreversível."
+    )
+    public ResponseEntity<Void> excluirMinhaConta(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        candidatoService.excluirConta(usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+
     // Sugestão de vagas baseada no perfil do candidato
     @GetMapping("/sugestoes")
     @Operation(

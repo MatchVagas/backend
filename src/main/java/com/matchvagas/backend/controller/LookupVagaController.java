@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ public class LookupVagaController {
                 .stream().map(tipoVagaMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/tipos")
     @Operation(summary = "Cadastrar tipo de vaga — restrito a ADMIN")
     public ResponseEntity<TipoVagaResponseDTO> criarTipo(@Valid @RequestBody TipoVagaRequestDTO dto) {
@@ -53,6 +55,7 @@ public class LookupVagaController {
                 .body(tipoVagaMapper.toResponseDTO(tipoVagaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/tipos/{id}")
     @Operation(summary = "Atualizar tipo de vaga — restrito a ADMIN")
     public ResponseEntity<TipoVagaResponseDTO> atualizarTipo(
@@ -63,6 +66,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(tipoVagaMapper.toResponseDTO(tipoVagaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/tipos/{id}")
     @Operation(summary = "Remover tipo de vaga — restrito a ADMIN")
     public ResponseEntity<Void> removerTipo(@PathVariable Long id) {
@@ -81,6 +85,7 @@ public class LookupVagaController {
                 .stream().map(modalidadeMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/modalidades")
     @Operation(summary = "Cadastrar modalidade — restrito a ADMIN")
     public ResponseEntity<ModalidadeResponseDTO> criarModalidade(@Valid @RequestBody ModalidadeRequestDTO dto) {
@@ -89,6 +94,7 @@ public class LookupVagaController {
                 .body(modalidadeMapper.toResponseDTO(modalidadeRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/modalidades/{id}")
     @Operation(summary = "Atualizar modalidade — restrito a ADMIN")
     public ResponseEntity<ModalidadeResponseDTO> atualizarModalidade(
@@ -99,6 +105,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(modalidadeMapper.toResponseDTO(modalidadeRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/modalidades/{id}")
     @Operation(summary = "Remover modalidade — restrito a ADMIN")
     public ResponseEntity<Void> removerModalidade(@PathVariable Long id) {
@@ -117,6 +124,7 @@ public class LookupVagaController {
                 .stream().map(escolaridadeMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/escolaridades")
     @Operation(summary = "Cadastrar nível de escolaridade — restrito a ADMIN")
     public ResponseEntity<EscolaridadeResponseDTO> criarEscolaridade(
@@ -126,6 +134,7 @@ public class LookupVagaController {
                 .body(escolaridadeMapper.toResponseDTO(escolaridadeRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/escolaridades/{id}")
     @Operation(summary = "Atualizar escolaridade — restrito a ADMIN")
     public ResponseEntity<EscolaridadeResponseDTO> atualizarEscolaridade(
@@ -137,6 +146,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(escolaridadeMapper.toResponseDTO(escolaridadeRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/escolaridades/{id}")
     @Operation(summary = "Remover escolaridade — restrito a ADMIN")
     public ResponseEntity<Void> removerEscolaridade(@PathVariable Long id) {
@@ -155,6 +165,7 @@ public class LookupVagaController {
                 .stream().map(porteMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/portes")
     @Operation(summary = "Cadastrar porte — restrito a ADMIN")
     public ResponseEntity<PorteResponseDTO> criarPorte(@Valid @RequestBody PorteRequestDTO dto) {
@@ -163,6 +174,7 @@ public class LookupVagaController {
                 .body(porteMapper.toResponseDTO(porteRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/portes/{id}")
     @Operation(summary = "Atualizar porte — restrito a ADMIN")
     public ResponseEntity<PorteResponseDTO> atualizarPorte(
@@ -173,6 +185,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(porteMapper.toResponseDTO(porteRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/portes/{id}")
     @Operation(summary = "Remover porte — restrito a ADMIN")
     public ResponseEntity<Void> removerPorte(@PathVariable Long id) {
@@ -191,6 +204,7 @@ public class LookupVagaController {
                 .stream().map(ramoAtuacaoMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/ramos")
     @Operation(summary = "Cadastrar ramo de atuação — restrito a ADMIN")
     public ResponseEntity<RamoAtuacaoResponseDTO> criarRamo(@Valid @RequestBody RamoAtuacaoRequestDTO dto) {
@@ -199,6 +213,7 @@ public class LookupVagaController {
                 .body(ramoAtuacaoMapper.toResponseDTO(ramoAtuacaoRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/ramos/{id}")
     @Operation(summary = "Atualizar ramo de atuação — restrito a ADMIN")
     public ResponseEntity<RamoAtuacaoResponseDTO> atualizarRamo(
@@ -209,6 +224,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(ramoAtuacaoMapper.toResponseDTO(ramoAtuacaoRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/ramos/{id}")
     @Operation(summary = "Remover ramo de atuação — restrito a ADMIN")
     public ResponseEntity<Void> removerRamo(@PathVariable Long id) {
@@ -227,6 +243,7 @@ public class LookupVagaController {
                 .stream().map(statusVagaMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/status")
     @Operation(summary = "Cadastrar status de vaga — restrito a ADMIN")
     public ResponseEntity<StatusVagaResponseDTO> criarStatusVaga(
@@ -236,6 +253,7 @@ public class LookupVagaController {
                 .body(statusVagaMapper.toResponseDTO(statusVagaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/status/{id}")
     @Operation(summary = "Atualizar status de vaga — restrito a ADMIN")
     public ResponseEntity<StatusVagaResponseDTO> atualizarStatusVaga(
@@ -246,6 +264,7 @@ public class LookupVagaController {
         return ResponseEntity.ok(statusVagaMapper.toResponseDTO(statusVagaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/status/{id}")
     @Operation(summary = "Remover status de vaga — restrito a ADMIN")
     public ResponseEntity<Void> removerStatusVaga(@PathVariable Long id) {

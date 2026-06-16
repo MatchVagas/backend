@@ -38,6 +38,16 @@ public class SecurityConfig {
         http
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
+            // ── Headers de segurança HTTP (SEC-10) ────────────────────────────
+            .headers(headers -> headers
+                    .frameOptions(frame -> frame.deny())                 // anti-clickjacking (X-Frame-Options)
+                    .contentTypeOptions(opts -> {})                      // X-Content-Type-Options: nosniff
+                    .httpStrictTransportSecurity(hsts -> hsts            // força HTTPS (apenas em conexões seguras)
+                            .includeSubDomains(true)
+                            .maxAgeInSeconds(31536000))
+                    .referrerPolicy(ref -> ref.policy(
+                            org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter
+                                    .ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
             .sessionManagement(session -> session
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(authz -> authz
@@ -72,6 +82,9 @@ public class SecurityConfig {
                 // ── Somente ADMIN ─────────────────────────────────────────
                 // Administração global
                 .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+
+                // Gerenciamento de usuários — restrito a ADMIN (SEC-11)
+                .requestMatchers("/api/usuarios/**").hasAuthority("ADMIN")
 
                 // Escrita nos lookups e localização
                 .requestMatchers(HttpMethod.POST,   "/api/localizacao/**").hasAuthority("ADMIN")

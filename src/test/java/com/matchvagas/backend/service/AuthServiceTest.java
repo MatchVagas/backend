@@ -60,7 +60,8 @@ class AuthServiceTest {
                 "senha123",
                 LocalDateTime.of(1995, 5, 10, 0, 0),
                 TipoUsuario.CANDIDATO,
-                null
+                null,
+                true
         );
     }
 
@@ -99,7 +100,7 @@ class AuthServiceTest {
         void deveCadastrarEmpresaComSucesso() {
             UsuariosRequestDTO reqEmpresa = new UsuariosRequestDTO(
                     "Tech Corp", "rh@techcorp.com", "senha123",
-                    LocalDateTime.of(1990, 1, 1, 0, 0), TipoUsuario.EMPRESA, null);
+                    LocalDateTime.of(1990, 1, 1, 0, 0), TipoUsuario.EMPRESA, null, true);
 
             Usuarios usuarioEmpresa = new Usuarios();
             usuarioEmpresa.setId(2L);
@@ -126,6 +127,37 @@ class AuthServiceTest {
             assertThatThrownBy(() -> authService.register(requestCandidato))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("email");
+
+            verify(usuariosRepository, never()).save(any());
+        }
+
+        @Test
+        @DisplayName("Deve registrar consentimento LGPD ao cadastrar")
+        void deveRegistrarConsentimentoLgpd() {
+            when(usuariosRepository.existsByEmail(anyString())).thenReturn(false);
+            when(usuariosMapper.toEntity(any())).thenReturn(usuarioBase);
+            when(passwordEncoder.encode(anyString())).thenReturn("$2a$12$hashBcrypt");
+            when(usuariosRepository.save(any())).thenReturn(usuarioBase);
+            when(usuariosMapper.toDTO(any())).thenReturn(
+                    buildUsuarioResponseDTO(1L, "João", "joao@email.com", TipoUsuario.CANDIDATO));
+
+            authService.register(requestCandidato);
+
+            verify(usuariosRepository).save(argThat(u ->
+                    u.getConsentimentoLgpdEm() != null
+                    && Usuarios.VERSAO_POLITICA_PRIVACIDADE_ATUAL.equals(u.getVersaoPoliticaPrivacidade())));
+        }
+
+        @Test
+        @DisplayName("Deve recusar cadastro sem aceite dos termos (LGPD)")
+        void deveRecusarCadastroSemAceiteTermos() {
+            UsuariosRequestDTO semAceite = new UsuariosRequestDTO(
+                    "João Silva", "joao@email.com", "senha123",
+                    LocalDateTime.of(1995, 5, 10, 0, 0), TipoUsuario.CANDIDATO, null, false);
+
+            assertThatThrownBy(() -> authService.register(semAceite))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("termos");
 
             verify(usuariosRepository, never()).save(any());
         }

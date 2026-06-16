@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,6 +54,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(paisMapper.toResponseDTO(pais));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/paises")
     @Operation(summary = "Cadastrar país — restrito a ADMIN")
     public ResponseEntity<PaisResponseDTO> criarPais(@Valid @RequestBody PaisRequestDTO dto) {
@@ -61,6 +63,7 @@ public class LocalizacaoController {
                 .body(paisMapper.toResponseDTO(paisRepository.save(pais)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/paises/{id}")
     @Operation(summary = "Atualizar país — restrito a ADMIN")
     public ResponseEntity<PaisResponseDTO> atualizarPais(
@@ -72,6 +75,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(paisMapper.toResponseDTO(paisRepository.save(pais)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/paises/{id}")
     @Operation(summary = "Remover país — restrito a ADMIN")
     public ResponseEntity<Void> removerPais(@PathVariable Long id) {
@@ -103,6 +107,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(estadoMapper.toResponseDTO(estado));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/estados")
     @Operation(summary = "Cadastrar estado — restrito a ADMIN")
     public ResponseEntity<EstadoResponseDTO> criarEstado(@Valid @RequestBody EstadoRequestDTO dto) {
@@ -116,6 +121,7 @@ public class LocalizacaoController {
                 .body(estadoMapper.toResponseDTO(estadoRepository.save(estado)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/estados/{id}")
     @Operation(summary = "Atualizar estado — restrito a ADMIN")
     public ResponseEntity<EstadoResponseDTO> atualizarEstado(
@@ -132,6 +138,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(estadoMapper.toResponseDTO(estadoRepository.save(estado)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/estados/{id}")
     @Operation(summary = "Remover estado — restrito a ADMIN")
     public ResponseEntity<Void> removerEstado(@PathVariable Long id) {
@@ -164,6 +171,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(cidadeMapper.toResponseDTO(cidade));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/cidades")
     @Operation(summary = "Cadastrar cidade — restrito a ADMIN")
     public ResponseEntity<CidadeResponseDTO> criarCidade(@Valid @RequestBody CidadeRequestDTO dto) {
@@ -177,6 +185,7 @@ public class LocalizacaoController {
                 .body(cidadeMapper.toResponseDTO(cidadeRepository.save(cidade)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/cidades/{id}")
     @Operation(summary = "Atualizar cidade — restrito a ADMIN")
     public ResponseEntity<CidadeResponseDTO> atualizarCidade(
@@ -192,6 +201,7 @@ public class LocalizacaoController {
         return ResponseEntity.ok(cidadeMapper.toResponseDTO(cidadeRepository.save(cidade)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/cidades/{id}")
     @Operation(summary = "Remover cidade — restrito a ADMIN")
     public ResponseEntity<Void> removerCidade(@PathVariable Long id) {

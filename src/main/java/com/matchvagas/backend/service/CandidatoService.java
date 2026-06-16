@@ -7,6 +7,7 @@ import com.matchvagas.backend.dto.TelefonesRequestDTO;
 import java.time.LocalDate;
 import java.time.Period;
 import com.matchvagas.backend.entity.Candidatos;
+import com.matchvagas.backend.entity.Candidatura;
 import com.matchvagas.backend.entity.Endereco;
 import com.matchvagas.backend.entity.Telefones;
 import com.matchvagas.backend.entity.TipoTelefone;
@@ -15,6 +16,10 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidatoMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
+import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
+import com.matchvagas.backend.repository.NotificacaoRepository;
+import com.matchvagas.backend.repository.PasswordResetTokenRepository;
 import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.TipoTelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
@@ -23,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +39,12 @@ public class CandidatoService {
     private final CandidatoMapper candidatoMapper;
     private final TelefoneRepository telefoneRepository;
     private final TipoTelefoneRepository tipoTelefoneRepository;
+    private final CandidaturaRepository candidaturaRepository;
+    private final HistoricoStatusCandidaturaRepository historicoRepository;
+    private final NotificacaoRepository notificacaoRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final CurriculoService curriculoService;
+    private final FotoPerfilService fotoPerfilService;
 
     // RF003 — Buscar perfil do candidato pelo ID do usuário autenticado
     @Transactional(readOnly = true)
@@ -114,6 +126,43 @@ public class CandidatoService {
         }
 
         return candidatoMapper.toResponseDTO(candidatoRepository.save(candidato));
+    }
+
+    /**
+     * LGPD Art. 18, VI — Direito ao esquecimento.
+     * Exclui de forma permanente a conta do candidato e todos os dados associados:
+     * candidaturas e seu histórico, currículo e foto no Supabase, notificações,
+     * tokens de redefinição de senha, endereço, telefones e o próprio usuário.
+     */
+    @Transactional
+    public void excluirConta(Long usuarioId) {
+        Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
+
+        // 1. Candidaturas + histórico de status (FKs para candidato e usuário)
+        List<Candidatura> candidaturas = candidaturaRepository.findByCandidatoId(candidato.getId());
+        for (Candidatura candidatura : candidaturas) {
+            historicoRepository.deleteAll(
+                    historicoRepository.findByCandidaturaIdOrderByDataHoraDesc(candidatura.getId()));
+        }
+        candidaturaRepository.deleteAll(candidaturas);
+
+        // 2. Arquivos no Supabase (currículo e foto), removidos via serviços existentes
+        if (candidato.getCurriculo() != null) {
+            curriculoService.deletar(usuarioId);
+        }
+        if (candidato.getFotoPerfilUrl() != null) {
+            fotoPerfilService.deletarCandidato(usuarioId);
+        }
+
+        // 3. Notificações e tokens de redefinição de senha do usuário
+        notificacaoRepository.deleteAll(
+                notificacaoRepository.findByUsuarioIdOrderByDataEnvioDesc(usuarioId));
+        passwordResetTokenRepository.deleteByUsuarioId(usuarioId);
+
+        // 4. Remove o candidato — cascateia endereço, currículo e o próprio usuário
+        candidatoRepository.delete(candidato);
     }
 
     private void atualizarDadosPessoais(CandidatoRequestDTO dto, Usuarios usuario) {

@@ -35,12 +35,17 @@ public class AuthService {
     @Transactional
     public UsuarioResponseDTO register(UsuariosRequestDTO request) {
 
+        if (!Boolean.TRUE.equals(request.aceitouTermos())) {
+            throw new BusinessException("É necessário aceitar os termos de uso e a política de privacidade.");
+        }
+
         if (usuariosRepository.existsByEmail(request.email())) {
             throw new BusinessException("Já existe um usuário cadastrado com este email.");
         }
 
         Usuarios usuario = usuariosMapper.toEntity(request);
         usuario.setSenha(passwordEncoder.encode(request.senha()));
+        usuario.registrarConsentimento();
 
         // Calcula idade a partir da dataNascimento
         if (request.dataNascimento() != null) {
@@ -64,6 +69,9 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse registerEmpresa(RegisterEmpresaRequestDTO dto) {
+        if (!Boolean.TRUE.equals(dto.aceitouTermos())) {
+            throw new BusinessException("É necessário aceitar os termos de uso e a política de privacidade.");
+        }
         if (usuariosRepository.existsByEmail(dto.email())) {
             throw new BusinessException("Já existe um usuário cadastrado com este e-mail.");
         }
@@ -78,6 +86,7 @@ public class AuthService {
         usuario.setSenha(passwordEncoder.encode(dto.senha()));
         usuario.setTipoUsuario(Usuarios.TipoUsuario.EMPRESA);
         usuario.setAtivo(true);
+        usuario.registrarConsentimento();
         if (dto.dataNascimento() != null) {
             usuario.setDataNascimento(
                 java.util.Date.from(dto.dataNascimento()

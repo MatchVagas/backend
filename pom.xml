@@ -58,12 +58,6 @@
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
-		<!-- ── Sessão ───────────────────────────────────────────────────── -->
-		<dependency>
-			<groupId>org.springframework.session</groupId>
-			<artifactId>spring-session-jdbc</artifactId>
-		</dependency>
-
 		<!-- ── Monitoramento ────────────────────────────────────────────── -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
