@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,6 +40,7 @@ public class LookupSistemaController {
                 .stream().map(statusCandidaturaMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/status-candidatura")
     @Operation(summary = "Cadastrar status de candidatura — restrito a ADMIN")
     public ResponseEntity<StatusCandidaturaResponseDTO> criarStatus(
@@ -48,6 +50,7 @@ public class LookupSistemaController {
                 .body(statusCandidaturaMapper.toResponseDTO(statusCandidaturaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/status-candidatura/{id}")
     @Operation(summary = "Atualizar status de candidatura — restrito a ADMIN")
     public ResponseEntity<StatusCandidaturaResponseDTO> atualizarStatus(
@@ -59,6 +62,7 @@ public class LookupSistemaController {
                 statusCandidaturaRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/status-candidatura/{id}")
     @Operation(summary = "Remover status de candidatura — restrito a ADMIN")
     public ResponseEntity<Void> removerStatus(@PathVariable Long id) {
@@ -77,6 +81,7 @@ public class LookupSistemaController {
                 .stream().map(tipoTelefoneMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/tipos-telefone")
     @Operation(summary = "Cadastrar tipo de telefone — restrito a ADMIN")
     public ResponseEntity<TipoTelefoneResponseDTO> criarTipoTelefone(
@@ -86,6 +91,7 @@ public class LookupSistemaController {
                 .body(tipoTelefoneMapper.toResponseDTO(tipoTelefoneRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/tipos-telefone/{id}")
     @Operation(summary = "Atualizar tipo de telefone — restrito a ADMIN")
     public ResponseEntity<TipoTelefoneResponseDTO> atualizarTipoTelefone(
@@ -96,6 +102,7 @@ public class LookupSistemaController {
         return ResponseEntity.ok(tipoTelefoneMapper.toResponseDTO(tipoTelefoneRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/tipos-telefone/{id}")
     @Operation(summary = "Remover tipo de telefone — restrito a ADMIN")
     public ResponseEntity<Void> removerTipoTelefone(@PathVariable Long id) {
@@ -114,6 +121,7 @@ public class LookupSistemaController {
                 .stream().map(departamentoMapper::toResponseDTO).collect(Collectors.toList()));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PostMapping("/departamentos")
     @Operation(summary = "Cadastrar departamento — restrito a ADMIN")
     public ResponseEntity<DepartamentoResponseDTO> criarDepartamento(
@@ -123,6 +131,7 @@ public class LookupSistemaController {
                 .body(departamentoMapper.toResponseDTO(departamentosRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @PutMapping("/departamentos/{id}")
     @Operation(summary = "Atualizar departamento — restrito a ADMIN")
     public ResponseEntity<DepartamentoResponseDTO> atualizarDepartamento(
@@ -134,6 +143,7 @@ public class LookupSistemaController {
         return ResponseEntity.ok(departamentoMapper.toResponseDTO(departamentosRepository.save(entity)));
     }
 
+    @PreAuthorize("hasAuthority('ADMIN')")
     @DeleteMapping("/departamentos/{id}")
     @Operation(summary = "Remover departamento — restrito a ADMIN")
     public ResponseEntity<Void> removerDepartamento(@PathVariable Long id) {

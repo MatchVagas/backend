@@ -6,6 +6,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.EmpresaRepository;
+import com.matchvagas.backend.util.FileSignatureValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class FotoPerfilService {
 
     private static final long MAX_BYTES = 5L * 1024 * 1024;
+    private static final int  URL_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
     private static final List<String> MIME_ACEITOS = List.of(
             "image/jpeg", "image/png", "image/webp"
     );
@@ -45,10 +47,11 @@ public class FotoPerfilService {
         String objectPath = buildPath("candidatos", candidato.getId(), arquivo);
         enviar(arquivo, objectPath);
 
-        candidato.setFotoPerfilUrl(supabaseStorageService.getPublicUrl(objectPath));
+        // LGPD-08 — armazena o object path; o acesso é via URL assinada (bucket privado)
+        candidato.setFotoPerfilUrl(objectPath);
         candidatoRepository.save(candidato);
 
-        return candidato.getFotoPerfilUrl();
+        return supabaseStorageService.gerarUrlAssinadaImagem(objectPath, URL_EXPIRACAO_SEGUNDOS);
     }
 
     @Transactional
@@ -85,10 +88,11 @@ public class FotoPerfilService {
         String objectPath = buildPath("empresas", empresa.getId(), arquivo);
         enviar(arquivo, objectPath);
 
-        empresa.setLogoUrl(supabaseStorageService.getPublicUrl(objectPath));
+        // LGPD-08 — armazena o object path; o acesso é via URL assinada (bucket privado)
+        empresa.setLogoUrl(objectPath);
         empresaRepository.save(empresa);
 
-        return empresa.getLogoUrl();
+        return supabaseStorageService.gerarUrlAssinadaImagem(objectPath, URL_EXPIRACAO_SEGUNDOS);
     }
 
     @Transactional
@@ -120,6 +124,18 @@ public class FotoPerfilService {
         String mime = arquivo.getContentType();
         if (mime == null || !MIME_ACEITOS.contains(mime)) {
             throw new BusinessException("Formato não aceito. Use JPG, PNG ou WebP.");
+        }
+        // SEC-05 — valida o conteúdo real (magic bytes), não só o Content-Type
+        if (!FileSignatureValidator.matches(lerCabecalho(arquivo), mime)) {
+            throw new BusinessException("O conteúdo do arquivo não corresponde ao formato declarado.");
+        }
+    }
+
+    private byte[] lerCabecalho(MultipartFile arquivo) {
+        try (var is = arquivo.getInputStream()) {
+            return is.readNBytes(12);
+        } catch (IOException e) {
+            throw new BusinessException("Falha ao ler a imagem enviada: " + e.getMessage());
         }
     }
 

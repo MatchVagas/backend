@@ -11,6 +11,7 @@ import com.matchvagas.backend.dto.VerificarCodigoRequestDTO;
 import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
 import com.matchvagas.backend.service.PasswordResetService;
+import com.matchvagas.backend.service.RateLimiterService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -27,7 +29,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
+// CORS é controlado de forma centralizada no SecurityConfig (SEC-08) — não usar @CrossOrigin aqui
 @Tag(name = "Autenticação", description = "Cadastro e login de usuários (RF001, RF002)")
 // Endpoints de auth são públicos — remove o esquema JWT global neste controller
 @SecurityRequirement(name = "")
@@ -35,6 +37,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final RateLimiterService rateLimiterService;
 
     @PostMapping("/register")
     @Operation(
@@ -46,7 +49,9 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Email já cadastrado ou dados inválidos",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<UsuarioResponseDTO> register(@Valid @RequestBody UsuariosRequestDTO request) {
+    public ResponseEntity<UsuarioResponseDTO> register(@Valid @RequestBody UsuariosRequestDTO request,
+                                                       HttpServletRequest http) {
+        rateLimiterService.verificar("register:" + clientIp(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.register(request));
     }
 
@@ -62,7 +67,9 @@ public class AuthController {
         @ApiResponse(responseCode = "404", description = "Usuário não encontrado",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequestDTO request) {
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequestDTO request,
+                                              HttpServletRequest http) {
+        rateLimiterService.verificar("login:" + clientIp(http));
         return ResponseEntity.ok(authService.login(request));
     }
 
@@ -76,7 +83,9 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Dados inválidos, CNPJ inválido ou e-mail já em uso",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<AuthResponse> registerEmpresa(@Valid @RequestBody RegisterEmpresaRequestDTO request) {
+    public ResponseEntity<AuthResponse> registerEmpresa(@Valid @RequestBody RegisterEmpresaRequestDTO request,
+                                                        HttpServletRequest http) {
+        rateLimiterService.verificar("register-empresa:" + clientIp(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
     }
 
@@ -88,7 +97,9 @@ public class AuthController {
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Solicitação processada — se o e-mail existir, um link será enviado")
     })
-    public ResponseEntity<Void> esqueceuSenha(@Valid @RequestBody EsqueceuSenhaRequestDTO request) {
+    public ResponseEntity<Void> esqueceuSenha(@Valid @RequestBody EsqueceuSenhaRequestDTO request,
+                                              HttpServletRequest http) {
+        rateLimiterService.verificar("esqueceu-senha:" + clientIp(http));
         passwordResetService.solicitarRedefinicao(request.email());
         return ResponseEntity.ok().build();
     }
@@ -130,5 +141,18 @@ public class AuthController {
     )
     public ResponseEntity<Void> logout() {
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Extrai o IP de origem do cliente, considerando proxies/balanceadores
+     * (X-Forwarded-For) — necessário em ambientes como o Render.
+     */
+    private String clientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            // O primeiro IP da lista é o cliente original
+            return forwarded.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

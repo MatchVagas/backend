@@ -2,6 +2,7 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
+import com.matchvagas.backend.dto.MeusDadosExportDTO;
 import com.matchvagas.backend.dto.SugestaoVagaResponseDTO;
 import com.matchvagas.backend.service.CandidatoService;
 import com.matchvagas.backend.service.FotoPerfilService;
@@ -83,6 +84,33 @@ public class CandidatoController {
     public ResponseEntity<Void> deletarFoto(Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         fotoPerfilService.deletarCandidato(usuarioId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // LGPD Art. 18, V — Portabilidade / acesso aos dados
+    @GetMapping("/meus-dados")
+    @Operation(
+        summary = "Exportar todos os meus dados (portabilidade — LGPD Art. 18, V)",
+        description = "Retorna, em formato estruturado (JSON), todos os dados pessoais do candidato: "
+                    + "dados cadastrais, perfil, endereço, telefones, habilidades, experiências, "
+                    + "formações e candidaturas."
+    )
+    public ResponseEntity<MeusDadosExportDTO> exportarMeusDados(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidatoService.exportarDados(usuarioId));
+    }
+
+    // LGPD Art. 18, VI — Direito ao esquecimento
+    @DeleteMapping("/minha-conta")
+    @Operation(
+        summary = "Excluir minha conta e todos os meus dados (direito ao esquecimento — LGPD Art. 18, VI)",
+        description = "Remove permanentemente a conta do candidato e todos os dados associados: "
+                    + "candidaturas e histórico, currículo e foto, notificações, endereço, "
+                    + "telefones e o usuário. Esta operação é irreversível."
+    )
+    public ResponseEntity<Void> excluirMinhaConta(Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        candidatoService.excluirConta(usuarioId);
         return ResponseEntity.noContent().build();
     }
 

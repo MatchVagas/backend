@@ -11,6 +11,9 @@ import java.util.List;
 @Table(name = "usuarios")
 public class Usuarios {
 
+    // Versão vigente da política de privacidade aceita no cadastro (LGPD Art. 7º/8º)
+    public static final String VERSAO_POLITICA_PRIVACIDADE_ATUAL = "1.0";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -44,6 +47,14 @@ public class Usuarios {
     @Column(name = "tipo_usuario", nullable = false, length = 20)
     private TipoUsuario tipoUsuario;
 
+    // ── Consentimento LGPD (Art. 7º, I / Art. 8º) ────────────────────────────
+    // Registro de quando e sob qual versão da política o titular consentiu.
+    @Column(name = "consentimento_lgpd_em")
+    private LocalDateTime consentimentoLgpdEm;
+
+    @Column(name = "versao_politica_privacidade", length = 10)
+    private String versaoPoliticaPrivacidade;
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "telefones_usuario",
         joinColumns = @JoinColumn(name = "usuario_id"),
@@ -57,6 +68,12 @@ public class Usuarios {
         if (this.ativo == null) {
             this.ativo = true;
         }
+    }
+
+    // Registra o consentimento do titular com a versão vigente da política (LGPD)
+    public void registrarConsentimento() {
+        this.consentimentoLgpdEm = LocalDateTime.now();
+        this.versaoPoliticaPrivacidade = VERSAO_POLITICA_PRIVACIDADE_ATUAL;
     }
 
     // Enum interno para o tipo de usuário

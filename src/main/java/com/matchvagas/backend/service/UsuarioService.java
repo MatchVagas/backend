@@ -51,12 +51,17 @@ public class UsuarioService {
 
     @Transactional
     public UsuarioResponseDTO create(UsuariosRequestDTO dto) {
+        if (!Boolean.TRUE.equals(dto.aceitouTermos())) {
+            throw new BusinessException("É necessário aceitar os termos de uso e a política de privacidade.");
+        }
+
         if (repository.existsByEmail(dto.email())) {
             throw new BusinessException("Email já cadastrado: " + dto.email());
         }
 
         Usuarios entity = mapper.toEntity(dto);
         entity.setSenha(passwordEncoder.encode(dto.senha()));
+        entity.registrarConsentimento();
 
         if (dto.dataNascimento() != null) {
             entity.setIdade(calcularIdade(dto.dataNascimento()));

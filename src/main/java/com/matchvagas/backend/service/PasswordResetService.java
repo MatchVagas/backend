@@ -50,7 +50,13 @@ public class PasswordResetService {
                 .findValidByCodigo(email, codigo, LocalDateTime.now())
                 .orElseThrow(() -> new BusinessException("Código inválido ou expirado."));
 
-        return resetToken.getToken();
+        // SEC-07 — rotaciona o token a cada verificação, invalidando qualquer
+        // valor anterior que tenha vazado (log, interceptação).
+        String tokenRedefinicao = UUID.randomUUID().toString();
+        resetToken.setToken(tokenRedefinicao);
+        tokenRepository.save(resetToken);
+
+        return tokenRedefinicao;
     }
 
     @Transactional
