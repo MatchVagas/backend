@@ -14,11 +14,13 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 **Objetivo:** separar "no ar" de "operável". Continuação direta do trabalho atual.
 **Horizonte:** semanas.
 
-- [ ] 🟢 **Verificação de e-mail** no cadastro (token de ativação) — evita contas falsas/spam.
-- [ ] 🟢 **Refresh token** + revogação de sessão — hoje só há JWT de acesso, usuário é deslogado ao expirar.
-- [ ] 🟢 **CI/CD** (`.github/workflows`) rodando os testes em cada PR (build + test como gate).
-- [ ] 🟢 **Terminar rollout de paginação** nas listagens que ficaram de fora (candidaturas minhas/empresa, notificações, pendentes/admins).
-- [ ] 🟡 **Observabilidade**: expor health/metrics do Actuator (já no `pom.xml`) + error tracking (ex.: Sentry).
+- [x] 🟢 **Verificação de e-mail** no cadastro (token de ativação) — evita contas falsas/spam.
+- [x] 🟢 **Refresh token** + revogação de sessão — hoje só há JWT de acesso, usuário é deslogado ao expirar.
+- [x] 🟢 **CI/CD** (`.github/workflows`) rodando os testes em cada PR (build + test como gate).
+- [x] 🟢 **Terminar rollout de paginação** nas listagens de maior volume (candidaturas minhas/empresa, notificações). Restam listas menores/limitadas (pendentes, admins).
+- [x] 🟡 **Observabilidade**: Actuator (health público, resto ADMIN) + errorId de correlação nas falhas 500 (gancho para Sentry).
+
+> ✅ Fase 1 implementada na branch `feature/fase1-producao-ready`.
 
 ## Fase 2 — Tornar o produto usável de verdade
 **Objetivo:** deixar de ser um CRUD de vagas e virar plataforma de recrutamento. É o que **retém usuário** — sem comunicação, a empresa sai da plataforma para conversar por fora.
