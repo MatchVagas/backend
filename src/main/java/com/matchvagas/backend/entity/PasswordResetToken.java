@@ -29,6 +29,11 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private boolean used = false;
 
+    // SEC: nº de tentativas de código erradas. Acima do limite o token é
+    // invalidado, impedindo brute force do código de 6 dígitos.
+    @Column(nullable = false)
+    private int tentativas = 0;
+
     @PrePersist
     protected void onCreate() {
         if (this.expiresAt == null) {

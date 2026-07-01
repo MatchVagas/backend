@@ -45,6 +45,10 @@ public class AuthService {
 
         Usuarios usuario = usuariosMapper.toEntity(request);
         usuario.setSenha(passwordEncoder.encode(request.senha()));
+        // SEC: cadastro público SEMPRE cria CANDIDATO. O papel jamais é definido
+        // pelo cliente — empresas usam /register-empresa e ADMIN só pelo canal
+        // restrito (/api/usuarios, protegido por hasAuthority('ADMIN')).
+        usuario.setTipoUsuario(Usuarios.TipoUsuario.CANDIDATO);
         usuario.registrarConsentimento();
 
         // Calcula idade a partir da dataNascimento

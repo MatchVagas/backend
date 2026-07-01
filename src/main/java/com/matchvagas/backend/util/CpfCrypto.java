@@ -36,6 +36,25 @@ public final class CpfCrypto {
     private static final SecretKeySpec AES_KEY  = derivarChaveAes();
     private static final byte[]        HMAC_KEY = obterSegredoHmac();
 
+    // SEC: true quando qualquer uma das chaves caiu no fallback inseguro de
+    // desenvolvimento (variável de ambiente ausente). O StartupSecretsValidator
+    // usa isto para abortar a inicialização em produção.
+    private static final boolean USANDO_FALLBACK =
+            faltaSegredo("CPF_ENCRYPTION_KEY") || faltaSegredo("CPF_HASH_SECRET");
+
+    /** Indica se o CPF está sendo protegido com chaves de desenvolvimento (inseguras). */
+    public static boolean usandoChavesInseguras() {
+        return USANDO_FALLBACK;
+    }
+
+    private static boolean faltaSegredo(String envVar) {
+        String v = System.getenv(envVar);
+        if (v == null || v.isBlank()) {
+            v = System.getProperty(envVar);
+        }
+        return v == null || v.isBlank();
+    }
+
     /** Cifra o CPF; retorna texto cifrado prefixado e em Base64. */
     public static String encrypt(String plain) {
         if (plain == null) {

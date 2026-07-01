@@ -17,12 +17,17 @@ public interface UsuarioMapper {
 
     UsuarioResponseDTO toDTO(Usuarios usuario);
 
+    // SEC: tipoUsuario NUNCA é copiado do DTO pelo mapper, para evitar escalonamento
+    // de privilégio via cadastro público. O papel é definido explicitamente em cada
+    // service: AuthService.register força CANDIDATO; o canal restrito a ADMIN
+    // (UsuarioService) define o valor a partir do DTO.
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "dataCadastro", ignore = true)
     @Mapping(target = "dataUltimoAcesso", ignore = true)
     @Mapping(target = "idade", ignore = true)
     @Mapping(target = "ativo", ignore = true)
     @Mapping(target = "senha", ignore = true)
+    @Mapping(target = "tipoUsuario", ignore = true)
     @Mapping(target = "telefones", ignore = true)
     @Mapping(target = "consentimentoLgpdEm", ignore = true)
     @Mapping(target = "versaoPoliticaPrivacidade", ignore = true)
@@ -34,6 +39,7 @@ public interface UsuarioMapper {
     @Mapping(target = "idade", ignore = true)
     @Mapping(target = "ativo", ignore = true)
     @Mapping(target = "senha", ignore = true)
+    @Mapping(target = "tipoUsuario", ignore = true)
     @Mapping(target = "telefones", ignore = true)
     @Mapping(target = "consentimentoLgpdEm", ignore = true)
     @Mapping(target = "versaoPoliticaPrivacidade", ignore = true)

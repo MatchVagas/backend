@@ -12,6 +12,7 @@ import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
 import com.matchvagas.backend.service.PasswordResetService;
 import com.matchvagas.backend.service.RateLimiterService;
+import com.matchvagas.backend.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -38,6 +39,7 @@ public class AuthController {
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/register")
     @Operation(
@@ -114,7 +116,10 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Código inválido ou expirado",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request) {
+    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request,
+                                                                      HttpServletRequest http) {
+        // SEC: limita tentativas por IP — complementa o limite por token no service.
+        rateLimiterService.verificar("verificar-codigo:" + clientIp(http));
         String token = passwordResetService.verificarCodigo(request.email(), request.codigo());
         return ResponseEntity.ok(new VerificarCodigoResponseDTO(token));
     }
@@ -129,7 +134,9 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request) {
+    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request,
+                                               HttpServletRequest http) {
+        rateLimiterService.verificar("redefinir-senha:" + clientIp(http));
         passwordResetService.redefinirSenha(request.token(), request.novaSenha());
         return ResponseEntity.ok().build();
     }
@@ -144,15 +151,11 @@ public class AuthController {
     }
 
     /**
-     * Extrai o IP de origem do cliente, considerando proxies/balanceadores
-     * (X-Forwarded-For) — necessário em ambientes como o Render.
+     * IP de origem do cliente, resistente a falsificação de X-Forwarded-For
+     * (SEC-06). Delega ao {@link ClientIpResolver}, que considera apenas os hops
+     * dos proxies confiáveis configurados.
      */
     private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            // O primeiro IP da lista é o cliente original
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
 }

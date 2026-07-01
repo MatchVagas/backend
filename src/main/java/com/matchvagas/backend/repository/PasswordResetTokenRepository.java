@@ -15,6 +15,11 @@ public interface PasswordResetTokenRepository extends JpaRepository<PasswordRese
     @Query("SELECT t FROM PasswordResetToken t WHERE t.usuario.email = :email AND t.codigo = :codigo AND t.used = false AND t.expiresAt > :now")
     Optional<PasswordResetToken> findValidByCodigo(String email, String codigo, LocalDateTime now);
 
+    // Token ativo (não usado e não expirado) mais recente do e-mail. Usado na
+    // verificação de código para contar tentativas mesmo quando o código erra.
+    @Query("SELECT t FROM PasswordResetToken t WHERE t.usuario.email = :email AND t.used = false AND t.expiresAt > :now ORDER BY t.id DESC")
+    java.util.List<PasswordResetToken> findAtivosByEmail(String email, LocalDateTime now);
+
     @Modifying
     @Query("DELETE FROM PasswordResetToken t WHERE t.expiresAt < :now OR t.used = true")
     void deleteExpiredAndUsed(LocalDateTime now);
