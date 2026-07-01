@@ -38,6 +38,7 @@ class AuthServiceTest {
     @Mock UsuarioMapper      usuariosMapper;
     @Mock PasswordEncoder    passwordEncoder;
     @Mock JwtTokenProvider   jwtTokenProvider;
+    @Mock EmailVerificationService emailVerificationService;
 
     @InjectMocks AuthService authService;
 

@@ -1,15 +1,18 @@
 package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.AuthResponse;
+import com.matchvagas.backend.dto.ConfirmarEmailRequestDTO;
 import com.matchvagas.backend.dto.EsqueceuSenhaRequestDTO;
 import com.matchvagas.backend.dto.LoginRequestDTO;
 import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
 import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
+import com.matchvagas.backend.dto.ReenviarVerificacaoRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.dto.VerificarCodigoRequestDTO;
 import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
+import com.matchvagas.backend.service.EmailVerificationService;
 import com.matchvagas.backend.service.PasswordResetService;
 import com.matchvagas.backend.service.RateLimiterService;
 import com.matchvagas.backend.util.ClientIpResolver;
@@ -38,6 +41,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
     private final RateLimiterService rateLimiterService;
     private final ClientIpResolver clientIpResolver;
 
@@ -89,6 +93,36 @@ public class AuthController {
                                                         HttpServletRequest http) {
         rateLimiterService.verificar("register-empresa:" + clientIp(http));
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
+    }
+
+    @PostMapping("/confirmar-email")
+    @Operation(
+        summary = "Confirmar e-mail",
+        description = "Valida o token recebido no e-mail de cadastro e ativa o login da conta."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "E-mail confirmado — login liberado"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<Void> confirmarEmail(@Valid @RequestBody ConfirmarEmailRequestDTO request) {
+        emailVerificationService.confirmar(request.token());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reenviar-verificacao")
+    @Operation(
+        summary = "Reenviar e-mail de verificação",
+        description = "Reenvia o link de confirmação. Sempre retorna 200 para não expor quais e-mails existem."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Solicitação processada — se aplicável, um novo link é enviado")
+    })
+    public ResponseEntity<Void> reenviarVerificacao(@Valid @RequestBody ReenviarVerificacaoRequestDTO request,
+                                                    HttpServletRequest http) {
+        rateLimiterService.verificar("reenviar-verificacao:" + clientIp(http));
+        emailVerificationService.reenviar(request.email());
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/esqueceu-senha")

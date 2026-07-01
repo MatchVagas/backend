@@ -28,6 +28,7 @@ public class AuthService {
     private final EmpresaRepository empresaRepository;
     private final PorteRepository porteRepository;
     private final RamoAtuacaoRepository ramoAtuacaoRepository;
+    private final EmailVerificationService emailVerificationService;
 
     /**
      * RF001 - Cadastro de novo usuário (Candidato, Empresa ou Admin)
@@ -50,6 +51,8 @@ public class AuthService {
         // restrito (/api/usuarios, protegido por hasAuthority('ADMIN')).
         usuario.setTipoUsuario(Usuarios.TipoUsuario.CANDIDATO);
         usuario.registrarConsentimento();
+        // Conta nasce não verificada: o login fica bloqueado até confirmar o e-mail.
+        usuario.setEmailVerificado(false);
 
         // Calcula idade a partir da dataNascimento
         if (request.dataNascimento() != null) {
@@ -64,6 +67,7 @@ public class AuthService {
         // A barreira para publicar vagas fica em VagaService — não no login
 
         Usuarios salvo = usuariosRepository.save(usuario);
+        emailVerificationService.enviarVerificacao(salvo);
         return usuariosMapper.toDTO(salvo);
     }
 
@@ -136,6 +140,12 @@ public class AuthService {
 
         if (Boolean.FALSE.equals(usuario.getAtivo())) {
             throw new BadCredentialsException("Usuário está inativo. Contate o administrador.");
+        }
+
+        // E-mail não verificado bloqueia o login. NULO = conta legada (verificada).
+        if (Boolean.FALSE.equals(usuario.getEmailVerificado())) {
+            throw new BadCredentialsException(
+                    "E-mail não verificado. Confira sua caixa de entrada ou solicite um novo link.");
         }
 
         String token = jwtTokenProvider.generateToken(usuario);
