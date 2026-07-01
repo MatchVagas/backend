@@ -5,6 +5,7 @@ import com.matchvagas.backend.dto.ConfirmarEmailRequestDTO;
 import com.matchvagas.backend.dto.EsqueceuSenhaRequestDTO;
 import com.matchvagas.backend.dto.LoginRequestDTO;
 import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
+import com.matchvagas.backend.dto.RefreshRequestDTO;
 import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
 import com.matchvagas.backend.dto.ReenviarVerificacaoRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
@@ -175,12 +176,30 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/refresh")
+    @Operation(
+        summary = "Renovar access token",
+        description = "Troca um refresh token válido por um novo par de tokens. O refresh token é rotacionado (o antigo é invalidado)."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Novo access token e refresh token retornados"),
+        @ApiResponse(responseCode = "400", description = "Refresh token inválido, expirado ou revogado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequestDTO request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
+    }
+
     @PostMapping("/logout")
     @Operation(
         summary = "Logout",
-        description = "Com JWT stateless o logout é feito removendo o token no cliente. Este endpoint existe apenas para documentação."
+        description = "Revoga o refresh token no servidor, encerrando a sessão. O cliente deve descartar o access token."
     )
-    public ResponseEntity<Void> logout() {
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sessão encerrada")
+    })
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequestDTO request) {
+        authService.logout(request.refreshToken());
         return ResponseEntity.ok().build();
     }
 
