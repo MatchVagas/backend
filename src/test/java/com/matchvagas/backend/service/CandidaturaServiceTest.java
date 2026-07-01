@@ -26,6 +26,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -66,6 +69,7 @@ class CandidaturaServiceTest {
     private static final Long CANDIDATO_ID        = 10L;   // ID da entidade Candidatos
     private static final Long VAGA_ID             = 5L;
     private static final Long CANDIDATURA_ID      = 100L;
+    private static final Pageable PAGEABLE        = PageRequest.of(0, 20);
 
     @BeforeEach
     void setUp() {
@@ -373,25 +377,27 @@ class CandidaturaServiceTest {
             CandidaturaResponseDTO responseDTO = buildResponseDTO();
 
             when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
             when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID);
+            var result = candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID, PAGEABLE);
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).status()).isEqualTo("EM_ANALISE");
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).status()).isEqualTo("EM_ANALISE");
             // Candidato consegue ver suas próprias preferências
-            assertThat(result.get(0).compartilharObjetivoProfissional()).isTrue();
-            assertThat(result.get(0).compartilharTelefone()).isFalse();
+            assertThat(result.content().get(0).compartilharObjetivoProfissional()).isTrue();
+            assertThat(result.content().get(0).compartilharTelefone()).isFalse();
         }
 
         @Test
         @DisplayName("Deve retornar lista vazia para candidato sem candidaturas")
         void deveRetornarVazioSemCandidaturas() {
             when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of());
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(), PAGEABLE, 0));
 
-            assertThat(candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID)).isEmpty();
+            assertThat(candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID, PAGEABLE).content()).isEmpty();
         }
 
         @Test
@@ -447,9 +453,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharEndereco(false);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             assertThat(result).hasSize(1);
             CandidaturaEmpresaResponseDTO dto = result.get(0);
@@ -469,9 +476,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharPretensaoSalarial(true);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             assertThat(result.get(0).pretensaoSalarial()).isEqualTo(new BigDecimal("8000.00"));
         }
@@ -489,9 +497,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharEndereco(false);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             CandidaturaEmpresaResponseDTO dto = result.get(0);
             // Somente identificação básica é sempre visível
@@ -510,9 +519,10 @@ class CandidaturaServiceTest {
         @DisplayName("Deve retornar lista vazia quando empresa não tem candidaturas")
         void deveRetornarVazioSemCandidaturasRecebidas() {
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of());
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(), PAGEABLE, 0));
 
-            assertThat(candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID)).isEmpty();
+            assertThat(candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content()).isEmpty();
         }
 
         @Test
@@ -520,7 +530,7 @@ class CandidaturaServiceTest {
         void deveLancarExcecaoSemEmpresaVinculada() {
             when(empresaRepository.findByUsuarioId(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L))
+            assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L, PAGEABLE))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Nenhuma empresa vinculada");
         }

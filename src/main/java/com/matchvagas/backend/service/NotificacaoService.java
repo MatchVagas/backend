@@ -2,6 +2,7 @@ package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.NotificacoesRequestDTO;
 import com.matchvagas.backend.dto.NotificacoesResponseDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.entity.Notificacao;
 import com.matchvagas.backend.entity.TipoNotificacao;
 import com.matchvagas.backend.entity.Usuarios;
@@ -12,6 +13,7 @@ import com.matchvagas.backend.repository.NotificacaoRepository;
 import com.matchvagas.backend.repository.TipoNotificacaoRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,15 +73,17 @@ public class NotificacaoService {
     }
 
     @Transactional(readOnly = true)
-    public List<NotificacoesResponseDTO> listarPorUsuario(Long usuarioId) {
-        return notificacaoRepository.findByUsuarioIdOrderByDataEnvioDesc(usuarioId)
-                .stream().map(notificacaoMapper::toDTO).collect(Collectors.toList());
+    public PageResponseDTO<NotificacoesResponseDTO> listarPorUsuario(Long usuarioId, Pageable pageable) {
+        return PageResponseDTO.of(
+                notificacaoRepository.findByUsuarioIdOrderByDataEnvioDesc(usuarioId, pageable)
+                        .map(notificacaoMapper::toDTO));
     }
 
     @Transactional(readOnly = true)
-    public List<NotificacoesResponseDTO> listarNaoLidas(Long usuarioId) {
-        return notificacaoRepository.findByUsuarioIdAndLidaFalseOrderByDataEnvioDesc(usuarioId)
-                .stream().map(notificacaoMapper::toDTO).collect(Collectors.toList());
+    public PageResponseDTO<NotificacoesResponseDTO> listarNaoLidas(Long usuarioId, Pageable pageable) {
+        return PageResponseDTO.of(
+                notificacaoRepository.findByUsuarioIdAndLidaFalseOrderByDataEnvioDesc(usuarioId, pageable)
+                        .map(notificacaoMapper::toDTO));
     }
 
     @Transactional(readOnly = true)

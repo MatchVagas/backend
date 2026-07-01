@@ -7,6 +7,7 @@ import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.ExperienciaResponseDTO;
 import com.matchvagas.backend.dto.FormacaoResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -21,6 +22,8 @@ import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,11 +87,12 @@ public class CandidaturaService {
     // ── RF009 — Listar candidaturas do candidato ──────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<CandidaturaResponseDTO> findByCandidato(Long usuarioId) {
+    public PageResponseDTO<CandidaturaResponseDTO> findByCandidato(Long usuarioId, Pageable pageable) {
         return candidatosRepository.findByUsuarioId(usuarioId)
-                .map(c -> candidaturasRepository.findByCandidatoId(c.getId())
-                        .stream().map(candidaturaMapper::toResponseDTO).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+                .map(c -> PageResponseDTO.of(
+                        candidaturasRepository.findByCandidatoId(c.getId(), pageable)
+                                .map(candidaturaMapper::toResponseDTO)))
+                .orElseGet(() -> PageResponseDTO.of(Page.empty(pageable)));
     }
 
     // ── RF009 — Detalhar uma candidatura (somente do próprio candidato) ───────
@@ -131,14 +135,13 @@ public class CandidaturaService {
     // ── Empresa — listar candidaturas recebidas com dados filtrados ───────────
 
     @Transactional(readOnly = true)
-    public List<CandidaturaEmpresaResponseDTO> findByEmpresa(Long usuarioId) {
+    public PageResponseDTO<CandidaturaEmpresaResponseDTO> findByEmpresa(Long usuarioId, Pageable pageable) {
         Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
 
-        return candidaturasRepository.findByVagaEmpresasId(empresa.getId())
-                .stream()
-                .map(this::toEmpresaResponseDTO)
-                .collect(Collectors.toList());
+        return PageResponseDTO.of(
+                candidaturasRepository.findByVagaEmpresasId(empresa.getId(), pageable)
+                        .map(this::toEmpresaResponseDTO));
     }
 
     // ── Empresa — candidatos de uma vaga específica ───────────────────────────
