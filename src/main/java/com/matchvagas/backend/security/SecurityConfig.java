@@ -71,6 +71,10 @@ public class SecurityConfig {
                 // ── Público — sem token ───────────────────────────────────
                 .requestMatchers("/api/auth/**").permitAll()
 
+                // Actuator: health é público (health check do provedor); o resto é ADMIN.
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").hasAuthority("ADMIN")
+
                 // Swagger UI — todos os caminhos que o Springdoc usa
                 .requestMatchers(
                     "/swagger-ui.html",

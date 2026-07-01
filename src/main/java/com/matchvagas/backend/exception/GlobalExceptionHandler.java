@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 @Slf4j
 @RestControllerAdvice
@@ -118,11 +119,15 @@ public class GlobalExceptionHandler {
             log.debug("Cliente encerrou a conexão antes da resposta ser enviada: {}", exception.getMessage());
             return null;
         }
-        log.error("Erro inesperado: {}", exception.getMessage(), exception);
+        // Identificador de correlação: o mesmo id vai para o log e para a resposta,
+        // permitindo rastrear um erro reportado pelo usuário até o stack trace.
+        // É também o ponto de integração para um error tracking (ex.: Sentry).
+        String errorId = UUID.randomUUID().toString().substring(0, 8);
+        log.error("Erro inesperado [errorId={}]: {}", errorId, exception.getMessage(), exception);
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Erro interno do servidor",
-                "Ocorreu um erro inesperado. Tente novamente mais tarde.",
+                "Ocorreu um erro inesperado. Tente novamente mais tarde. Referência: " + errorId,
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
