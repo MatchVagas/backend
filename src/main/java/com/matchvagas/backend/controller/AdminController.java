@@ -7,6 +7,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +29,10 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/usuarios")
-    @Operation(summary = "Listar todos os usuários do sistema")
-    public ResponseEntity<List<UsuarioResponseDTO>> listarUsuarios() {
-        return ResponseEntity.ok(adminService.listarUsuarios());
+    @Operation(summary = "Listar todos os usuários do sistema (paginado)")
+    public ResponseEntity<PageResponseDTO<UsuarioResponseDTO>> listarUsuarios(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.listarUsuarios(pageable));
     }
 
     @GetMapping("/usuarios/{id}")
@@ -108,9 +112,10 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/candidatos")
-    @Operation(summary = "Listar todos os candidatos")
-    public ResponseEntity<List<CandidatoResponseDTO>> listarCandidatos() {
-        return ResponseEntity.ok(adminService.listarCandidatos());
+    @Operation(summary = "Listar todos os candidatos (paginado)")
+    public ResponseEntity<PageResponseDTO<CandidatoResponseDTO>> listarCandidatos(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.listarCandidatos(pageable));
     }
 
     @GetMapping("/candidatos/{id}")
@@ -139,9 +144,10 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/empresas")
-    @Operation(summary = "Listar todas as empresas (todos os status)")
-    public ResponseEntity<List<EmpresaResponseDTO>> listarEmpresas() {
-        return ResponseEntity.ok(adminService.listarEmpresas());
+    @Operation(summary = "Listar todas as empresas (todos os status, paginado)")
+    public ResponseEntity<PageResponseDTO<EmpresaResponseDTO>> listarEmpresas(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.listarEmpresas(pageable));
     }
 
     @GetMapping("/empresas/pendentes")
@@ -180,9 +186,10 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/vagas")
-    @Operation(summary = "Listar todas as vagas do sistema")
-    public ResponseEntity<List<VagaResponseDTO>> listarVagas() {
-        return ResponseEntity.ok(adminService.listarVagas());
+    @Operation(summary = "Listar todas as vagas do sistema (paginado)")
+    public ResponseEntity<PageResponseDTO<VagaResponseDTO>> listarVagas(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.listarVagas(pageable));
     }
 
     @GetMapping("/vagas/{id}")
@@ -211,9 +218,10 @@ public class AdminController {
     // ═══════════════════════════════════════════════════════════
 
     @GetMapping("/candidaturas")
-    @Operation(summary = "Listar todas as candidaturas do sistema")
-    public ResponseEntity<List<CandidaturaResponseDTO>> listarCandidaturas() {
-        return ResponseEntity.ok(adminService.listarCandidaturas());
+    @Operation(summary = "Listar todas as candidaturas do sistema (paginado)")
+    public ResponseEntity<PageResponseDTO<CandidaturaResponseDTO>> listarCandidaturas(
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(adminService.listarCandidaturas(pageable));
     }
 
     @GetMapping("/candidaturas/{id}")

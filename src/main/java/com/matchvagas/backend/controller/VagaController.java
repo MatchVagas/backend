@@ -1,5 +1,6 @@
 package com.matchvagas.backend.controller;
 
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.service.VagaService;
@@ -7,6 +8,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,16 +26,19 @@ public class VagaController {
 
     private final VagaService vagaService;
 
-    // RF007 — Busca pública com filtros opcionais
+    // RF007 — Busca pública com filtros opcionais (paginada)
     @GetMapping
-    @Operation(summary = "Buscar e filtrar vagas")
-    public ResponseEntity<List<VagaResponseDTO>> search(
+    @Operation(summary = "Buscar e filtrar vagas",
+               description = "Suporta paginação via ?page=0&size=20&sort=id,desc (padrão: 20 por página).")
+    public ResponseEntity<PageResponseDTO<VagaResponseDTO>> search(
             @RequestParam(required = false) String titulo,
             @RequestParam(required = false) String areaAtuacao,
             @RequestParam(required = false) Long tipoVagaId,
             @RequestParam(required = false) Long modalidadeId,
-            @RequestParam(required = false) String nomeEmpresa) {
-        return ResponseEntity.ok(vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId, nomeEmpresa));
+            @RequestParam(required = false) String nomeEmpresa,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+                vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId, nomeEmpresa, pageable));
     }
 
     @GetMapping("/{id}")

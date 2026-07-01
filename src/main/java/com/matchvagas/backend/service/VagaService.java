@@ -1,5 +1,6 @@
 package com.matchvagas.backend.service;
 
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -9,6 +10,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -60,17 +62,20 @@ public class VagaService {
                 .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
     }
 
-    // RF007 — Busca e filtragem de vagas (todos os filtros combinados)
+    // RF007 — Busca e filtragem de vagas (todos os filtros combinados, paginado)
     @Transactional(readOnly = true)
-    public List<VagaResponseDTO> search(String titulo, String areaAtuacao,
-                                        Long tipoVagaId, Long modalidadeId, String nomeEmpresa) {
-        return vagaRepository.searchComFiltros(
-                        blankToEmpty(titulo),
-                        blankToEmpty(areaAtuacao),
-                        tipoVagaId,
-                        modalidadeId,
-                        blankToEmpty(nomeEmpresa))
-                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
+    public PageResponseDTO<VagaResponseDTO> search(String titulo, String areaAtuacao,
+                                                   Long tipoVagaId, Long modalidadeId, String nomeEmpresa,
+                                                   Pageable pageable) {
+        return PageResponseDTO.of(
+                vagaRepository.searchComFiltros(
+                                blankToEmpty(titulo),
+                                blankToEmpty(areaAtuacao),
+                                tipoVagaId,
+                                modalidadeId,
+                                blankToEmpty(nomeEmpresa),
+                                pageable)
+                        .map(vagasMapper::toDTO));
     }
 
     private static String blankToEmpty(String s) {
