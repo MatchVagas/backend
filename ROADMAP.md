@@ -43,6 +43,42 @@ Em ordem de implementação:
 4. [ ] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios — menores, encaixam entre as maiores.
 5. [ ] 🟡 **Busca melhor**: filtro por faixa salarial, localização/geo, ordenação e full-text (Postgres `tsvector`).
 
+## Fase 2B — Administração do perfil da empresa (paralela à Fase 2)
+
+**Objetivo:** dar à empresa as ferramentas de gestão do dia a dia e fechar o ciclo
+de moderação do admin, que hoje existe pela metade (aprovar/rejeitar sem motivo,
+sem suspensão, sem re-submissão). Os blocos de moderação e gestão de vagas são
+baratos e podem começar antes da Fase 2; o bloco de equipe é pré-requisito lógico
+das mensagens empresa↔candidato.
+**Horizonte:** intercalado com a Fase 2.
+
+**Moderação (admin da plataforma)** — em ordem:
+
+- [ ] 🟢 **Motivo na rejeição** de empresa + notificação — hoje `rejeitarEmpresa` não registra nem comunica o porquê (`NotificacaoService` já faz in-app + e-mail).
+- [ ] 🟢 **Re-submissão** — empresa rejeitada corrige o cadastro e volta à fila, em vez de morrer no `REJEITADA`.
+- [ ] 🟢 **Status `SUSPENSA`** no enum `StatusEmpresa` — oculta as vagas sem apagar nada (apagar briga com a auditoria LGPD).
+- [ ] 🟢 **Busca/filtros na listagem admin** de empresas (status, ramo, porte, CNPJ).
+- [ ] 🟢 **CNPJ por dígito verificador** no cadastro (SEC-04 do audit, se ainda pendente).
+
+**Gestão de vagas (dia a dia do recrutador):**
+
+- [ ] 🟢 **Duplicar vaga**, **encerrar antecipadamente** e **renovar/estender** `dataExpiracao`.
+- [ ] 🟢 **Rascunho de vaga** — estado novo no lookup `StatusVaga`, salvar antes de publicar.
+- [ ] 🟢 **Notificação de vaga prestes a expirar** (seguir o padrão de scheduler do `RetencaoDadosService`).
+- [ ] 🟡 **Templates de vaga** da empresa (descrição/benefícios padrão).
+
+**Equipe (estrutural — pré-requisito das mensagens da Fase 2):**
+
+- [ ] 🟡 **`empresa_membros`** com papéis (`GESTOR`/`RECRUTADOR`) — hoje `Empresas.usuario_id` é `unique`: uma empresa = um único usuário; se o dono da conta sai da empresa, a conta morre.
+- [ ] 🟡 **Convite de membros por e-mail** (reaproveitar `EmailService` + fluxo de tokens) e **transferência de gestor**.
+
+**Perfil público / employer branding:**
+
+- [ ] 🟡 **Enriquecer o perfil**: banner/capa, redes sociais, nº de funcionários, ano de fundação, benefícios padrão.
+- [ ] 🟢 **Página pública da empresa** — perfil + vagas ativas dela (hoje dá para listar empresas, mas não existe a visão "vagas desta empresa" como página de atração).
+- [ ] 🟢 **Selo "verificada"** (CNPJ validado + aprovação do admin).
+- [ ] 🟡 **Painel da empresa**: vagas ativas × expiradas, candidaturas novas por vaga — complementa o Kanban da Fase 2 com contadores sobre dados que `HistoricoStatusCandidatura` já tem.
+
 ## Fase 2.5 — Matching estruturado (ponte para a inteligência)
 
 **Objetivo:** antes de partir para IA, fazer o `SugestaoVagaService` usar os dados
@@ -89,9 +125,10 @@ estruturado criado na Fase 2.5.
 ## Sequência recomendada
 
 1. **Merge da Fase 1** em `main` — imediato e barato.
-2. **Fase 2** é o que retém usuário — prioridade de produto (mensagens primeiro).
-3. **Fase 2.5** aprofunda o matching com dados que já existem — pode andar em paralelo ao fim da Fase 2 e é pré-requisito de dado para a Fase 3.
-4. **Fase 3** é a aposta de diferencial, assim que o núcleo estiver sólido; a mais alinhada a "usar IA de verdade" no produto.
-5. **Fase 4** só com tração medida.
+2. **Fase 2B (moderação + gestão de vagas)** — itens 🟢 que fecham ciclos pela metade; bons para intercalar desde já.
+3. **Fase 2** é o que retém usuário — prioridade de produto (mensagens primeiro, com o bloco de equipe da 2B como pré-requisito).
+4. **Fase 2.5** aprofunda o matching com dados que já existem — pode andar em paralelo ao fim da Fase 2 e é pré-requisito de dado para a Fase 3.
+5. **Fase 3** é a aposta de diferencial, assim que o núcleo estiver sólido; a mais alinhada a "usar IA de verdade" no produto.
+6. **Fase 4** só com tração medida.
 
 **Caminho crítico:** merge → mensagens empresa↔candidato → Kanban → matching estruturado → IA.
