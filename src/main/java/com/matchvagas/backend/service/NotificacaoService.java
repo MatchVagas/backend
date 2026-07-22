@@ -13,6 +13,7 @@ import com.matchvagas.backend.repository.NotificacaoRepository;
 import com.matchvagas.backend.repository.TipoNotificacaoRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificacaoService {
@@ -31,9 +33,21 @@ public class NotificacaoService {
     private final TipoNotificacaoRepository tipoNotificacaoRepository;
     private final NotificacaoMapper notificacaoMapper;
     private final EmailService emailService;
+    private final RealtimeService realtimeService;
+    private final AposCommitExecutor aposCommit;
 
     @Transactional
     public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto) {
+        return criar(dto, true);
+    }
+
+    /**
+     * Cria a notificação in-app e, se {@code enviarEmail} for verdadeiro, também envia o e-mail.
+     * O controle existe para cenários de alto volume (ex.: chat), onde um e-mail por evento
+     * vira spam — nesses casos o chamador cria o in-app sempre e agenda o e-mail sob sua regra.
+     */
+    @Transactional
+    public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto, boolean enviarEmail) {
         Usuarios usuario = usuariosRepository.findById(dto.usuarioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
@@ -52,10 +66,28 @@ public class NotificacaoService {
         notificacao.setLida(false);
 
         Notificacao salva = notificacaoRepository.save(notificacao);
+        NotificacoesResponseDTO responseDTO = notificacaoMapper.toDTO(salva);
 
-        enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
+        // Efeitos externos (push SSE + e-mail) só após o commit — nunca notificam algo
+        // que sofra rollback. Best-effort: uma falha aqui não afeta a notificação salva.
+        Long destinatarioId = usuario.getId();
+        String email = usuario.getEmail();
+        String nome = usuario.getNome();
+        String titulo = dto.titulo();
+        String mensagem = dto.mensagem();
+        aposCommit.executar(() -> {
+            try {
+                realtimeService.enviarPara(destinatarioId, "notificacao", responseDTO);
+                if (enviarEmail) {
+                    enviarEmailNotificacao(email, nome, titulo, mensagem);
+                }
+            } catch (Exception e) {
+                log.warn("Falha ao entregar notificação pós-commit ao usuário {}: {}",
+                        destinatarioId, e.getMessage());
+            }
+        });
 
-        return notificacaoMapper.toDTO(salva);
+        return responseDTO;
     }
 
     /**
@@ -66,10 +98,16 @@ public class NotificacaoService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notificarPorTipo(Long usuarioId, String titulo, String mensagem, String tipoNome) {
+        notificarPorTipo(usuarioId, titulo, mensagem, tipoNome, true);
+    }
+
+    /** Variante que permite suprimir o e-mail (mantendo o in-app) — ver {@link #criar(NotificacoesRequestDTO, boolean)}. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notificarPorTipo(Long usuarioId, String titulo, String mensagem, String tipoNome, boolean enviarEmail) {
         Long tipoId = tipoNome == null ? null
                 : tipoNotificacaoRepository.findByStatusIgnoreCase(tipoNome)
                         .map(t -> (long) t.getId()).orElse(null);
-        criar(new NotificacoesRequestDTO(titulo, mensagem, usuarioId, tipoId));
+        criar(new NotificacoesRequestDTO(titulo, mensagem, usuarioId, tipoId), enviarEmail);
     }
 
     @Transactional(readOnly = true)

@@ -1,6 +1,7 @@
 package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -10,6 +11,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VagaService {
@@ -31,6 +34,8 @@ public class VagaService {
     private final StatusVagaRepository statusVagaRepository;
     private final CidadeRepository cidadeRepository;
     private final CandidaturaRepository candidaturaRepository;
+    private final MensagemRepository mensagemRepository;
+    private final AlertaVagaService alertaVagaService;
     private final VagasMapper vagasMapper;
 
     @Transactional(readOnly = true)
@@ -82,6 +87,15 @@ public class VagaService {
         return (s == null || s.isBlank()) ? "" : s;
     }
 
+    // RF007 — Busca avançada (faixa salarial, localização, texto livre, ordenação),
+    // portátil entre Postgres e MySQL via Specification (Criteria API).
+    @Transactional(readOnly = true)
+    public PageResponseDTO<VagaResponseDTO> buscar(VagaBuscaFiltro filtro, Pageable pageable) {
+        return PageResponseDTO.of(
+                vagaRepository.findAll(VagaSpecs.comFiltros(filtro), pageable)
+                        .map(vagasMapper::toDTO));
+    }
+
     // RF005 — Cadastrar vaga
     @Transactional
     public VagaResponseDTO create(VagaRequestDTO dto) {
@@ -126,7 +140,18 @@ public class VagaService {
                 && dto.salarioMinimo().compareTo(dto.salarioMaximo()) > 0)
             throw new BusinessException("Salário mínimo não pode ser maior que o salário máximo.");
 
-        return vagasMapper.toDTO(vagaRepository.save(vaga));
+        Vagas salva = vagaRepository.save(vaga);
+
+        // Alertas de vaga — best-effort; nunca desfaz o cadastro da vaga.
+        try {
+            if (salva.getStatus() != null && "ATIVA".equalsIgnoreCase(salva.getStatus().getDescricao())) {
+                alertaVagaService.notificarNovaVaga(salva);
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao processar alertas para a vaga {}: {}", salva.getId(), e.getMessage());
+        }
+
+        return vagasMapper.toDTO(salva);
     }
 
     // RF006 — Atualizar vaga
@@ -198,6 +223,8 @@ public class VagaService {
                 throw new BusinessException("Você não tem permissão para remover esta vaga.");
         }
 
+        // Remove as conversas antes das candidaturas (FK mensagens → candidatura)
+        mensagemRepository.deleteByCandidaturaVagaId(id);
         candidaturaRepository.deleteByVagaId(id);
         vagaRepository.deleteById(id);
     }

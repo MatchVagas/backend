@@ -5,6 +5,8 @@ import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
+import com.matchvagas.backend.dto.KanbanColunaDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -791,6 +793,97 @@ class CandidaturaServiceTest {
             assertThat(candidatura.getStatus().getStatus()).isEqualTo("Entrevista Agendada");
             verify(historicoStatusRepository).save(any());
             verify(notificacaoService).notificarPorTipo(eq(USUARIO_CANDIDATO_ID), any(), any(), eq("Candidatura"));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Kanban — funil de candidaturas por vaga
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Kanban — funil de candidaturas por vaga")
+    class Kanban {
+
+        private StatusCandidatura status(int id, String nome) {
+            StatusCandidatura s = new StatusCandidatura();
+            s.setId(id);
+            s.setStatus(nome);
+            return s;
+        }
+
+        @Test
+        @DisplayName("Monta o board com a coluna 'Novas' e os status na ordem canônica")
+        void deveMontarBoard() {
+            // Status do sistema retornados fora de ordem — o board deve reordenar
+            StatusCandidatura emAnalise  = status(1, "Em Análise");
+            StatusCandidatura entrevista = status(4, "Entrevista Agendada");
+            StatusCandidatura aprovado   = status(2, "Aprovado");
+            StatusCandidatura reprovado  = status(3, "Reprovado");
+
+            // Candidatura do setUp já está em EM_ANALISE (status id=1);
+            // segunda candidatura ainda sem status → coluna "Novas"
+            Candidatura semStatus = new Candidatura();
+            semStatus.setId(101L);
+            semStatus.setCandidato(candidato);
+            semStatus.setVaga(vaga);
+            semStatus.setDataCandidatura(LocalDateTime.now());
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidaturasRepository.findByVagaId(VAGA_ID)).thenReturn(List.of(candidatura, semStatus));
+            when(statusCandidaturaRepository.findAll())
+                    .thenReturn(List.of(reprovado, aprovado, emAnalise, entrevista));
+
+            KanbanBoardDTO board = candidaturaService.montarKanbanVaga(VAGA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(board.vagaId()).isEqualTo(VAGA_ID);
+            assertThat(board.totalCandidaturas()).isEqualTo(2);
+
+            // Primeira coluna = "Novas" (statusId null) com a candidatura sem status
+            KanbanColunaDTO novas = board.colunas().get(0);
+            assertThat(novas.statusId()).isNull();
+            assertThat(novas.status()).isEqualTo("Novas");
+            assertThat(novas.total()).isEqualTo(1);
+            assertThat(novas.candidaturas().get(0).id()).isEqualTo(101L);
+
+            // Demais colunas na ordem canônica do fluxo
+            assertThat(board.colunas().stream().skip(1).map(KanbanColunaDTO::status))
+                    .containsExactly("Em Análise", "Entrevista Agendada", "Aprovado", "Reprovado");
+
+            // Coluna "Em Análise" carrega a candidatura do setUp
+            KanbanColunaDTO colEmAnalise = board.colunas().get(1);
+            assertThat(colEmAnalise.statusId()).isEqualTo(1);
+            assertThat(colEmAnalise.total()).isEqualTo(1);
+            assertThat(colEmAnalise.candidaturas().get(0).id()).isEqualTo(CANDIDATURA_ID);
+
+            // Colunas terminais vazias continuam presentes (board estável)
+            assertThat(board.colunas().get(3).status()).isEqualTo("Aprovado");
+            assertThat(board.colunas().get(3).total()).isZero();
+        }
+
+        @Test
+        @DisplayName("Bloqueia o board de vaga de outra empresa")
+        void deveBloquearVagaDeOutraEmpresa() {
+            Empresas outra = new Empresas();
+            outra.setId(99L);
+            vaga.setEmpresas(outra);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+
+            assertThatThrownBy(() -> candidaturaService.montarKanbanVaga(VAGA_ID, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("não pertence");
+        }
+
+        @Test
+        @DisplayName("Vaga inexistente → ResourceNotFoundException")
+        void deveLancarVagaInexistente() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> candidaturaService.montarKanbanVaga(999L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 }

@@ -39,6 +39,7 @@ class AdminServiceTest {
     @Mock EmpresaRepository          empresaRepository;
     @Mock VagaRepository             vagaRepository;
     @Mock CandidaturaRepository      candidaturaRepository;
+    @Mock MensagemRepository         mensagemRepository;
     @Mock AdministradoresRepository  administradoresRepository;
     @Mock DepartamentosRepository    departamentosRepository;
     @Mock StatusVagaRepository       statusVagaRepository;

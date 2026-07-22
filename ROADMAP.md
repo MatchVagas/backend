@@ -35,63 +35,11 @@ quando a empresa quer chamar para entrevista, a conversa sai da plataforma — e
 ela o usuário. É o que **retém usuário**.
 **Horizonte:** 1–2 meses.
 
-Em ordem de implementação:
-
-1. [ ] 🔴 **Mensagens atreladas à candidatura** — não existe entidade de mensagem hoje (maior gap funcional). Escopo contido: não é chat livre, é comunicação dentro do processo seletivo ("convite para entrevista"). É o item que muda a categoria do produto.
-2. [ ] 🟡 **Funil de candidaturas (Kanban) para a empresa** — os dados já existem (`HistoricoStatusCandidatura`); é essencialmente uma view agregada por status.
-3. [ ] 🟡 **Notificações em tempo real** — completa a experiência das mensagens. SSE é mais simples que WebSocket e suficiente aqui (fluxo só servidor→cliente).
-4. [ ] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios — menores, encaixam entre as maiores.
-5. [ ] 🟡 **Busca melhor**: filtro por faixa salarial, localização/geo, ordenação e full-text (Postgres `tsvector`).
-
-## Fase 2B — Administração do perfil da empresa (paralela à Fase 2)
-
-**Objetivo:** dar à empresa as ferramentas de gestão do dia a dia e fechar o ciclo
-de moderação do admin, que hoje existe pela metade (aprovar/rejeitar sem motivo,
-sem suspensão, sem re-submissão). Os blocos de moderação e gestão de vagas são
-baratos e podem começar antes da Fase 2; o bloco de equipe é pré-requisito lógico
-das mensagens empresa↔candidato.
-**Horizonte:** intercalado com a Fase 2.
-
-**Moderação (admin da plataforma)** — em ordem:
-
-- [ ] 🟢 **Motivo na rejeição** de empresa + notificação — hoje `rejeitarEmpresa` não registra nem comunica o porquê (`NotificacaoService` já faz in-app + e-mail).
-- [ ] 🟢 **Re-submissão** — empresa rejeitada corrige o cadastro e volta à fila, em vez de morrer no `REJEITADA`.
-- [ ] 🟢 **Status `SUSPENSA`** no enum `StatusEmpresa` — oculta as vagas sem apagar nada (apagar briga com a auditoria LGPD).
-- [ ] 🟢 **Busca/filtros na listagem admin** de empresas (status, ramo, porte, CNPJ).
-- [ ] 🟢 **CNPJ por dígito verificador** no cadastro (SEC-04 do audit, se ainda pendente).
-
-**Gestão de vagas (dia a dia do recrutador):**
-
-- [ ] 🟢 **Duplicar vaga**, **encerrar antecipadamente** e **renovar/estender** `dataExpiracao`.
-- [ ] 🟢 **Rascunho de vaga** — estado novo no lookup `StatusVaga`, salvar antes de publicar.
-- [ ] 🟢 **Notificação de vaga prestes a expirar** (seguir o padrão de scheduler do `RetencaoDadosService`).
-- [ ] 🟡 **Templates de vaga** da empresa (descrição/benefícios padrão).
-
-**Equipe (estrutural — pré-requisito das mensagens da Fase 2):**
-
-- [ ] 🟡 **`empresa_membros`** com papéis (`GESTOR`/`RECRUTADOR`) — hoje `Empresas.usuario_id` é `unique`: uma empresa = um único usuário; se o dono da conta sai da empresa, a conta morre.
-- [ ] 🟡 **Convite de membros por e-mail** (reaproveitar `EmailService` + fluxo de tokens) e **transferência de gestor**.
-
-**Perfil público / employer branding:**
-
-- [ ] 🟡 **Enriquecer o perfil**: banner/capa, redes sociais, nº de funcionários, ano de fundação, benefícios padrão.
-- [ ] 🟢 **Página pública da empresa** — perfil + vagas ativas dela (hoje dá para listar empresas, mas não existe a visão "vagas desta empresa" como página de atração).
-- [ ] 🟢 **Selo "verificada"** (CNPJ validado + aprovação do admin).
-- [ ] 🟡 **Painel da empresa**: vagas ativas × expiradas, candidaturas novas por vaga — complementa o Kanban da Fase 2 com contadores sobre dados que `HistoricoStatusCandidatura` já tem.
-
-## Fase 2.5 — Matching estruturado (ponte para a inteligência)
-
-**Objetivo:** antes de partir para IA, fazer o `SugestaoVagaService` usar os dados
-que o banco **já tem** e hoje ficam fora do score: `Habilidade`, `Formacao` e
-`Experiencia`. O score atual compara palavras do objetivo profissional com
-título/área/requisitos — superficial. Além de melhorar as sugestões imediatamente,
-esta fase cria o dado estruturado que o matching semântico da Fase 3 vai consumir.
-**Horizonte:** paralelo ao fim da Fase 2.
-
-1. [ ] 🟡 **Catálogo de habilidades** (`habilidades_catalogo`) — hoje `Habilidade` é texto livre num `@Embeddable` ("Java" ≠ "java"). Catálogo com nome normalizado/único + migração dos dados existentes de `candidato_habilidades` para FK.
-2. [ ] 🟡 **Requisitos estruturados na vaga** (`vaga_habilidades`) — habilidade exigida com `nivel_minimo` (enum `NivelHabilidade` existente) e flag `obrigatoria` (eliminatória vs. desejável). Campo `experiencia_minima_anos` em `Vagas`. O campo texto `requisitos` continua como descrição livre.
-3. [ ] 🟡 **Score v2** — componentes ponderados (pesos via properties): habilidades atendidas com nível ≥ mínimo, escolaridade (o campo `ordem` de `Escolaridades` já ordena), localização/modalidade, anos de experiência, salário. Detalhe por componente na resposta ("você atende 4 de 5 requisitos") — explica o match na UI.
-4. [ ] 🟢 **Materializar scores** (`match_scores`) só quando alertas/ranking exigirem — começar calculando on-demand no endpoint `sugestoes` existente.
+- [x] 🔴 **Comunicação empresa ↔ candidato** — entidade `Mensagem` atrelada à candidatura (a candidatura é o thread; participantes = candidato dono + gestor da empresa da vaga). REST em `/api/mensagens` (enviar, listar paginado, marcar lidas, contagens), notificação in-app/e-mail ao destinatário e limpeza de FK nos fluxos de exclusão. Falta apenas o push em tempo real (item abaixo).
+- [x] 🟡 **Notificações em tempo real** (SSE) — `RealtimeService` mantém um stream por usuário em `GET /api/realtime/stream` (auth por header JWT), com heartbeat anti-timeout. `NotificacaoService` emite o evento `notificacao` (badge) e `MensagemService` o evento `mensagem` (conversa aberta atualiza na hora). Escolhido SSE em vez de WebSocket por ser push unidirecional sobre a stack stateless existente.
+- [x] 🟡 **Funil de candidaturas (Kanban) para a empresa** — `GET /api/candidaturas/empresa/vaga/{vagaId}/kanban` devolve o board: coluna "Novas" (sem status) + status na ordem canônica do fluxo, cada uma com seus cards (com filtro de privacidade). Mover card reusa o PATCH de status existente.
+- [x] 🟡 **Busca melhor**: `GET /api/vagas/busca` com filtros de texto livre (título/descrição/requisitos/área), área, tipo, modalidade, escolaridade, cidade, estado, empresa e faixa salarial, ordenação via `?sort=` e só ativas/não expiradas por padrão. Implementada com **JPA Specifications (Criteria API)** — portátil entre Postgres e MySQL, sem `tsvector`/`MATCH AGAINST`. Full-text real dedicado fica para a Fase 4.
+- [x] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios. Favoritos em `/api/favoritos` (salvar idempotente, listar, remover). Alertas em `/api/alertas` (CRUD + ativar/desativar); ao publicar uma vaga ATIVA, `VagaService` casa os alertas ativos e notifica os candidatos (reusa notificação in-app + e-mail + realtime). FKs das tabelas novas com `ON DELETE CASCADE`.
 
 ## Fase 3 — Inteligência do match (diferencial competitivo)
 

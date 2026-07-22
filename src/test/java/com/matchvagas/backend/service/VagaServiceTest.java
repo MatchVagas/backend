@@ -1,6 +1,7 @@
 package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -21,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -47,6 +49,8 @@ class VagaServiceTest {
     @Mock StatusVagaRepository statusVagaRepository;
     @Mock CidadeRepository cidadeRepository;
     @Mock CandidaturaRepository candidaturaRepository;
+    @Mock MensagemRepository mensagemRepository;
+    @Mock AlertaVagaService alertaVagaService;
     @Mock VagasMapper vagasMapper;
 
     @InjectMocks VagaService vagaService;
@@ -483,6 +487,24 @@ class VagaServiceTest {
 
             assertThat(result.content()).isEmpty();
             assertThat(result.totalElements()).isZero();
+        }
+
+        @Test
+        @DisplayName("Busca avançada delega ao repositório via Specification e mapeia o resultado")
+        void buscaAvancadaDelegaEMapeia() {
+            VagaBuscaFiltro filtro = new VagaBuscaFiltro(
+                    "java", null, 1L, null, null, null, null, null,
+                    new BigDecimal("3000"), null, true);
+
+            when(vagaRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(new PageImpl<>(List.of(vaga), pageable, 1));
+            when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
+
+            PageResponseDTO<VagaResponseDTO> result = vagaService.buscar(filtro, pageable);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.totalElements()).isEqualTo(1);
+            assertThat(result.content().get(0).titulo()).isEqualTo("Dev Java Pleno");
         }
 
         @Test

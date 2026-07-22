@@ -19,6 +19,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidatoMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.MensagemRepository;
 import com.matchvagas.backend.repository.ExperienciaRepository;
 import com.matchvagas.backend.repository.FormacaoRepository;
 import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
@@ -45,6 +46,7 @@ public class CandidatoService {
     private final TelefoneRepository telefoneRepository;
     private final TipoTelefoneRepository tipoTelefoneRepository;
     private final CandidaturaRepository candidaturaRepository;
+    private final MensagemRepository mensagemRepository;
     private final HistoricoStatusCandidaturaRepository historicoRepository;
     private final NotificacaoRepository notificacaoRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -231,9 +233,10 @@ public class CandidatoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
 
-        // 1. Candidaturas + histórico de status (FKs para candidato e usuário)
+        // 1. Candidaturas + conversas + histórico de status (FKs para candidatura)
         List<Candidatura> candidaturas = candidaturaRepository.findByCandidatoId(candidato.getId());
         for (Candidatura candidatura : candidaturas) {
+            mensagemRepository.deleteByCandidaturaId(candidatura.getId());
             historicoRepository.deleteAll(
                     historicoRepository.findByCandidaturaIdOrderByDataHoraDesc(candidatura.getId()));
         }
