@@ -7,6 +7,8 @@ import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.ExperienciaResponseDTO;
 import com.matchvagas.backend.dto.FormacaoResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
+import com.matchvagas.backend.dto.KanbanColunaDTO;
 import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
@@ -27,8 +29,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -161,6 +167,57 @@ public class CandidaturaService {
                 .stream()
                 .map(this::toEmpresaResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    // ── Empresa — funil Kanban das candidaturas de uma vaga ───────────────────
+
+    @Transactional(readOnly = true)
+    public KanbanBoardDTO montarKanbanVaga(Long vagaId, Long usuarioId) {
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+
+        Vagas vaga = vagasRepository.findById(vagaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vaga não encontrada com ID: " + vagaId));
+
+        if (!vaga.getEmpresas().getId().equals(empresa.getId()))
+            throw new BusinessException("Esta vaga não pertence à sua empresa");
+
+        List<Candidatura> candidaturas = candidaturasRepository.findByVagaId(vagaId);
+
+        // Agrupa os cards por status (mais recentes primeiro). Status nulo = "Novas".
+        List<CandidaturaEmpresaResponseDTO> novas = new ArrayList<>();
+        Map<Integer, List<CandidaturaEmpresaResponseDTO>> porStatus = new HashMap<>();
+
+        candidaturas.stream()
+                .sorted(Comparator.comparing(Candidatura::getDataCandidatura,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .forEach(c -> {
+                    CandidaturaEmpresaResponseDTO card = toEmpresaResponseDTO(c);
+                    if (c.getStatus() == null) {
+                        novas.add(card);
+                    } else {
+                        porStatus.computeIfAbsent(c.getStatus().getId(), k -> new ArrayList<>()).add(card);
+                    }
+                });
+
+        // Colunas: "Novas" (intake) + status do sistema na ordem canônica do fluxo.
+        List<KanbanColunaDTO> colunas = new ArrayList<>();
+        colunas.add(new KanbanColunaDTO(null, "Novas", novas.size(), novas));
+
+        statusCandidaturaRepository.findAll().stream()
+                .sorted(Comparator.comparingInt((StatusCandidatura s) -> ordemCanonica(s.getStatus()))
+                        .thenComparing(StatusCandidatura::getStatus))
+                .forEach(s -> {
+                    List<CandidaturaEmpresaResponseDTO> cards = porStatus.getOrDefault(s.getId(), List.of());
+                    colunas.add(new KanbanColunaDTO(s.getId(), s.getStatus(), cards.size(), cards));
+                });
+
+        return new KanbanBoardDTO(vaga.getId(), vaga.getTitulo(), candidaturas.size(), colunas);
+    }
+
+    /** Ordem de coluna pelo fluxo canônico; status customizados vão para o fim. */
+    private static int ordemCanonica(String nome) {
+        return FluxoStatusCandidatura.fromNome(nome).map(Enum::ordinal).orElse(Integer.MAX_VALUE);
     }
 
     // ── Empresa — detalhar uma candidatura específica ─────────────────────────

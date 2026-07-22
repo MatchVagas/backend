@@ -5,6 +5,7 @@ import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
 import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
 import com.matchvagas.backend.service.CurriculoService;
@@ -122,6 +123,24 @@ public class CandidaturaController {
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByVagaAndEmpresa(vagaId, usuarioId));
+    }
+
+    // ── Empresa — funil Kanban das candidaturas de uma vaga ───────────────────
+
+    @GetMapping("/empresa/vaga/{vagaId}/kanban")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Funil Kanban das candidaturas de uma vaga",
+        description = "Retorna as candidaturas da vaga agrupadas em colunas por status, na ordem "
+                    + "canônica do fluxo (com a coluna \"Novas\" para as ainda sem status), "
+                    + "respeitando a privacidade de cada candidato. Para mover um card de coluna, "
+                    + "use PATCH /api/candidaturas/{id}/empresa/status/{statusId}."
+    )
+    public ResponseEntity<KanbanBoardDTO> kanbanVaga(
+            @PathVariable Long vagaId,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.montarKanbanVaga(vagaId, usuarioId));
     }
 
     // ── Empresa — detalhar candidatura específica ─────────────────────────────
