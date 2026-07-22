@@ -26,7 +26,7 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 **Objetivo:** deixar de ser um CRUD de vagas e virar plataforma de recrutamento. É o que **retém usuário** — sem comunicação, a empresa sai da plataforma para conversar por fora.
 **Horizonte:** 1–2 meses.
 
-- [ ] 🔴 **Comunicação empresa ↔ candidato** — não existe entidade de mensagem hoje (maior gap funcional). Começar simples: mensagem atrelada à candidatura ("convite para entrevista").
+- [x] 🔴 **Comunicação empresa ↔ candidato** — entidade `Mensagem` atrelada à candidatura (a candidatura é o thread; participantes = candidato dono + gestor da empresa da vaga). REST em `/api/mensagens` (enviar, listar paginado, marcar lidas, contagens), notificação in-app/e-mail ao destinatário e limpeza de FK nos fluxos de exclusão. Falta apenas o push em tempo real (item abaixo).
 - [ ] 🟡 **Notificações em tempo real** (WebSocket/SSE) — o `NotificacaoService` já faz in-app + e-mail; falta o push que evita polling.
 - [ ] 🟡 **Funil de candidaturas (Kanban) para a empresa** — os status já existem (`HistoricoStatusCandidatura`); falta a visão de pipeline.
 - [ ] 🟡 **Busca melhor**: filtro por faixa salarial, localização/geo, ordenação e full-text (Postgres `tsvector`).

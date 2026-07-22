@@ -47,6 +47,7 @@ class VagaServiceTest {
     @Mock StatusVagaRepository statusVagaRepository;
     @Mock CidadeRepository cidadeRepository;
     @Mock CandidaturaRepository candidaturaRepository;
+    @Mock MensagemRepository mensagemRepository;
     @Mock VagasMapper vagasMapper;
 
     @InjectMocks VagaService vagaService;

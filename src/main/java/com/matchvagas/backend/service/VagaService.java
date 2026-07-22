@@ -31,6 +31,7 @@ public class VagaService {
     private final StatusVagaRepository statusVagaRepository;
     private final CidadeRepository cidadeRepository;
     private final CandidaturaRepository candidaturaRepository;
+    private final MensagemRepository mensagemRepository;
     private final VagasMapper vagasMapper;
 
     @Transactional(readOnly = true)
@@ -198,6 +199,8 @@ public class VagaService {
                 throw new BusinessException("Você não tem permissão para remover esta vaga.");
         }
 
+        // Remove as conversas antes das candidaturas (FK mensagens → candidatura)
+        mensagemRepository.deleteByCandidaturaVagaId(id);
         candidaturaRepository.deleteByVagaId(id);
         vagaRepository.deleteById(id);
     }

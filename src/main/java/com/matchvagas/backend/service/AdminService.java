@@ -29,6 +29,7 @@ public class AdminService {
     private final EmpresaRepository        empresaRepository;
     private final VagaRepository           vagaRepository;
     private final CandidaturaRepository    candidaturaRepository;
+    private final MensagemRepository       mensagemRepository;
     private final AdministradoresRepository administradoresRepository;
     private final DepartamentosRepository  departamentosRepository;
     private final StatusVagaRepository     statusVagaRepository;
@@ -310,6 +311,8 @@ public class AdminService {
         if (!candidaturaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Candidatura não encontrada com ID: " + id);
         }
+        // Remove as conversas antes da candidatura (FK mensagens → candidatura)
+        mensagemRepository.deleteByCandidaturaId(id);
         candidaturaRepository.deleteById(id);
     }
 

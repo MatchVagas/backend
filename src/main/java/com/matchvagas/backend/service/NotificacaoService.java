@@ -34,6 +34,16 @@ public class NotificacaoService {
 
     @Transactional
     public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto) {
+        return criar(dto, true);
+    }
+
+    /**
+     * Cria a notificação in-app e, se {@code enviarEmail} for verdadeiro, também envia o e-mail.
+     * O controle existe para cenários de alto volume (ex.: chat), onde um e-mail por evento
+     * vira spam — nesses casos o chamador cria o in-app sempre e agenda o e-mail sob sua regra.
+     */
+    @Transactional
+    public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto, boolean enviarEmail) {
         Usuarios usuario = usuariosRepository.findById(dto.usuarioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
 
@@ -53,7 +63,9 @@ public class NotificacaoService {
 
         Notificacao salva = notificacaoRepository.save(notificacao);
 
-        enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
+        if (enviarEmail) {
+            enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
+        }
 
         return notificacaoMapper.toDTO(salva);
     }
@@ -66,10 +78,16 @@ public class NotificacaoService {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notificarPorTipo(Long usuarioId, String titulo, String mensagem, String tipoNome) {
+        notificarPorTipo(usuarioId, titulo, mensagem, tipoNome, true);
+    }
+
+    /** Variante que permite suprimir o e-mail (mantendo o in-app) — ver {@link #criar(NotificacoesRequestDTO, boolean)}. */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void notificarPorTipo(Long usuarioId, String titulo, String mensagem, String tipoNome, boolean enviarEmail) {
         Long tipoId = tipoNome == null ? null
                 : tipoNotificacaoRepository.findByStatusIgnoreCase(tipoNome)
                         .map(t -> (long) t.getId()).orElse(null);
-        criar(new NotificacoesRequestDTO(titulo, mensagem, usuarioId, tipoId));
+        criar(new NotificacoesRequestDTO(titulo, mensagem, usuarioId, tipoId), enviarEmail);
     }
 
     @Transactional(readOnly = true)
