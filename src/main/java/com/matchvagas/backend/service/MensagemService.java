@@ -39,6 +39,7 @@ public class MensagemService {
     private final UsuariosRepository    usuariosRepository;
     private final NotificacaoService    notificacaoService;
     private final RealtimeService       realtimeService;
+    private final AposCommitExecutor    aposCommit;
 
     private enum Papel { CANDIDATO, EMPRESA }
 
@@ -69,8 +70,8 @@ public class MensagemService {
         Mensagem salva = mensagemRepository.save(mensagem);
         MensagemResponseDTO response = toResponseDTO(salva, candidatura);
 
-        // Push em tempo real ao destinatário — atualiza a conversa aberta na hora.
-        realtimeService.enviarPara(destinatarioId, "mensagem", response);
+        // Push em tempo real ao destinatário, após o commit — não notifica um envio revertido.
+        aposCommit.executar(() -> realtimeService.enviarPara(destinatarioId, "mensagem", response));
 
         notificarDestinatario(candidatura, destinatarioId, remetente, destinatarioEstaEmDia);
 

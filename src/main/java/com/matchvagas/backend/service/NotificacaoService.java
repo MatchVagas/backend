@@ -13,6 +13,7 @@ import com.matchvagas.backend.repository.NotificacaoRepository;
 import com.matchvagas.backend.repository.TipoNotificacaoRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificacaoService {
@@ -32,6 +34,7 @@ public class NotificacaoService {
     private final NotificacaoMapper notificacaoMapper;
     private final EmailService emailService;
     private final RealtimeService realtimeService;
+    private final AposCommitExecutor aposCommit;
 
     @Transactional
     public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto) {
@@ -65,12 +68,24 @@ public class NotificacaoService {
         Notificacao salva = notificacaoRepository.save(notificacao);
         NotificacoesResponseDTO responseDTO = notificacaoMapper.toDTO(salva);
 
-        // Push em tempo real (SSE) — best-effort; não interfere no fluxo principal.
-        realtimeService.enviarPara(usuario.getId(), "notificacao", responseDTO);
-
-        if (enviarEmail) {
-            enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
-        }
+        // Efeitos externos (push SSE + e-mail) só após o commit — nunca notificam algo
+        // que sofra rollback. Best-effort: uma falha aqui não afeta a notificação salva.
+        Long destinatarioId = usuario.getId();
+        String email = usuario.getEmail();
+        String nome = usuario.getNome();
+        String titulo = dto.titulo();
+        String mensagem = dto.mensagem();
+        aposCommit.executar(() -> {
+            try {
+                realtimeService.enviarPara(destinatarioId, "notificacao", responseDTO);
+                if (enviarEmail) {
+                    enviarEmailNotificacao(email, nome, titulo, mensagem);
+                }
+            } catch (Exception e) {
+                log.warn("Falha ao entregar notificação pós-commit ao usuário {}: {}",
+                        destinatarioId, e.getMessage());
+            }
+        });
 
         return responseDTO;
     }
