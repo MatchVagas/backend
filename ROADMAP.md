@@ -30,7 +30,7 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 - [x] 🟡 **Notificações em tempo real** (SSE) — `RealtimeService` mantém um stream por usuário em `GET /api/realtime/stream` (auth por header JWT), com heartbeat anti-timeout. `NotificacaoService` emite o evento `notificacao` (badge) e `MensagemService` o evento `mensagem` (conversa aberta atualiza na hora). Escolhido SSE em vez de WebSocket por ser push unidirecional sobre a stack stateless existente.
 - [x] 🟡 **Funil de candidaturas (Kanban) para a empresa** — `GET /api/candidaturas/empresa/vaga/{vagaId}/kanban` devolve o board: coluna "Novas" (sem status) + status na ordem canônica do fluxo, cada uma com seus cards (com filtro de privacidade). Mover card reusa o PATCH de status existente.
 - [ ] 🟡 **Busca melhor**: filtro por faixa salarial, localização/geo, ordenação e full-text (Postgres `tsvector`).
-- [ ] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios.
+- [x] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios. Favoritos em `/api/favoritos` (salvar idempotente, listar, remover). Alertas em `/api/alertas` (CRUD + ativar/desativar); ao publicar uma vaga ATIVA, `VagaService` casa os alertas ativos e notifica os candidatos (reusa notificação in-app + e-mail + realtime). FKs das tabelas novas com `ON DELETE CASCADE`.
 
 ## Fase 3 — Inteligência do match (diferencial competitivo)
 **Objetivo:** evoluir o matching por regras (idade/salário/área) para **matching semântico**. Onde o produto ganha diferencial real frente a um quadro de vagas comum.

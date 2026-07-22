@@ -10,6 +10,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class VagaService {
@@ -32,6 +34,7 @@ public class VagaService {
     private final CidadeRepository cidadeRepository;
     private final CandidaturaRepository candidaturaRepository;
     private final MensagemRepository mensagemRepository;
+    private final AlertaVagaService alertaVagaService;
     private final VagasMapper vagasMapper;
 
     @Transactional(readOnly = true)
@@ -127,7 +130,18 @@ public class VagaService {
                 && dto.salarioMinimo().compareTo(dto.salarioMaximo()) > 0)
             throw new BusinessException("Salário mínimo não pode ser maior que o salário máximo.");
 
-        return vagasMapper.toDTO(vagaRepository.save(vaga));
+        Vagas salva = vagaRepository.save(vaga);
+
+        // Alertas de vaga — best-effort; nunca desfaz o cadastro da vaga.
+        try {
+            if (salva.getStatus() != null && "ATIVA".equalsIgnoreCase(salva.getStatus().getDescricao())) {
+                alertaVagaService.notificarNovaVaga(salva);
+            }
+        } catch (Exception e) {
+            log.warn("Falha ao processar alertas para a vaga {}: {}", salva.getId(), e.getMessage());
+        }
+
+        return vagasMapper.toDTO(salva);
     }
 
     // RF006 — Atualizar vaga
