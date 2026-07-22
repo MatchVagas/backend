@@ -7,12 +7,13 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.matchvagas.backend.entity.Vagas;
 
-public interface VagaRepository extends JpaRepository<Vagas, Long>{
+public interface VagaRepository extends JpaRepository<Vagas, Long>, JpaSpecificationExecutor<Vagas> {
 
     @Query("SELECT v FROM Vagas v WHERE LOWER(v.status.descricao) = 'ativa' AND v.dataExpiracao >= :agora")
     List<Vagas> findVagasAtivas(@Param("agora") LocalDateTime agora);

@@ -1,6 +1,7 @@
 package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -84,6 +85,15 @@ public class VagaService {
 
     private static String blankToEmpty(String s) {
         return (s == null || s.isBlank()) ? "" : s;
+    }
+
+    // RF007 — Busca avançada (faixa salarial, localização, texto livre, ordenação),
+    // portátil entre Postgres e MySQL via Specification (Criteria API).
+    @Transactional(readOnly = true)
+    public PageResponseDTO<VagaResponseDTO> buscar(VagaBuscaFiltro filtro, Pageable pageable) {
+        return PageResponseDTO.of(
+                vagaRepository.findAll(VagaSpecs.comFiltros(filtro), pageable)
+                        .map(vagasMapper::toDTO));
     }
 
     // RF005 — Cadastrar vaga
