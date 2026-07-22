@@ -31,6 +31,7 @@ public class NotificacaoService {
     private final TipoNotificacaoRepository tipoNotificacaoRepository;
     private final NotificacaoMapper notificacaoMapper;
     private final EmailService emailService;
+    private final RealtimeService realtimeService;
 
     @Transactional
     public NotificacoesResponseDTO criar(NotificacoesRequestDTO dto) {
@@ -62,12 +63,16 @@ public class NotificacaoService {
         notificacao.setLida(false);
 
         Notificacao salva = notificacaoRepository.save(notificacao);
+        NotificacoesResponseDTO responseDTO = notificacaoMapper.toDTO(salva);
+
+        // Push em tempo real (SSE) — best-effort; não interfere no fluxo principal.
+        realtimeService.enviarPara(usuario.getId(), "notificacao", responseDTO);
 
         if (enviarEmail) {
             enviarEmailNotificacao(usuario.getEmail(), usuario.getNome(), dto.titulo(), dto.mensagem());
         }
 
-        return notificacaoMapper.toDTO(salva);
+        return responseDTO;
     }
 
     /**

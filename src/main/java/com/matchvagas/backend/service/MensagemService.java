@@ -38,6 +38,7 @@ public class MensagemService {
     private final CandidaturaRepository candidaturaRepository;
     private final UsuariosRepository    usuariosRepository;
     private final NotificacaoService    notificacaoService;
+    private final RealtimeService       realtimeService;
 
     private enum Papel { CANDIDATO, EMPRESA }
 
@@ -66,10 +67,14 @@ public class MensagemService {
         mensagem.setConteudo(dto.conteudo().trim());
 
         Mensagem salva = mensagemRepository.save(mensagem);
+        MensagemResponseDTO response = toResponseDTO(salva, candidatura);
+
+        // Push em tempo real ao destinatário — atualiza a conversa aberta na hora.
+        realtimeService.enviarPara(destinatarioId, "mensagem", response);
 
         notificarDestinatario(candidatura, destinatarioId, remetente, destinatarioEstaEmDia);
 
-        return toResponseDTO(salva, candidatura);
+        return response;
     }
 
     // ── Listar a conversa (mais antigas primeiro) ─────────────────────────────

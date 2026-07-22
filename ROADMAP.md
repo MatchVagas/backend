@@ -27,7 +27,7 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 **Horizonte:** 1–2 meses.
 
 - [x] 🔴 **Comunicação empresa ↔ candidato** — entidade `Mensagem` atrelada à candidatura (a candidatura é o thread; participantes = candidato dono + gestor da empresa da vaga). REST em `/api/mensagens` (enviar, listar paginado, marcar lidas, contagens), notificação in-app/e-mail ao destinatário e limpeza de FK nos fluxos de exclusão. Falta apenas o push em tempo real (item abaixo).
-- [ ] 🟡 **Notificações em tempo real** (WebSocket/SSE) — o `NotificacaoService` já faz in-app + e-mail; falta o push que evita polling.
+- [x] 🟡 **Notificações em tempo real** (SSE) — `RealtimeService` mantém um stream por usuário em `GET /api/realtime/stream` (auth por header JWT), com heartbeat anti-timeout. `NotificacaoService` emite o evento `notificacao` (badge) e `MensagemService` o evento `mensagem` (conversa aberta atualiza na hora). Escolhido SSE em vez de WebSocket por ser push unidirecional sobre a stack stateless existente.
 - [ ] 🟡 **Funil de candidaturas (Kanban) para a empresa** — os status já existem (`HistoricoStatusCandidatura`); falta a visão de pipeline.
 - [ ] 🟡 **Busca melhor**: filtro por faixa salarial, localização/geo, ordenação e full-text (Postgres `tsvector`).
 - [ ] 🟢 **Salvar vaga** (favoritos) e **alertas de vaga** por critérios.

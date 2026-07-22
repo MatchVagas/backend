@@ -47,6 +47,7 @@ class MensagemServiceTest {
     @Mock CandidaturaRepository candidaturaRepository;
     @Mock UsuariosRepository    usuariosRepository;
     @Mock NotificacaoService    notificacaoService;
+    @Mock RealtimeService       realtimeService;
 
     @InjectMocks MensagemService mensagemService;
 
@@ -129,6 +130,8 @@ class MensagemServiceTest {
             // Destinatário é o gestor da empresa (id 20); estava em dia → e-mail habilitado
             verify(notificacaoService).notificarPorTipo(
                     eq(USUARIO_EMPRESA_ID), eq("Nova mensagem"), any(), eq("Mensagem"), eq(true));
+            // Push SSE ao destinatário para atualizar a conversa aberta
+            verify(realtimeService).enviarPara(eq(USUARIO_EMPRESA_ID), eq("mensagem"), any());
         }
 
         @Test
