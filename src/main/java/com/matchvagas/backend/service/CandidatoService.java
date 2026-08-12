@@ -29,6 +29,7 @@ import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.TipoTelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import com.matchvagas.backend.util.CpfCrypto;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +56,8 @@ public class CandidatoService {
     private final ExperienciaRepository experienciaRepository;
     private final FormacaoRepository formacaoRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     private static final int URL_FOTO_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
 
@@ -102,7 +105,9 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), usuario);
         }
 
-        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
+        Candidatos salvo = candidatoRepository.save(candidato);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(salvo));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(salvo));
     }
 
     // RF003 — Atualizar perfil do candidato
@@ -137,7 +142,9 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), candidato.getUsuario());
         }
 
-        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
+        Candidatos salvo = candidatoRepository.save(candidato);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(salvo));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(salvo));
     }
 
     /**

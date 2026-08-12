@@ -10,6 +10,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidatoMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -36,6 +37,8 @@ class CandidatoServiceTest {
     @Mock CandidatoMapper candidatoMapper;
     @Mock com.matchvagas.backend.repository.TelefoneRepository telefoneRepository;
     @Mock com.matchvagas.backend.repository.TipoTelefoneRepository tipoTelefoneRepository;
+    @Mock IndexacaoEmbeddingService indexacaoEmbeddingService;
+    @Mock AposCommitExecutor aposCommitExecutor;
 
     @InjectMocks CandidatoService candidatoService;
 

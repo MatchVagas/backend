@@ -10,6 +10,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,6 +53,8 @@ class VagaServiceTest {
     @Mock MensagemRepository mensagemRepository;
     @Mock AlertaVagaService alertaVagaService;
     @Mock VagasMapper vagasMapper;
+    @Mock IndexacaoEmbeddingService indexacaoEmbeddingService;
+    @Mock AposCommitExecutor aposCommitExecutor;
 
     @InjectMocks VagaService vagaService;
 

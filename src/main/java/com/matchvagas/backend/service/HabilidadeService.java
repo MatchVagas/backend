@@ -8,6 +8,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.HabilidadeMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,8 @@ public class HabilidadeService {
 
     private final CandidatoRepository candidatoRepository;
     private final HabilidadeMapper habilidadeMapper;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     @Transactional(readOnly = true)
     public List<HabilidadeResponseDTO> listar(Long usuarioId) {
@@ -42,6 +45,7 @@ public class HabilidadeService {
         Habilidade habilidade = habilidadeMapper.toEntity(dto);
         candidato.getHabilidades().add(habilidade);
         candidatoRepository.save(candidato);
+        reindexar(candidato);
         return habilidadeMapper.toResponseDTO(habilidade);
     }
 
@@ -65,6 +69,7 @@ public class HabilidadeService {
         habilidade.setNome(dto.nome());
         habilidade.setNivel(dto.nivel());
         candidatoRepository.save(candidato);
+        reindexar(candidato);
         return habilidadeMapper.toResponseDTO(habilidade);
     }
 
@@ -79,11 +84,16 @@ public class HabilidadeService {
         }
 
         candidatoRepository.save(candidato);
+        reindexar(candidato);
     }
 
     private Candidatos buscarCandidatoPorUsuario(Long usuarioId) {
         return candidatoRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
+    }
+
+    private void reindexar(Candidatos candidato) {
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(candidato));
     }
 }

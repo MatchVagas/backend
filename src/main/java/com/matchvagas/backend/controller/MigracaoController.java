@@ -1,6 +1,8 @@
 package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.MigracaoResultadoDTO;
+import com.matchvagas.backend.dto.EmbeddingBackfillResponseDTO;
+import com.matchvagas.backend.service.EmbeddingAdminService;
 import com.matchvagas.backend.service.MigracaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class MigracaoController {
 
     private final MigracaoService migracaoService;
+    private final EmbeddingAdminService embeddingAdminService;
 
     @PostMapping("/backfill-cpf")
     @Operation(
@@ -40,5 +43,12 @@ public class MigracaoController {
                     + "relativo ao bucket (formato do bucket privado + URL assinada). Idempotente.")
     public ResponseEntity<MigracaoResultadoDTO> normalizarUrlsImagens() {
         return ResponseEntity.ok(migracaoService.normalizarUrlsImagens());
+    }
+
+    @PostMapping("/backfill-embeddings")
+    @Operation(summary = "Indexar vagas e candidatos existentes",
+            description = "Gera embeddings ausentes ou desatualizados. Requer APP_EMBEDDINGS_ENABLED=true.")
+    public ResponseEntity<EmbeddingBackfillResponseDTO> backfillEmbeddings() {
+        return ResponseEntity.ok(embeddingAdminService.backfill());
     }
 }

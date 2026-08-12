@@ -10,6 +10,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
@@ -37,6 +38,8 @@ public class VagaService {
     private final MensagemRepository mensagemRepository;
     private final AlertaVagaService alertaVagaService;
     private final VagasMapper vagasMapper;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     @Transactional(readOnly = true)
     public List<VagaResponseDTO> findAll() {
@@ -141,6 +144,7 @@ public class VagaService {
             throw new BusinessException("Salário mínimo não pode ser maior que o salário máximo.");
 
         Vagas salva = vagaRepository.save(vaga);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarVaga(salva));
 
         // Alertas de vaga — best-effort; nunca desfaz o cadastro da vaga.
         try {
@@ -202,7 +206,9 @@ public class VagaService {
             vaga.setCidade(cidadeRepository.findById(dto.cidadeId())
                     .orElseThrow(() -> new ResourceNotFoundException("Cidade não encontrada")));
 
-        return vagasMapper.toDTO(vagaRepository.save(vaga));
+        Vagas salva = vagaRepository.save(vaga);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarVaga(salva));
+        return vagasMapper.toDTO(salva);
     }
 
     // RF006 — Remover vaga

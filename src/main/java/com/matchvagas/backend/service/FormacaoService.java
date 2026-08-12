@@ -7,6 +7,7 @@ import com.matchvagas.backend.entity.Formacao;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.FormacaoRepository;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,8 @@ public class FormacaoService {
 
     private final FormacaoRepository formacaoRepository;
     private final CandidatoRepository candidatoRepository;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     @Transactional(readOnly = true)
     public List<FormacaoResponseDTO> listar(Long usuarioId) {
@@ -39,7 +42,9 @@ public class FormacaoService {
         formacao.setDataInicio(dto.dataInicio());
         formacao.setDataFim(dto.dataFim());
         formacao.setCandidato(candidato);
-        return toResponseDTO(formacaoRepository.save(formacao));
+        Formacao salva = formacaoRepository.save(formacao);
+        reindexar(candidato);
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -51,7 +56,9 @@ public class FormacaoService {
         formacao.setNivel(dto.nivel());
         formacao.setDataInicio(dto.dataInicio());
         formacao.setDataFim(dto.dataFim());
-        return toResponseDTO(formacaoRepository.save(formacao));
+        Formacao salva = formacaoRepository.save(formacao);
+        reindexar(candidato);
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -59,6 +66,7 @@ public class FormacaoService {
         Candidatos candidato = buscarCandidatoPorUsuario(usuarioId);
         Formacao formacao = buscarFormacaoDoCandidato(id, candidato.getId());
         formacaoRepository.delete(formacao);
+        reindexar(candidato);
     }
 
     private Candidatos buscarCandidatoPorUsuario(Long usuarioId) {
@@ -86,5 +94,9 @@ public class FormacaoService {
                 f.getDataInicio(),
                 f.getDataFim()
         );
+    }
+
+    private void reindexar(Candidatos candidato) {
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(candidato));
     }
 }
