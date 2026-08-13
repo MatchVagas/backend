@@ -36,20 +36,15 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 **Objetivo:** evoluir o matching por regras (idade/salário/área) para **matching semântico**. Onde o produto ganha diferencial real frente a um quadro de vagas comum.
 **Horizonte:** após o núcleo estar sólido.
 
-- [x] 🔴 **Parsing de currículo** — extração local de PDF/DOC/DOCX com Apache Tika, texto
-  normalizado e dados estruturados (nome, e-mail, telefone, competências, formação e experiência).
-- [x] 🔴 **Match por embeddings** entre currículo/perfil e vaga — modelo ONNX local para
-  indexação, vetores persistidos como CSV portátil entre PostgreSQL e MySQL, similaridade de
-  cosseno calculada em Java, score/ranking híbrido e fallback para as regras atuais. A consulta
-  carrega os vetores em lote e não depende do modelo; com `APP_EMBEDDINGS_ENABLED=false`
-  (padrão em dev/CI), nenhum modelo é baixado e o match textual permanece ativo.
+- [ ] 🔴 **Parsing de currículo** (PDF → dados estruturados).
+- [ ] 🔴 **Match por embeddings** entre CV e vaga, com score e ranking (em vez de igualdade de campos).
 - [ ] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato *e* candidatos para a empresa.
 - [ ] 🟡 **Recursos assistivos**: resumo automático de perfil, geração de descrição de vaga, triagem inicial.
 
-> **Camada semântica implementada:** embeddings abertos executados localmente via ONNX,
-> desacoplados por `EmbeddingPort`. O modelo é usado somente na indexação; a consulta usa banco
-> + matemática em Java. Serviços generativos/LLMs permanecem opcionais para os recursos
-> assistivos futuros e devem ficar separados do core de matching.
+> **Camada de IA:** usar a API da Anthropic com os modelos **Claude** mais recentes
+> (scoring semântico + geração), integrada como serviço à parte para não acoplar o
+> core. Confirmar modelos e desenho da integração na documentação oficial antes de
+> implementar.
 
 ## Fase 4 — Escala e negócio
 **Objetivo:** sustentar crescimento e viabilizar receita. Só faz sentido com tração medida.
