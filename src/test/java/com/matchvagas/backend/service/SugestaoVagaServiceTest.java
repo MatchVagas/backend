@@ -7,6 +7,8 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.CandidatoEmbeddingRepository;
+import com.matchvagas.backend.repository.VagaEmbeddingRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +18,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -34,6 +37,8 @@ class SugestaoVagaServiceTest {
     @Mock CandidatoRepository   candidatoRepository;
     @Mock VagaRepository        vagaRepository;
     @Mock CandidaturaRepository candidaturaRepository;
+    @Mock CandidatoEmbeddingRepository candidatoEmbeddingRepository;
+    @Mock VagaEmbeddingRepository vagaEmbeddingRepository;
     @Mock VagasMapper           vagasMapper;
 
     @InjectMocks SugestaoVagaService sugestaoVagaService;
@@ -46,6 +51,10 @@ class SugestaoVagaServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(candidatoEmbeddingRepository.findByCandidatoId(anyLong()))
+                .thenReturn(Optional.empty());
+        lenient().when(vagaEmbeddingRepository.findByVagaIdIn(anyCollection()))
+                .thenReturn(List.of());
         usuario = new Usuarios();
         usuario.setId(USUARIO_ID);
         usuario.setNome("Dev Teste");
@@ -92,6 +101,40 @@ class SugestaoVagaServiceTest {
                 LocalDateTime.now(), LocalDateTime.now().plusDays(30),
                 1L, "ATIVA", 3, 1L, "São Paulo", "SP"
         );
+    }
+
+    @Test
+    @DisplayName("Deve ranquear por cosseno usando somente vetores persistidos")
+    void deveUsarVetoresPersistidosNaConsulta() {
+        ReflectionTestUtils.setField(sugestaoVagaService, "embeddingsAtivos", true);
+        ReflectionTestUtils.setField(sugestaoVagaService, "limiarSemantico", 0.30);
+        Vagas vaga = criarVaga(1L, "Contador Fiscal", "Finanças",
+                "Contabilidade", null, null, 40, 60);
+        CandidatoEmbedding candidatoEmbedding = new CandidatoEmbedding();
+        candidatoEmbedding.setCandidato(candidato);
+        candidatoEmbedding.setVetor("1.0,0.0");
+        candidatoEmbedding.setDim(2);
+        candidatoEmbedding.setModelo("modelo-teste");
+        VagaEmbedding vagaEmbedding = new VagaEmbedding();
+        vagaEmbedding.setVaga(vaga);
+        vagaEmbedding.setVetor("1.0,0.0");
+        vagaEmbedding.setDim(2);
+        vagaEmbedding.setModelo("modelo-teste");
+
+        when(candidatoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(candidato));
+        when(candidaturaRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of());
+        when(vagaRepository.findVagasAtivas(any())).thenReturn(List.of(vaga));
+        when(candidatoEmbeddingRepository.findByCandidatoId(CANDIDATO_ID))
+                .thenReturn(Optional.of(candidatoEmbedding));
+        when(vagaEmbeddingRepository.findByVagaIdIn(List.of(1L))).thenReturn(List.of(vagaEmbedding));
+        when(vagasMapper.toDTO(vaga)).thenReturn(mockVagaDTO(1L, "Contador Fiscal"));
+
+        List<SugestaoVagaResponseDTO> result = sugestaoVagaService.sugerirVagas(USUARIO_ID);
+
+        assertThat(result).singleElement().satisfies(sugestao -> {
+            assertThat(sugestao.pontuacao()).isEqualTo(60);
+            assertThat(sugestao.motivos()).contains("Alta compatibilidade com seu perfil (100%)");
+        });
     }
 
     // ─────────────────────────────────────────────────────────────────────────
