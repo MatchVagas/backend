@@ -9,7 +9,7 @@ public final class TextoEmbeddingBuilder {
     private TextoEmbeddingBuilder() {}
 
     public static String daVaga(Vagas vaga) {
-        StringJoiner texto = new StringJoiner(". ");
+        StringJoiner texto = new StringJoiner(". ", "passage: ", "");
         add(texto, vaga.getTitulo());
         add(texto, vaga.getAreaAtuacao());
         if (vaga.getModalidade() != null) add(texto, vaga.getModalidade().getDescricao());
@@ -23,7 +23,7 @@ public final class TextoEmbeddingBuilder {
 
     public static String doCandidato(Candidatos candidato, List<Experiencia> experiencias,
                                      List<Formacao> formacoes) {
-        StringJoiner texto = new StringJoiner(". ");
+        StringJoiner texto = new StringJoiner(". ", "query: ", "");
         add(texto, candidato.getObjetivoProfissional());
         add(texto, candidato.getDisponibilidade());
         if (candidato.getCurriculo() != null) add(texto, candidato.getCurriculo().getTextoExtraido());

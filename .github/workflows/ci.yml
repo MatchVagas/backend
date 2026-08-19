@@ -15,33 +15,7 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
 
-    # Banco efêmero para o teste de carga de contexto (@SpringBootTest).
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: matchvagas_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=10
-
     env:
-      # ── Datasource apontando para o Postgres de serviço ──────────────────────
-      DATABASE_PREFIX: jdbc:postgresql
-      DATABASE_URL: localhost
-      DATABASE_PORT: "5432"
-      DATABASE_NAME: matchvagas_test
-      DATABASE_PREPARED_STATEMENTS: ""
-      DATABASE_USERNAME: postgres
-      DATABASE_PASSWORD: postgres
-      DATABASE_DRIVER: org.postgresql.Driver
-      DATABASE_DIALECT: org.hibernate.dialect.PostgreSQLDialect
       # ── Segredos dummy só para o contexto subir no CI (nunca reais) ──────────
       JWT_SECRET: ci-only-jwt-secret-com-mais-de-32-bytes-para-hs256-000
       CPF_ENCRYPTION_KEY: ci-only-cpf-encryption-key

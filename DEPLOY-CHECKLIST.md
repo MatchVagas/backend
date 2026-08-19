@@ -13,6 +13,13 @@
 - [ ] Acesso ao banco de produção (psql / cliente SQL) para conferência de schema e backfill.
 - [ ] `openssl`, `git` e `java`/`mvn` disponíveis localmente.
 
+### Embeddings semânticos (Fase 3)
+
+- [ ] Em homologação, definir `APP_EMBEDDINGS_ENABLED=true` e reservar memória para o modelo ONNX.
+- [ ] Confirmar `APP_EMBEDDINGS_MODELO=intfloat/multilingual-e5-small` e, se necessário, sobrescrever `APP_EMBEDDINGS_MODEL_URI`, `APP_EMBEDDINGS_TOKENIZER_URI` e `APP_EMBEDDINGS_CACHE_DIR`.
+- [ ] Após o primeiro boot, executar como ADMIN `POST /api/admin/migracao/backfill-embeddings`.
+- [ ] Confirmar na resposta `ativo=true` e validar sugestões PT-BR antes de repetir o backfill em produção.
+
 ---
 
 ## 1. Gerar os segredos fortes

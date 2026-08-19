@@ -592,19 +592,20 @@ app.embeddings.tokenizer-uri=classpath:/onnx/tokenizer.json
 
 ## Checklist de implementação
 
-- [ ] Passo 0 — `pom.xml`: BOM Spring AI + `spring-ai-transformers` (confirmar versão)
-- [ ] Passo 1 — properties (`app.embeddings.*`, flag off por padrão)
-- [ ] Passo 2 — `EmbeddingPort`, `TransformersEmbeddingAdapter`, `DisabledEmbeddingPort`, `EmbeddingConfig`
-- [ ] Passo 3 — `EmbeddingCodec` (CSV + cosseno)
-- [ ] Passo 4 — `TextoEmbeddingBuilder`
-- [ ] Passo 5 — entidades `VagaEmbedding`/`CandidatoEmbedding` + repositórios (`@OnDelete` cascade)
-- [ ] Passo 6 — `IndexacaoEmbeddingService` + ganchos em `VagaService`/`CandidatoService` + backfill admin
-- [ ] Passo 7 — match híbrido em `SugestaoVagaService` (semântico + fallback), carregar vetores em lote
+- [x] Passo 0 — `pom.xml`: BOM Spring AI + `spring-ai-transformers` (Spring AI 1.1.4)
+- [x] Passo 1 — properties (`app.embeddings.*`, flag off por padrão)
+- [x] Passo 2 — `EmbeddingPort`, `TransformersEmbeddingAdapter`, `DisabledEmbeddingPort`, `EmbeddingConfig`
+- [x] Passo 3 — `EmbeddingCodec` (CSV + cosseno)
+- [x] Passo 4 — `TextoEmbeddingBuilder`
+- [x] Passo 5 — entidades `VagaEmbedding`/`CandidatoEmbedding` + repositórios (`@OnDelete` cascade)
+- [x] Passo 6 — `IndexacaoEmbeddingService` + ganchos em `VagaService`/`CandidatoService` + backfill admin
+- [x] Passo 7 — match híbrido em `SugestaoVagaService` (semântico + fallback), carregar vetores em lote
 - [ ] Passo 8 — (opcional) recomendação inversa (com decisão de LGPD antes)
-- [ ] Passo 9 — trocar para modelo multilíngue e re-rodar backfill
-- [ ] Passo 10 — testes (codec, híbrido com mocks, contextLoads sem download)
-- [ ] `./mvnw -o test` verde localmente; ligar `APP_EMBEDDINGS_ENABLED=true` só em prod
-- [ ] Marcar no `ROADMAP.md`: Fase 3 — parsing por embeddings iniciado (match semântico)
+- [x] Passo 9 — configurar `intfloat/multilingual-e5-small` (384d) e prefixos E5 `query:`/`passage:`
+- [x] Passo 10 — testes (codec, híbrido com mocks, contextLoads sem download)
+- [x] `./mvnw test` verde localmente (212 testes); ligar `APP_EMBEDDINGS_ENABLED=true` só em homologação/produção
+- [x] Marcar no `ROADMAP.md`: parsing de currículo e match semântico implementados
+- [ ] Operação — executar `POST /api/admin/migracao/backfill-embeddings` em homologação e produção após habilitar o modelo
 
 ---
 

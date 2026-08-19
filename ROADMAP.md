@@ -36,15 +36,14 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 **Objetivo:** evoluir o matching por regras (idade/salário/área) para **matching semântico**. Onde o produto ganha diferencial real frente a um quadro de vagas comum.
 **Horizonte:** após o núcleo estar sólido.
 
-- [ ] 🔴 **Parsing de currículo** (PDF → dados estruturados).
-- [ ] 🔴 **Match por embeddings** entre CV e vaga, com score e ranking (em vez de igualdade de campos).
+- [x] 🔴 **Parsing de currículo** (PDF/DOC/DOCX → texto e dados estruturados por regras, com Apache Tika).
+- [x] 🔴 **Match por embeddings** entre CV e vaga, com score e ranking híbrido. Usa ONNX local, persistência portátil e fallback por regras; modelo multilíngue configurado, desligado por padrão.
 - [ ] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato *e* candidatos para a empresa.
 - [ ] 🟡 **Recursos assistivos**: resumo automático de perfil, geração de descrição de vaga, triagem inicial.
 
-> **Camada de IA:** usar a API da Anthropic com os modelos **Claude** mais recentes
-> (scoring semântico + geração), integrada como serviço à parte para não acoplar o
-> core. Confirmar modelos e desenho da integração na documentação oficial antes de
-> implementar.
+> **Camada de IA:** o matching semântico usa embeddings ONNX locais para preservar
+> privacidade e evitar custo por chamada. Recursos generativos futuros podem usar um
+> serviço separado (Anthropic ou modelo aberto), sem acoplar o core.
 
 ## Fase 4 — Escala e negócio
 **Objetivo:** sustentar crescimento e viabilizar receita. Só faz sentido com tração medida.
