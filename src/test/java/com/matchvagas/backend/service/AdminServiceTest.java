@@ -15,6 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -36,6 +39,7 @@ class AdminServiceTest {
     @Mock EmpresaRepository          empresaRepository;
     @Mock VagaRepository             vagaRepository;
     @Mock CandidaturaRepository      candidaturaRepository;
+    @Mock MensagemRepository         mensagemRepository;
     @Mock AdministradoresRepository  administradoresRepository;
     @Mock DepartamentosRepository    departamentosRepository;
     @Mock StatusVagaRepository       statusVagaRepository;
@@ -49,6 +53,8 @@ class AdminServiceTest {
     @Mock PasswordEncoder            passwordEncoder;
 
     @InjectMocks AdminService adminService;
+
+    private static final Pageable PAGEABLE = PageRequest.of(0, 20);
 
     private Usuarios     usuario;
     private Administradores admin;
@@ -125,13 +131,15 @@ class AdminServiceTest {
         @Test
         @DisplayName("Deve listar todos os usuários do sistema")
         void deveListarTodosUsuarios() {
-            when(usuariosRepository.findAll()).thenReturn(List.of(usuario));
+            when(usuariosRepository.findAll(PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(usuario), PAGEABLE, 1));
             when(usuarioMapper.toResponseDTO(usuario)).thenReturn(buildUsuarioDTO());
 
-            List<UsuarioResponseDTO> result = adminService.listarUsuarios();
+            var result = adminService.listarUsuarios(PAGEABLE);
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).nome()).isEqualTo("Admin Master");
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).nome()).isEqualTo("Admin Master");
+            assertThat(result.totalElements()).isEqualTo(1);
         }
 
         @Test
@@ -280,10 +288,11 @@ class AdminServiceTest {
             CandidatoResponseDTO dto = new CandidatoResponseDTO(
                     1L, "Admin Master", "admin@matchvagas.com", null, null, null, null, null, null, null, null, null);
 
-            when(candidatoRepository.findAll()).thenReturn(List.of(candidato));
+            when(candidatoRepository.findAll(PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidato), PAGEABLE, 1));
             when(candidatoMapper.toResponseDTO(candidato)).thenReturn(dto);
 
-            assertThat(adminService.listarCandidatos()).hasSize(1);
+            assertThat(adminService.listarCandidatos(PAGEABLE).content()).hasSize(1);
         }
 
         @Test
@@ -333,10 +342,11 @@ class AdminServiceTest {
                     1L, "12.345.678/0001-90", "Tech Corp Ltda", "Tech Corp",
                     null, null, null, null, null, null, null, 1L, "Gestor", "PENDENTE");
 
-            when(empresaRepository.findAll()).thenReturn(List.of(empresa));
+            when(empresaRepository.findAll(PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(empresa), PAGEABLE, 1));
             when(empresaMapper.toResponseDTO(empresa)).thenReturn(dto);
 
-            assertThat(adminService.listarEmpresas()).hasSize(1);
+            assertThat(adminService.listarEmpresas(PAGEABLE).content()).hasSize(1);
         }
 
         @Test
@@ -383,10 +393,11 @@ class AdminServiceTest {
         @Test
         @DisplayName("Deve listar todas as vagas do sistema")
         void deveListarVagas() {
-            when(vagaRepository.findAll()).thenReturn(List.of(vaga));
+            when(vagaRepository.findAll(PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(vaga), PAGEABLE, 1));
             when(vagasMapper.toDTO(vaga)).thenReturn(mock(VagaResponseDTO.class));
 
-            assertThat(adminService.listarVagas()).hasSize(1);
+            assertThat(adminService.listarVagas(PAGEABLE).content()).hasSize(1);
         }
 
         @Test
@@ -463,10 +474,11 @@ class AdminServiceTest {
                     true, true, true, true, true, true, false, false
             );
 
-            when(candidaturaRepository.findAll()).thenReturn(List.of(candidatura));
+            when(candidaturaRepository.findAll(PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
             when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(dto);
 
-            assertThat(adminService.listarCandidaturas()).hasSize(1);
+            assertThat(adminService.listarCandidaturas(PAGEABLE).content()).hasSize(1);
         }
 
         @Test

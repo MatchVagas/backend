@@ -1,5 +1,7 @@
 package com.matchvagas.backend.service;
 
+import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.entity.*;
@@ -8,6 +10,7 @@ import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.*;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,6 +20,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -43,7 +50,11 @@ class VagaServiceTest {
     @Mock StatusVagaRepository statusVagaRepository;
     @Mock CidadeRepository cidadeRepository;
     @Mock CandidaturaRepository candidaturaRepository;
+    @Mock MensagemRepository mensagemRepository;
+    @Mock AlertaVagaService alertaVagaService;
     @Mock VagasMapper vagasMapper;
+    @Mock IndexacaoEmbeddingService indexacaoEmbeddingService;
+    @Mock AposCommitExecutor aposCommitExecutor;
 
     @InjectMocks VagaService vagaService;
 
@@ -423,48 +434,80 @@ class VagaServiceTest {
     @DisplayName("RF007 — Busca e Filtragem de Vagas")
     class RF007 {
 
+        private final Pageable pageable = PageRequest.of(0, 20);
+
         @Test
         @DisplayName("Deve retornar todas as vagas quando sem filtros")
         void deveRetornarTodasVagasSemFiltro() {
-            when(vagaRepository.searchComFiltros("", "", null, null, "")).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "", null, null, "", pageable))
+                    .thenReturn(new PageImpl<>(List.of(vaga), pageable, 1));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search(null, null, null, null, null);
+            PageResponseDTO<VagaResponseDTO> result =
+                    vagaService.search(null, null, null, null, null, pageable);
 
-            assertThat(result).hasSize(1);
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.totalElements()).isEqualTo(1);
+            assertThat(result.page()).isZero();
+            assertThat(result.last()).isTrue();
         }
 
         @Test
         @DisplayName("Deve filtrar vagas por título")
         void deveFiltrarPorTitulo() {
-            when(vagaRepository.searchComFiltros("Java", "", null, null, "")).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("Java", "", null, null, "", pageable))
+                    .thenReturn(new PageImpl<>(List.of(vaga), pageable, 1));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search("Java", null, null, null, null);
+            PageResponseDTO<VagaResponseDTO> result =
+                    vagaService.search("Java", null, null, null, null, pageable);
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).titulo()).isEqualTo("Dev Java Pleno");
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).titulo()).isEqualTo("Dev Java Pleno");
         }
 
         @Test
         @DisplayName("Deve filtrar vagas por área de atuação")
         void deveFiltrarPorAreaAtuacao() {
-            when(vagaRepository.searchComFiltros("", "Tecnologia", null, null, "")).thenReturn(List.of(vaga));
+            when(vagaRepository.searchComFiltros("", "Tecnologia", null, null, "", pageable))
+                    .thenReturn(new PageImpl<>(List.of(vaga), pageable, 1));
             when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
 
-            List<VagaResponseDTO> result = vagaService.search(null, "Tecnologia", null, null, null);
+            PageResponseDTO<VagaResponseDTO> result =
+                    vagaService.search(null, "Tecnologia", null, null, null, pageable);
 
-            assertThat(result).hasSize(1);
+            assertThat(result.content()).hasSize(1);
         }
 
         @Test
         @DisplayName("Deve retornar lista vazia quando nenhuma vaga bate com o filtro")
         void deveRetornarVazioQuandoSemCorrespondencia() {
-            when(vagaRepository.searchComFiltros("Python", "", null, null, "")).thenReturn(List.of());
+            when(vagaRepository.searchComFiltros("Python", "", null, null, "", pageable))
+                    .thenReturn(new PageImpl<>(List.of(), pageable, 0));
 
-            List<VagaResponseDTO> result = vagaService.search("Python", null, null, null, null);
+            PageResponseDTO<VagaResponseDTO> result =
+                    vagaService.search("Python", null, null, null, null, pageable);
 
-            assertThat(result).isEmpty();
+            assertThat(result.content()).isEmpty();
+            assertThat(result.totalElements()).isZero();
+        }
+
+        @Test
+        @DisplayName("Busca avançada delega ao repositório via Specification e mapeia o resultado")
+        void buscaAvancadaDelegaEMapeia() {
+            VagaBuscaFiltro filtro = new VagaBuscaFiltro(
+                    "java", null, 1L, null, null, null, null, null,
+                    new BigDecimal("3000"), null, true);
+
+            when(vagaRepository.findAll(any(Specification.class), eq(pageable)))
+                    .thenReturn(new PageImpl<>(List.of(vaga), pageable, 1));
+            when(vagasMapper.toDTO(vaga)).thenReturn(responseDTO);
+
+            PageResponseDTO<VagaResponseDTO> result = vagaService.buscar(filtro, pageable);
+
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.totalElements()).isEqualTo(1);
+            assertThat(result.content().get(0).titulo()).isEqualTo("Dev Java Pleno");
         }
 
         @Test

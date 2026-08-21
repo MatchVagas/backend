@@ -5,12 +5,17 @@ import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
 import com.matchvagas.backend.service.CurriculoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -50,11 +55,12 @@ public class CandidaturaController {
 
     @GetMapping("/minhas")
     @PreAuthorize("hasAuthority('CANDIDATO')")
-    @Operation(summary = "Listar minhas candidaturas com preferências de compartilhamento")
-    public ResponseEntity<List<CandidaturaResponseDTO>> minhasCandidaturas(
-            Authentication authentication) {
+    @Operation(summary = "Listar minhas candidaturas com preferências de compartilhamento (paginado)")
+    public ResponseEntity<PageResponseDTO<CandidaturaResponseDTO>> minhasCandidaturas(
+            Authentication authentication,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         Long candidatoId = Long.parseLong(authentication.getName());
-        return ResponseEntity.ok(candidaturaService.findByCandidato(candidatoId));
+        return ResponseEntity.ok(candidaturaService.findByCandidato(candidatoId, pageable));
     }
 
     // ── RF009 — Detalhar uma candidatura ─────────────────────────────────────
@@ -96,10 +102,11 @@ public class CandidaturaController {
         description = "Retorna somente os dados que cada candidato autorizou compartilhar. "
                     + "Campos não compartilhados são omitidos da resposta."
     )
-    public ResponseEntity<List<CandidaturaEmpresaResponseDTO>> candidaturasEmpresa(
-            Authentication authentication) {
+    public ResponseEntity<PageResponseDTO<CandidaturaEmpresaResponseDTO>> candidaturasEmpresa(
+            Authentication authentication,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
         Long usuarioId = Long.parseLong(authentication.getName());
-        return ResponseEntity.ok(candidaturaService.findByEmpresa(usuarioId));
+        return ResponseEntity.ok(candidaturaService.findByEmpresa(usuarioId, pageable));
     }
 
     // ── Empresa — candidatos de uma vaga específica ───────────────────────────
@@ -116,6 +123,24 @@ public class CandidaturaController {
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.findByVagaAndEmpresa(vagaId, usuarioId));
+    }
+
+    // ── Empresa — funil Kanban das candidaturas de uma vaga ───────────────────
+
+    @GetMapping("/empresa/vaga/{vagaId}/kanban")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Funil Kanban das candidaturas de uma vaga",
+        description = "Retorna as candidaturas da vaga agrupadas em colunas por status, na ordem "
+                    + "canônica do fluxo (com a coluna \"Novas\" para as ainda sem status), "
+                    + "respeitando a privacidade de cada candidato. Para mover um card de coluna, "
+                    + "use PATCH /api/candidaturas/{id}/empresa/status/{statusId}."
+    )
+    public ResponseEntity<KanbanBoardDTO> kanbanVaga(
+            @PathVariable Long vagaId,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidaturaService.montarKanbanVaga(vagaId, usuarioId));
     }
 
     // ── Empresa — detalhar candidatura específica ─────────────────────────────

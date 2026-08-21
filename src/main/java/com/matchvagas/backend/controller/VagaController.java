@@ -1,12 +1,19 @@
 package com.matchvagas.backend.controller;
 
+import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
 import com.matchvagas.backend.service.VagaService;
+
+import java.math.BigDecimal;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -22,16 +29,47 @@ public class VagaController {
 
     private final VagaService vagaService;
 
-    // RF007 — Busca pública com filtros opcionais
+    // RF007 — Busca pública com filtros opcionais (paginada)
     @GetMapping
-    @Operation(summary = "Buscar e filtrar vagas")
-    public ResponseEntity<List<VagaResponseDTO>> search(
+    @Operation(summary = "Buscar e filtrar vagas",
+               description = "Suporta paginação via ?page=0&size=20&sort=id,desc (padrão: 20 por página).")
+    public ResponseEntity<PageResponseDTO<VagaResponseDTO>> search(
             @RequestParam(required = false) String titulo,
             @RequestParam(required = false) String areaAtuacao,
             @RequestParam(required = false) Long tipoVagaId,
             @RequestParam(required = false) Long modalidadeId,
-            @RequestParam(required = false) String nomeEmpresa) {
-        return ResponseEntity.ok(vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId, nomeEmpresa));
+            @RequestParam(required = false) String nomeEmpresa,
+            @PageableDefault(size = 20, sort = "id", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(
+                vagaService.search(titulo, areaAtuacao, tipoVagaId, modalidadeId, nomeEmpresa, pageable));
+    }
+
+    // RF007 — Busca avançada (portátil Postgres/MySQL)
+    @GetMapping("/busca")
+    @Operation(
+        summary = "Busca avançada de vagas",
+        description = "Filtros opcionais: termo (título/descrição/requisitos/área), área, tipo, "
+                    + "modalidade, escolaridade, cidade, estado, empresa e faixa salarial "
+                    + "(salarioMin/salarioMax). Por padrão só vagas ativas e não expiradas. "
+                    + "Ordenação via ?sort=salarioMaximo,desc (padrão: mais recentes primeiro)."
+    )
+    public ResponseEntity<PageResponseDTO<VagaResponseDTO>> buscar(
+            @RequestParam(required = false) String termo,
+            @RequestParam(required = false) String areaAtuacao,
+            @RequestParam(required = false) Long tipoVagaId,
+            @RequestParam(required = false) Long modalidadeId,
+            @RequestParam(required = false) Long escolaridadeId,
+            @RequestParam(required = false) Long cidadeId,
+            @RequestParam(required = false) Long estadoId,
+            @RequestParam(required = false) String nomeEmpresa,
+            @RequestParam(required = false) BigDecimal salarioMin,
+            @RequestParam(required = false) BigDecimal salarioMax,
+            @RequestParam(required = false, defaultValue = "true") boolean apenasAtivas,
+            @PageableDefault(size = 20, sort = "dataPublicacao", direction = Sort.Direction.DESC) Pageable pageable) {
+        VagaBuscaFiltro filtro = new VagaBuscaFiltro(
+                termo, areaAtuacao, tipoVagaId, modalidadeId, escolaridadeId,
+                cidadeId, estadoId, nomeEmpresa, salarioMin, salarioMax, apenasAtivas);
+        return ResponseEntity.ok(vagaService.buscar(filtro, pageable));
     }
 
     @GetMapping("/{id}")

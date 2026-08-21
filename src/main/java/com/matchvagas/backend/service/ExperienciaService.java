@@ -7,6 +7,7 @@ import com.matchvagas.backend.entity.Experiencia;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.ExperienciaRepository;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,8 @@ public class ExperienciaService {
 
     private final ExperienciaRepository experienciaRepository;
     private final CandidatoRepository candidatoRepository;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     @Transactional(readOnly = true)
     public List<ExperienciaResponseDTO> listar(Long usuarioId) {
@@ -39,7 +42,9 @@ public class ExperienciaService {
         experiencia.setDataInicio(dto.dataInicio());
         experiencia.setDataFim(dto.dataFim());
         experiencia.setCandidato(candidato);
-        return toResponseDTO(experienciaRepository.save(experiencia));
+        Experiencia salva = experienciaRepository.save(experiencia);
+        reindexar(candidato);
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -51,7 +56,9 @@ public class ExperienciaService {
         experiencia.setDescricao(dto.descricao());
         experiencia.setDataInicio(dto.dataInicio());
         experiencia.setDataFim(dto.dataFim());
-        return toResponseDTO(experienciaRepository.save(experiencia));
+        Experiencia salva = experienciaRepository.save(experiencia);
+        reindexar(candidato);
+        return toResponseDTO(salva);
     }
 
     @Transactional
@@ -59,6 +66,7 @@ public class ExperienciaService {
         Candidatos candidato = buscarCandidatoPorUsuario(usuarioId);
         Experiencia experiencia = buscarExperienciaDoCandidato(id, candidato.getId());
         experienciaRepository.delete(experiencia);
+        reindexar(candidato);
     }
 
     private Candidatos buscarCandidatoPorUsuario(Long usuarioId) {
@@ -86,5 +94,9 @@ public class ExperienciaService {
                 e.getDataInicio(),
                 e.getDataFim()
         );
+    }
+
+    private void reindexar(Candidatos candidato) {
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(candidato));
     }
 }

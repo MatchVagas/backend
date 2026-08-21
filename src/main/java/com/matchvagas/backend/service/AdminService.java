@@ -8,6 +8,7 @@ import com.matchvagas.backend.mapper.*;
 import com.matchvagas.backend.repository.*;
 import com.matchvagas.backend.util.CpfCrypto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,7 @@ public class AdminService {
     private final EmpresaRepository        empresaRepository;
     private final VagaRepository           vagaRepository;
     private final CandidaturaRepository    candidaturaRepository;
+    private final MensagemRepository       mensagemRepository;
     private final AdministradoresRepository administradoresRepository;
     private final DepartamentosRepository  departamentosRepository;
     private final StatusVagaRepository     statusVagaRepository;
@@ -45,9 +47,9 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<UsuarioResponseDTO> listarUsuarios() {
-        return usuariosRepository.findAll()
-                .stream().map(usuarioMapper::toResponseDTO).collect(Collectors.toList());
+    public PageResponseDTO<UsuarioResponseDTO> listarUsuarios(Pageable pageable) {
+        return PageResponseDTO.of(
+                usuariosRepository.findAll(pageable).map(usuarioMapper::toResponseDTO));
     }
 
     @Transactional(readOnly = true)
@@ -147,9 +149,9 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<CandidatoResponseDTO> listarCandidatos() {
-        return candidatoRepository.findAll()
-                .stream().map(candidatoMapper::toResponseDTO).collect(Collectors.toList());
+    public PageResponseDTO<CandidatoResponseDTO> listarCandidatos(Pageable pageable) {
+        return PageResponseDTO.of(
+                candidatoRepository.findAll(pageable).map(candidatoMapper::toResponseDTO));
     }
 
     @Transactional(readOnly = true)
@@ -190,9 +192,9 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<EmpresaResponseDTO> listarEmpresas() {
-        return empresaRepository.findAll()
-                .stream().map(empresaMapper::toResponseDTO).collect(Collectors.toList());
+    public PageResponseDTO<EmpresaResponseDTO> listarEmpresas(Pageable pageable) {
+        return PageResponseDTO.of(
+                empresaRepository.findAll(pageable).map(empresaMapper::toResponseDTO));
     }
 
     @Transactional(readOnly = true)
@@ -243,9 +245,9 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<VagaResponseDTO> listarVagas() {
-        return vagaRepository.findAll()
-                .stream().map(vagasMapper::toDTO).collect(Collectors.toList());
+    public PageResponseDTO<VagaResponseDTO> listarVagas(Pageable pageable) {
+        return PageResponseDTO.of(
+                vagaRepository.findAll(pageable).map(vagasMapper::toDTO));
     }
 
     @Transactional(readOnly = true)
@@ -280,9 +282,9 @@ public class AdminService {
     // ═══════════════════════════════════════════════════════════
 
     @Transactional(readOnly = true)
-    public List<CandidaturaResponseDTO> listarCandidaturas() {
-        return candidaturaRepository.findAll()
-                .stream().map(candidaturaMapper::toResponseDTO).collect(Collectors.toList());
+    public PageResponseDTO<CandidaturaResponseDTO> listarCandidaturas(Pageable pageable) {
+        return PageResponseDTO.of(
+                candidaturaRepository.findAll(pageable).map(candidaturaMapper::toResponseDTO));
     }
 
     @Transactional(readOnly = true)
@@ -309,6 +311,8 @@ public class AdminService {
         if (!candidaturaRepository.existsById(id)) {
             throw new ResourceNotFoundException("Candidatura não encontrada com ID: " + id);
         }
+        // Remove as conversas antes da candidatura (FK mensagens → candidatura)
+        mensagemRepository.deleteByCandidaturaId(id);
         candidaturaRepository.deleteById(id);
     }
 

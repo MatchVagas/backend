@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -29,6 +31,9 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> 
 
     List<Candidatura> findByCandidatoId(Long candidatoId);
 
+    // Overloads paginados (listagens grandes: minhas candidaturas / recebidas pela empresa)
+    Page<Candidatura> findByCandidatoId(Long candidatoId, Pageable pageable);
+
     List<Candidatura> findByVagaId(Long vagaId);
 
     Optional<Candidatura> findByCandidatoIdAndVagaId(Long candidatoId, Long vagaId);
@@ -39,4 +44,6 @@ public interface CandidaturaRepository extends JpaRepository<Candidatura, Long> 
 
     // Busca todas as candidaturas das vagas de uma empresa
     List<Candidatura> findByVagaEmpresasId(Long empresaId);
+
+    Page<Candidatura> findByVagaEmpresasId(Long empresaId, Pageable pageable);
 }

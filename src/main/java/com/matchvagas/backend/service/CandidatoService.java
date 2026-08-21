@@ -19,6 +19,7 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.CandidatoMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.MensagemRepository;
 import com.matchvagas.backend.repository.ExperienciaRepository;
 import com.matchvagas.backend.repository.FormacaoRepository;
 import com.matchvagas.backend.repository.HistoricoStatusCandidaturaRepository;
@@ -28,6 +29,7 @@ import com.matchvagas.backend.repository.TelefoneRepository;
 import com.matchvagas.backend.repository.TipoTelefoneRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import com.matchvagas.backend.util.CpfCrypto;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +47,7 @@ public class CandidatoService {
     private final TelefoneRepository telefoneRepository;
     private final TipoTelefoneRepository tipoTelefoneRepository;
     private final CandidaturaRepository candidaturaRepository;
+    private final MensagemRepository mensagemRepository;
     private final HistoricoStatusCandidaturaRepository historicoRepository;
     private final NotificacaoRepository notificacaoRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -53,6 +56,8 @@ public class CandidatoService {
     private final ExperienciaRepository experienciaRepository;
     private final FormacaoRepository formacaoRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     private static final int URL_FOTO_EXPIRACAO_SEGUNDOS = 3600; // 1 hora
 
@@ -100,7 +105,9 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), usuario);
         }
 
-        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
+        Candidatos salvo = candidatoRepository.save(candidato);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(salvo));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(salvo));
     }
 
     // RF003 — Atualizar perfil do candidato
@@ -135,7 +142,9 @@ public class CandidatoService {
             vincularTelefone(dto.telefone(), candidato.getUsuario());
         }
 
-        return comFotoAssinada(candidatoMapper.toResponseDTO(candidatoRepository.save(candidato)));
+        Candidatos salvo = candidatoRepository.save(candidato);
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(salvo));
+        return comFotoAssinada(candidatoMapper.toResponseDTO(salvo));
     }
 
     /**
@@ -231,9 +240,10 @@ public class CandidatoService {
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
 
-        // 1. Candidaturas + histórico de status (FKs para candidato e usuário)
+        // 1. Candidaturas + conversas + histórico de status (FKs para candidatura)
         List<Candidatura> candidaturas = candidaturaRepository.findByCandidatoId(candidato.getId());
         for (Candidatura candidatura : candidaturas) {
+            mensagemRepository.deleteByCandidaturaId(candidatura.getId());
             historicoRepository.deleteAll(
                     historicoRepository.findByCandidaturaIdOrderByDataHoraDesc(candidatura.getId()));
         }

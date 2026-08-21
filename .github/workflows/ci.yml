@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Cancela execuções antigas do mesmo ref quando um novo push chega.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    env:
+      # ── Segredos dummy só para o contexto subir no CI (nunca reais) ──────────
+      JWT_SECRET: ci-only-jwt-secret-com-mais-de-32-bytes-para-hs256-000
+      CPF_ENCRYPTION_KEY: ci-only-cpf-encryption-key
+      CPF_HASH_SECRET: ci-only-cpf-hash-secret
+      # APP_ENV fica em 'dev' (padrão) — o StartupSecretsValidator só avisa, não aborta.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+
+      - name: Build e testes
+        run: ./mvnw -B --no-transfer-progress verify
+
+      - name: Publicar relatórios de teste
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore

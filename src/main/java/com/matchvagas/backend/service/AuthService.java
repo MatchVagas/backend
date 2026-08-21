@@ -28,6 +28,8 @@ public class AuthService {
     private final EmpresaRepository empresaRepository;
     private final PorteRepository porteRepository;
     private final RamoAtuacaoRepository ramoAtuacaoRepository;
+    private final EmailVerificationService emailVerificationService;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * RF001 - Cadastro de novo usuário (Candidato, Empresa ou Admin)
@@ -45,7 +47,13 @@ public class AuthService {
 
         Usuarios usuario = usuariosMapper.toEntity(request);
         usuario.setSenha(passwordEncoder.encode(request.senha()));
+        // SEC: cadastro público SEMPRE cria CANDIDATO. O papel jamais é definido
+        // pelo cliente — empresas usam /register-empresa e ADMIN só pelo canal
+        // restrito (/api/usuarios, protegido por hasAuthority('ADMIN')).
+        usuario.setTipoUsuario(Usuarios.TipoUsuario.CANDIDATO);
         usuario.registrarConsentimento();
+        // Conta nasce não verificada: o login fica bloqueado até confirmar o e-mail.
+        usuario.setEmailVerificado(false);
 
         // Calcula idade a partir da dataNascimento
         if (request.dataNascimento() != null) {
@@ -60,6 +68,7 @@ public class AuthService {
         // A barreira para publicar vagas fica em VagaService — não no login
 
         Usuarios salvo = usuariosRepository.save(usuario);
+        emailVerificationService.enviarVerificacao(salvo);
         return usuariosMapper.toDTO(salvo);
     }
 
@@ -112,10 +121,11 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ramo de atuação não encontrado")));
         empresaRepository.save(empresa);
 
-        // 3. Gera token e retorna — app já entra autenticado
+        // 3. Gera tokens e retorna — app já entra autenticado
         String token = jwtTokenProvider.generateToken(usuarioSalvo);
+        String refreshToken = refreshTokenService.gerar(usuarioSalvo);
         return new AuthResponse(token, "Bearer", usuarioSalvo.getId(),
-                usuarioSalvo.getNome(), usuarioSalvo.getEmail(), "EMPRESA");
+                usuarioSalvo.getNome(), usuarioSalvo.getEmail(), "EMPRESA", refreshToken);
     }
 
     /**
@@ -134,12 +144,14 @@ public class AuthService {
             throw new BadCredentialsException("Usuário está inativo. Contate o administrador.");
         }
 
-        String token = jwtTokenProvider.generateToken(usuario);
+        // E-mail não verificado bloqueia o login. NULO = conta legada (verificada).
+        if (Boolean.FALSE.equals(usuario.getEmailVerificado())) {
+            throw new BadCredentialsException(
+                    "E-mail não verificado. Confira sua caixa de entrada ou solicite um novo link.");
+        }
 
-        // Usa o tipoUsuario real — não mais hardcoded
-        String perfil = usuario.getTipoUsuario() != null
-                ? usuario.getTipoUsuario().name()
-                : "CANDIDATO";
+        String token = jwtTokenProvider.generateToken(usuario);
+        String refreshToken = refreshTokenService.gerar(usuario);
 
         return new AuthResponse(
                 token,
@@ -147,7 +159,47 @@ public class AuthService {
                 usuario.getId(),
                 usuario.getNome(),
                 usuario.getEmail(),
-                perfil
+                perfil(usuario),
+                refreshToken
         );
+    }
+
+    /**
+     * Renova o access token a partir de um refresh token válido. O refresh token
+     * é rotacionado (o antigo é invalidado e um novo é emitido).
+     */
+    @Transactional
+    public AuthResponse refresh(String refreshToken) {
+        Usuarios usuario = refreshTokenService.validarERotacionar(refreshToken).getUsuario();
+
+        if (Boolean.FALSE.equals(usuario.getAtivo())) {
+            throw new BadCredentialsException("Usuário está inativo. Contate o administrador.");
+        }
+
+        String novoAccess  = jwtTokenProvider.generateToken(usuario);
+        String novoRefresh = refreshTokenService.gerar(usuario);
+
+        return new AuthResponse(
+                novoAccess,
+                "Bearer",
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                perfil(usuario),
+                novoRefresh
+        );
+    }
+
+    /** Revoga o refresh token no logout (invalida a sessão no servidor). */
+    @Transactional
+    public void logout(String refreshToken) {
+        refreshTokenService.revogar(refreshToken);
+    }
+
+    // Usa o tipoUsuario real — não mais hardcoded
+    private String perfil(Usuarios usuario) {
+        return usuario.getTipoUsuario() != null
+                ? usuario.getTipoUsuario().name()
+                : "CANDIDATO";
     }
 }

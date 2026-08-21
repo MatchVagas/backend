@@ -20,7 +20,9 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.beans.factory.annotation.Value;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -32,6 +34,20 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
+
+    // ── Configuração de CORS (SEC-08) ──────────────────────────────────────────
+    // Em produção, defina CORS_ALLOWED_ORIGINS com a lista explícita de domínios
+    // (ex.: https://app.matchvagas.com) e, se precisar de cookies, CORS_ALLOW_CREDENTIALS=true.
+    @Value("${cors.allowed-origins:*}")
+    private String allowedOrigins;
+    @Value("${cors.allowed-methods:GET,POST,PUT,PATCH,DELETE,OPTIONS}")
+    private String allowedMethods;
+    @Value("${cors.allowed-headers:Content-Type,Authorization}")
+    private String allowedHeaders;
+    @Value("${cors.allow-credentials:false}")
+    private boolean allowCredentials;
+    @Value("${cors.max-age:3600}")
+    private long maxAge;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -54,6 +70,10 @@ public class SecurityConfig {
 
                 // ── Público — sem token ───────────────────────────────────
                 .requestMatchers("/api/auth/**").permitAll()
+
+                // Actuator: health é público (health check do provedor); o resto é ADMIN.
+                .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                .requestMatchers("/actuator/**").hasAuthority("ADMIN")
 
                 // Swagger UI — todos os caminhos que o Springdoc usa
                 .requestMatchers(
@@ -121,16 +141,38 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+        List<String> origins = parseCsv(allowedOrigins);
+        boolean wildcard = origins.contains("*");
+
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
-        config.setMaxAge(3600L);
+
+        if (wildcard) {
+            // A spec do CORS PROÍBE "*" junto com credenciais. Como a API é
+            // baseada em JWT no header Authorization (sem cookies), o uso seguro
+            // do curinga é com credenciais DESLIGADAS — assim nenhuma origem
+            // arbitrária consegue fazer requisições autenticadas por cookie.
+            config.setAllowedOriginPatterns(List.of("*"));
+            config.setAllowCredentials(false);
+        } else {
+            // Lista explícita de origens confiáveis: credenciais podem ser ligadas.
+            config.setAllowedOrigins(origins);
+            config.setAllowCredentials(allowCredentials);
+        }
+
+        config.setAllowedMethods(parseCsv(allowedMethods));
+        config.setAllowedHeaders(parseCsv(allowedHeaders));
+        config.setMaxAge(maxAge);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    private static List<String> parseCsv(String csv) {
+        return Arrays.stream(csv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
     }
 
     @Bean

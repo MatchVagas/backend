@@ -55,6 +55,13 @@ public class Usuarios {
     @Column(name = "versao_politica_privacidade", length = 10)
     private String versaoPoliticaPrivacidade;
 
+    // ── Verificação de e-mail ─────────────────────────────────────────────────
+    // Contas criadas pelo cadastro público (/api/auth/register) só podem logar
+    // após confirmar o e-mail. NULO = registro legado (anterior à feature) e é
+    // tratado como verificado para não travar contas existentes.
+    @Column(name = "email_verificado")
+    private Boolean emailVerificado;
+
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(name = "telefones_usuario",
         joinColumns = @JoinColumn(name = "usuario_id"),

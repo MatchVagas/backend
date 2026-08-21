@@ -4,13 +4,16 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import com.matchvagas.backend.entity.Vagas;
 
-public interface VagaRepository extends JpaRepository<Vagas, Long>{
+public interface VagaRepository extends JpaRepository<Vagas, Long>, JpaSpecificationExecutor<Vagas> {
 
     @Query("SELECT v FROM Vagas v WHERE LOWER(v.status.descricao) = 'ativa' AND v.dataExpiracao >= :agora")
     List<Vagas> findVagasAtivas(@Param("agora") LocalDateTime agora);
@@ -18,20 +21,29 @@ public interface VagaRepository extends JpaRepository<Vagas, Long>{
     // Parâmetros String nunca são null aqui: o service passa "" quando ausente,
     // produzindo LIKE '%%' (bate com tudo). Evita o problema do PostgreSQL que
     // infere bytea para parâmetros nulos em "? IS NULL" no JPQL.
-    @Query("""
+    @Query(value = """
         SELECT v FROM Vagas v
         WHERE LOWER(v.titulo)              LIKE LOWER(CONCAT('%', :titulo,      '%'))
           AND LOWER(v.areaAtuacao)         LIKE LOWER(CONCAT('%', :areaAtuacao, '%'))
           AND (:tipoVagaId   IS NULL OR v.tipoVaga.id   = :tipoVagaId)
           AND (:modalidadeId IS NULL OR v.modalidade.id = :modalidadeId)
           AND LOWER(v.empresas.nomeFantasia) LIKE LOWER(CONCAT('%', :nomeEmpresa, '%'))
+        """,
+        countQuery = """
+        SELECT COUNT(v) FROM Vagas v
+        WHERE LOWER(v.titulo)              LIKE LOWER(CONCAT('%', :titulo,      '%'))
+          AND LOWER(v.areaAtuacao)         LIKE LOWER(CONCAT('%', :areaAtuacao, '%'))
+          AND (:tipoVagaId   IS NULL OR v.tipoVaga.id   = :tipoVagaId)
+          AND (:modalidadeId IS NULL OR v.modalidade.id = :modalidadeId)
+          AND LOWER(v.empresas.nomeFantasia) LIKE LOWER(CONCAT('%', :nomeEmpresa, '%'))
         """)
-    List<Vagas> searchComFiltros(
+    Page<Vagas> searchComFiltros(
             @Param("titulo")       String titulo,
             @Param("areaAtuacao")  String areaAtuacao,
             @Param("tipoVagaId")   Long   tipoVagaId,
             @Param("modalidadeId") Long   modalidadeId,
-            @Param("nomeEmpresa")  String nomeEmpresa);
+            @Param("nomeEmpresa")  String nomeEmpresa,
+            Pageable pageable);
 
     List<Vagas> findByEmpresasId(Long empresaId);
     List<Vagas> findByTipoVagaId(Long tipoVagaId);

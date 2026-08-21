@@ -1,6 +1,7 @@
 package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.dto.CurriculoResponseDTO;
+import com.matchvagas.backend.dto.CurriculoParseResult;
 import com.matchvagas.backend.entity.Candidatos;
 import com.matchvagas.backend.entity.Candidatura;
 import com.matchvagas.backend.entity.Curriculos;
@@ -28,6 +29,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.LocalDateTime;
+import com.matchvagas.backend.service.embedding.IndexacaoEmbeddingService;
 
 @Service
 @RequiredArgsConstructor
@@ -49,10 +52,21 @@ public class CurriculoService {
     private final CurriculoMapper        curriculoMapper;
     private final SupabaseStorageService supabaseStorageService;
     private final AuditoriaService       auditoriaService;
+    private final CurriculoParserService curriculoParserService;
+    private final IndexacaoEmbeddingService indexacaoEmbeddingService;
+    private final AposCommitExecutor aposCommitExecutor;
 
     @Transactional
     public CurriculoResponseDTO upload(Long usuarioId, MultipartFile arquivo) {
         validarArquivo(arquivo);
+
+        final byte[] conteudo;
+        try {
+            conteudo = arquivo.getBytes();
+        } catch (IOException e) {
+            throw new BusinessException("Falha ao ler o arquivo enviado: " + e.getMessage());
+        }
+        CurriculoParseResult parsing = curriculoParserService.parse(conteudo);
 
         Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -68,11 +82,7 @@ public class CurriculoService {
         // Object path dentro do bucket: "{candidatoId}/{uuid}.{ext}"
         String objectPath = candidato.getId() + "/" + UUID.randomUUID() + "." + extensao;
 
-        try {
-            supabaseStorageService.upload(objectPath, arquivo.getBytes(), arquivo.getContentType());
-        } catch (IOException e) {
-            throw new BusinessException("Falha ao ler o arquivo enviado: " + e.getMessage());
-        }
+        supabaseStorageService.upload(objectPath, conteudo, arquivo.getContentType());
 
         Curriculos curriculo = existente.orElseGet(Curriculos::new);
         curriculo.setCandidato(candidato);
@@ -80,10 +90,15 @@ public class CurriculoService {
         curriculo.setCaminhoArquivo(objectPath); // object path no Supabase
         curriculo.setTamanhoArquivo(BigInteger.valueOf(arquivo.getSize()));
         curriculo.setFormatoArquivo(extensao.toUpperCase());
+        curriculo.setTextoExtraido(parsing.texto());
+        curriculo.setDadosEstruturados(curriculoParserService.toJson(parsing));
+        curriculo.setParseadoEm(LocalDateTime.now());
 
         Curriculos salvo = curriculoRepository.save(curriculo);
         candidato.setCurriculo(salvo);
         candidatoRepository.save(candidato);
+
+        aposCommitExecutor.executar(() -> indexacaoEmbeddingService.indexarCandidato(candidato));
 
         return toDTO(salvo, false);
     }
@@ -183,7 +198,8 @@ public class CurriculoService {
                 : null;
         return new CurriculoResponseDTO(
                 base.id(), base.candidatoId(), base.nomeArquivo(), base.caminhoArquivo(),
-                base.dataUpload(), base.tamanhoArquivo(), base.formatoArquivo(), urlArquivo);
+                base.dataUpload(), base.tamanhoArquivo(), base.formatoArquivo(), urlArquivo,
+                curriculo.getParseadoEm(), curriculo.getDadosEstruturados());
     }
 
     private void validarArquivo(MultipartFile arquivo) {

@@ -2,18 +2,20 @@ package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.NotificacoesRequestDTO;
 import com.matchvagas.backend.dto.NotificacoesResponseDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.service.NotificacaoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -36,15 +38,19 @@ public class NotificacaoController {
     }
 
     @GetMapping("/minhas")
-    @Operation(summary = "Listar todas as minhas notificações")
-    public ResponseEntity<List<NotificacoesResponseDTO>> minhas(Authentication auth) {
-        return ResponseEntity.ok(notificacaoService.listarPorUsuario(usuarioId(auth)));
+    @Operation(summary = "Listar todas as minhas notificações (paginado, mais recentes primeiro)")
+    public ResponseEntity<PageResponseDTO<NotificacoesResponseDTO>> minhas(
+            Authentication auth,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(notificacaoService.listarPorUsuario(usuarioId(auth), pageable));
     }
 
     @GetMapping("/minhas/nao-lidas")
-    @Operation(summary = "Listar minhas notificações não lidas")
-    public ResponseEntity<List<NotificacoesResponseDTO>> naoLidas(Authentication auth) {
-        return ResponseEntity.ok(notificacaoService.listarNaoLidas(usuarioId(auth)));
+    @Operation(summary = "Listar minhas notificações não lidas (paginado, mais recentes primeiro)")
+    public ResponseEntity<PageResponseDTO<NotificacoesResponseDTO>> naoLidas(
+            Authentication auth,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(notificacaoService.listarNaoLidas(usuarioId(auth), pageable));
     }
 
     @GetMapping("/minhas/contagem")

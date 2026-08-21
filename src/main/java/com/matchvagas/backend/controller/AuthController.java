@@ -1,17 +1,22 @@
 package com.matchvagas.backend.controller;
 
 import com.matchvagas.backend.dto.AuthResponse;
+import com.matchvagas.backend.dto.ConfirmarEmailRequestDTO;
 import com.matchvagas.backend.dto.EsqueceuSenhaRequestDTO;
 import com.matchvagas.backend.dto.LoginRequestDTO;
 import com.matchvagas.backend.dto.RedefinirSenhaRequestDTO;
+import com.matchvagas.backend.dto.RefreshRequestDTO;
 import com.matchvagas.backend.dto.RegisterEmpresaRequestDTO;
+import com.matchvagas.backend.dto.ReenviarVerificacaoRequestDTO;
 import com.matchvagas.backend.dto.UsuarioResponseDTO;
 import com.matchvagas.backend.dto.UsuariosRequestDTO;
 import com.matchvagas.backend.dto.VerificarCodigoRequestDTO;
 import com.matchvagas.backend.dto.VerificarCodigoResponseDTO;
 import com.matchvagas.backend.service.AuthService;
+import com.matchvagas.backend.service.EmailVerificationService;
 import com.matchvagas.backend.service.PasswordResetService;
 import com.matchvagas.backend.service.RateLimiterService;
+import com.matchvagas.backend.util.ClientIpResolver;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -37,7 +42,9 @@ public class AuthController {
 
     private final AuthService authService;
     private final PasswordResetService passwordResetService;
+    private final EmailVerificationService emailVerificationService;
     private final RateLimiterService rateLimiterService;
+    private final ClientIpResolver clientIpResolver;
 
     @PostMapping("/register")
     @Operation(
@@ -89,6 +96,36 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(authService.registerEmpresa(request));
     }
 
+    @PostMapping("/confirmar-email")
+    @Operation(
+        summary = "Confirmar e-mail",
+        description = "Valida o token recebido no e-mail de cadastro e ativa o login da conta."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "E-mail confirmado — login liberado"),
+        @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<Void> confirmarEmail(@Valid @RequestBody ConfirmarEmailRequestDTO request) {
+        emailVerificationService.confirmar(request.token());
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reenviar-verificacao")
+    @Operation(
+        summary = "Reenviar e-mail de verificação",
+        description = "Reenvia o link de confirmação. Sempre retorna 200 para não expor quais e-mails existem."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Solicitação processada — se aplicável, um novo link é enviado")
+    })
+    public ResponseEntity<Void> reenviarVerificacao(@Valid @RequestBody ReenviarVerificacaoRequestDTO request,
+                                                    HttpServletRequest http) {
+        rateLimiterService.verificar("reenviar-verificacao:" + clientIp(http));
+        emailVerificationService.reenviar(request.email());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/esqueceu-senha")
     @Operation(
         summary = "Solicitar redefinição de senha",
@@ -114,7 +151,10 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Código inválido ou expirado",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request) {
+    public ResponseEntity<VerificarCodigoResponseDTO> verificarCodigo(@Valid @RequestBody VerificarCodigoRequestDTO request,
+                                                                      HttpServletRequest http) {
+        // SEC: limita tentativas por IP — complementa o limite por token no service.
+        rateLimiterService.verificar("verificar-codigo:" + clientIp(http));
         String token = passwordResetService.verificarCodigo(request.email(), request.codigo());
         return ResponseEntity.ok(new VerificarCodigoResponseDTO(token));
     }
@@ -129,30 +169,46 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Token inválido, expirado ou já utilizado",
                      content = @Content(schema = @Schema(hidden = true)))
     })
-    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request) {
+    public ResponseEntity<Void> redefinirSenha(@Valid @RequestBody RedefinirSenhaRequestDTO request,
+                                               HttpServletRequest http) {
+        rateLimiterService.verificar("redefinir-senha:" + clientIp(http));
         passwordResetService.redefinirSenha(request.token(), request.novaSenha());
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/refresh")
+    @Operation(
+        summary = "Renovar access token",
+        description = "Troca um refresh token válido por um novo par de tokens. O refresh token é rotacionado (o antigo é invalidado)."
+    )
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Novo access token e refresh token retornados"),
+        @ApiResponse(responseCode = "400", description = "Refresh token inválido, expirado ou revogado",
+                     content = @Content(schema = @Schema(hidden = true)))
+    })
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody RefreshRequestDTO request) {
+        return ResponseEntity.ok(authService.refresh(request.refreshToken()));
     }
 
     @PostMapping("/logout")
     @Operation(
         summary = "Logout",
-        description = "Com JWT stateless o logout é feito removendo o token no cliente. Este endpoint existe apenas para documentação."
+        description = "Revoga o refresh token no servidor, encerrando a sessão. O cliente deve descartar o access token."
     )
-    public ResponseEntity<Void> logout() {
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Sessão encerrada")
+    })
+    public ResponseEntity<Void> logout(@Valid @RequestBody RefreshRequestDTO request) {
+        authService.logout(request.refreshToken());
         return ResponseEntity.ok().build();
     }
 
     /**
-     * Extrai o IP de origem do cliente, considerando proxies/balanceadores
-     * (X-Forwarded-For) — necessário em ambientes como o Render.
+     * IP de origem do cliente, resistente a falsificação de X-Forwarded-For
+     * (SEC-06). Delega ao {@link ClientIpResolver}, que considera apenas os hops
+     * dos proxies confiáveis configurados.
      */
     private String clientIp(HttpServletRequest request) {
-        String forwarded = request.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            // O primeiro IP da lista é o cliente original
-            return forwarded.split(",")[0].trim();
-        }
-        return request.getRemoteAddr();
+        return clientIpResolver.resolve(request);
     }
 }

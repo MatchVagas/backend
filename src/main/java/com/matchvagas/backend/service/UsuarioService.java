@@ -61,6 +61,10 @@ public class UsuarioService {
 
         Usuarios entity = mapper.toEntity(dto);
         entity.setSenha(passwordEncoder.encode(dto.senha()));
+        // Canal restrito a ADMIN (/api/usuarios): aqui é legítimo definir o papel,
+        // inclusive ADMIN. O mapper não copia tipoUsuario (proteção contra
+        // escalonamento via cadastro público), por isso definimos explicitamente.
+        entity.setTipoUsuario(dto.tipoUsuario());
         entity.registrarConsentimento();
 
         if (dto.dataNascimento() != null) {
@@ -81,6 +85,11 @@ public class UsuarioService {
         }
 
         mapper.updateEntityFromDTO(dto, entity);
+        // Canal restrito a ADMIN: alteração de papel é permitida aqui (o mapper
+        // não copia tipoUsuario por padrão — ver UsuarioMapper / SEC).
+        if (dto.tipoUsuario() != null) {
+            entity.setTipoUsuario(dto.tipoUsuario());
+        }
 
         if (dto.senha() != null && !dto.senha().isBlank()) {
             entity.setSenha(passwordEncoder.encode(dto.senha()));

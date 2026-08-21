@@ -11,6 +11,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,10 +29,16 @@ public class PasswordResetService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    // SEC: máximo de tentativas de código por token antes de invalidá-lo.
+    private static final int MAX_TENTATIVAS_CODIGO = 5;
+
     @Transactional
     public void solicitarRedefinicao(String email) {
         usuariosRepository.findByEmail(email).ifPresent(usuario -> {
             tokenRepository.deleteExpiredAndUsed(LocalDateTime.now());
+            // Garante um único token ativo por usuário: invalida solicitações
+            // anteriores ainda válidas (evita brute force paralelo em vários códigos).
+            tokenRepository.deleteByUsuarioId(usuario.getId());
 
             String codigo = String.format("%06d", RANDOM.nextInt(1_000_000));
 
@@ -46,9 +54,31 @@ public class PasswordResetService {
 
     @Transactional
     public String verificarCodigo(String email, String codigo) {
-        PasswordResetToken resetToken = tokenRepository
-                .findValidByCodigo(email, codigo, LocalDateTime.now())
-                .orElseThrow(() -> new BusinessException("Código inválido ou expirado."));
+        // Busca o token ativo do e-mail SEM depender do código, para conseguir
+        // contar tentativas erradas e invalidar após o limite (anti brute force).
+        var ativos = tokenRepository.findAtivosByEmail(email, LocalDateTime.now());
+        PasswordResetToken resetToken = ativos.isEmpty() ? null : ativos.get(0);
+
+        if (resetToken == null) {
+            throw new BusinessException("Código inválido ou expirado.");
+        }
+
+        // Comparação em tempo constante para não vazar o código por timing.
+        boolean correto = codigo != null && MessageDigest.isEqual(
+                resetToken.getCodigo().getBytes(StandardCharsets.UTF_8),
+                codigo.getBytes(StandardCharsets.UTF_8));
+
+        if (!correto) {
+            resetToken.setTentativas(resetToken.getTentativas() + 1);
+            if (resetToken.getTentativas() >= MAX_TENTATIVAS_CODIGO) {
+                // Invalida o token: novas tentativas exigem solicitar outro código.
+                resetToken.setUsed(true);
+                log.warn("Token de redefinição invalidado após {} tentativas para {}",
+                        MAX_TENTATIVAS_CODIGO, email);
+            }
+            tokenRepository.save(resetToken);
+            throw new BusinessException("Código inválido ou expirado.");
+        }
 
         // SEC-07 — rotaciona o token a cada verificação, invalidando qualquer
         // valor anterior que tenha vazado (log, interceptação).

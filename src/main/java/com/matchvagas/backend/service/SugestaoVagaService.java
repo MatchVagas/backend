@@ -8,8 +8,12 @@ import com.matchvagas.backend.exception.ResourceNotFoundException;
 import com.matchvagas.backend.mapper.VagasMapper;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CandidaturaRepository;
+import com.matchvagas.backend.repository.CandidatoEmbeddingRepository;
+import com.matchvagas.backend.repository.VagaEmbeddingRepository;
 import com.matchvagas.backend.repository.VagaRepository;
+import com.matchvagas.backend.service.embedding.EmbeddingCodec;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,9 +29,20 @@ public class SugestaoVagaService {
     private final CandidatoRepository    candidatoRepository;
     private final VagaRepository         vagaRepository;
     private final CandidaturaRepository  candidaturaRepository;
+    private final CandidatoEmbeddingRepository candidatoEmbeddingRepository;
+    private final VagaEmbeddingRepository vagaEmbeddingRepository;
     private final VagasMapper            vagasMapper;
 
+    @Value("${app.embeddings.limiar:0.30}")
+    private double limiarSemantico;
+
+    @Value("${app.embeddings.enabled:false}")
+    private boolean embeddingsAtivos;
+
     private static final int MAX_SUGESTOES = 10;
+    private static final int PTS_SEMANTICO_MAX = 60;
+
+    private record VetorPersistido(float[] valores, String modelo, int dimensao) {}
 
     // Palavras sem valor semântico para filtragem de texto.
     // Inclui preposições, artigos, conjunções E descritores de nível de cargo
@@ -67,8 +82,28 @@ public class SugestaoVagaService {
                 .filter(v -> !jaAplicadas.contains(v.getId()))
                 .collect(Collectors.toList());
 
+        VetorPersistido vetorCandidato = null;
+        Map<Long, VetorPersistido> vetoresVagas = Collections.emptyMap();
+        if (embeddingsAtivos) {
+            vetorCandidato = candidatoEmbeddingRepository
+                    .findByCandidatoId(candidato.getId())
+                    .map(e -> new VetorPersistido(EmbeddingCodec.fromCsv(e.getVetor()),
+                            e.getModelo(), e.getDim()))
+                    .orElse(null);
+            List<Long> vagaIds = candidatas.stream().map(Vagas::getId).toList();
+            vetoresVagas = vagaIds.isEmpty()
+                    ? Collections.emptyMap()
+                    : vagaEmbeddingRepository.findByVagaIdIn(vagaIds).stream()
+                            .collect(Collectors.toMap(e -> e.getVaga().getId(),
+                                    e -> new VetorPersistido(EmbeddingCodec.fromCsv(e.getVetor()),
+                                            e.getModelo(), e.getDim())));
+        }
+
+        VetorPersistido vetorCandidatoFinal = vetorCandidato;
+        Map<Long, VetorPersistido> vetoresVagasFinal = vetoresVagas;
+
         return candidatas.stream()
-                .map(v -> pontuar(v, candidato))
+                .map(v -> pontuar(v, candidato, vetorCandidatoFinal, vetoresVagasFinal))
                 .filter(s -> s.pontuacao() > 15) // age-only match (15 pts) não é suficiente
                 .sorted(Comparator.comparingInt(SugestaoVagaResponseDTO::pontuacao).reversed())
                 .limit(MAX_SUGESTOES)
@@ -77,33 +112,40 @@ public class SugestaoVagaService {
 
     // ── Algoritmo de pontuação (100 pts máx) ─────────────────────────────────
 
-    private SugestaoVagaResponseDTO pontuar(Vagas vaga, Candidatos candidato) {
+    private SugestaoVagaResponseDTO pontuar(Vagas vaga, Candidatos candidato,
+                                             VetorPersistido vetorCandidato,
+                                             Map<Long, VetorPersistido> vetoresVagas) {
         int pontuacao = 0;
         List<String> motivos = new ArrayList<>();
 
         String objetivo = candidato.getObjetivoProfissional();
 
-        // ── 1. Área de atuação × objetivo profissional (30 pts) ───────────────
-        if (objetivo != null && vaga.getAreaAtuacao() != null) {
-            if (textosSimilares(objetivo, vaga.getAreaAtuacao())) {
-                pontuacao += 30;
-                motivos.add("Área de atuação compatível com seu objetivo profissional");
+        Integer pontosSemanticos = pontuarSemantico(vetorCandidato, vetoresVagas.get(vaga.getId()), motivos);
+        if (pontosSemanticos != null) {
+            pontuacao += pontosSemanticos;
+        } else {
+            // ── 1. Área de atuação × objetivo profissional (30 pts) ───────────
+            if (objetivo != null && vaga.getAreaAtuacao() != null) {
+                if (textosSimilares(objetivo, vaga.getAreaAtuacao())) {
+                    pontuacao += 30;
+                    motivos.add("Área de atuação compatível com seu objetivo profissional");
+                }
             }
-        }
 
-        // ── 2. Palavras-chave no título da vaga (15 pts) ──────────────────────
-        if (objetivo != null && vaga.getTitulo() != null) {
-            if (textosSimilares(objetivo, vaga.getTitulo())) {
-                pontuacao += 15;
-                motivos.add("Seu perfil se encaixa no título da vaga");
+            // ── 2. Palavras-chave no título da vaga (15 pts) ──────────────────
+            if (objetivo != null && vaga.getTitulo() != null) {
+                if (textosSimilares(objetivo, vaga.getTitulo())) {
+                    pontuacao += 15;
+                    motivos.add("Seu perfil se encaixa no título da vaga");
+                }
             }
-        }
 
-        // ── 3. Palavras-chave nos requisitos (15 pts) ─────────────────────────
-        if (objetivo != null && vaga.getRequisitos() != null) {
-            if (textosSimilares(objetivo, vaga.getRequisitos())) {
-                pontuacao += 15;
-                motivos.add("Seu perfil corresponde aos requisitos exigidos");
+            // ── 3. Palavras-chave nos requisitos (15 pts) ─────────────────────
+            if (objetivo != null && vaga.getRequisitos() != null) {
+                if (textosSimilares(objetivo, vaga.getRequisitos())) {
+                    pontuacao += 15;
+                    motivos.add("Seu perfil corresponde aos requisitos exigidos");
+                }
             }
         }
 
@@ -146,6 +188,25 @@ public class SugestaoVagaService {
 
         VagaResponseDTO vagaDTO = vagasMapper.toDTO(vaga);
         return new SugestaoVagaResponseDTO(vagaDTO, pontuacao, motivos);
+    }
+
+    /** Retorna null quando os vetores não podem ser comparados, ativando o fallback textual. */
+    private Integer pontuarSemantico(VetorPersistido candidato, VetorPersistido vaga,
+                                     List<String> motivos) {
+        if (candidato == null || vaga == null
+                || candidato.dimensao() != vaga.dimensao()
+                || !Objects.equals(candidato.modelo(), vaga.modelo())
+                || candidato.valores().length != candidato.dimensao()
+                || vaga.valores().length != vaga.dimensao()) {
+            return null;
+        }
+
+        double similaridade = Math.max(0.0,
+                Math.min(1.0, EmbeddingCodec.cosseno(candidato.valores(), vaga.valores())));
+        if (similaridade < limiarSemantico) return 0;
+        motivos.add(String.format(Locale.forLanguageTag("pt-BR"),
+                "Alta compatibilidade com seu perfil (%.0f%%)", similaridade * 100));
+        return (int) Math.round(similaridade * PTS_SEMANTICO_MAX);
     }
 
     // ── Utilidades ────────────────────────────────────────────────────────────

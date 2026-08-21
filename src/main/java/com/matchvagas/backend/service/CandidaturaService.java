@@ -7,6 +7,9 @@ import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.ExperienciaResponseDTO;
 import com.matchvagas.backend.dto.FormacaoResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
+import com.matchvagas.backend.dto.KanbanColunaDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -21,11 +24,17 @@ import com.matchvagas.backend.repository.StatusCandidaturaRepository;
 import com.matchvagas.backend.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -84,11 +93,12 @@ public class CandidaturaService {
     // ── RF009 — Listar candidaturas do candidato ──────────────────────────────
 
     @Transactional(readOnly = true)
-    public List<CandidaturaResponseDTO> findByCandidato(Long usuarioId) {
+    public PageResponseDTO<CandidaturaResponseDTO> findByCandidato(Long usuarioId, Pageable pageable) {
         return candidatosRepository.findByUsuarioId(usuarioId)
-                .map(c -> candidaturasRepository.findByCandidatoId(c.getId())
-                        .stream().map(candidaturaMapper::toResponseDTO).collect(Collectors.toList()))
-                .orElse(Collections.emptyList());
+                .map(c -> PageResponseDTO.of(
+                        candidaturasRepository.findByCandidatoId(c.getId(), pageable)
+                                .map(candidaturaMapper::toResponseDTO)))
+                .orElseGet(() -> PageResponseDTO.of(Page.empty(pageable)));
     }
 
     // ── RF009 — Detalhar uma candidatura (somente do próprio candidato) ───────
@@ -131,14 +141,13 @@ public class CandidaturaService {
     // ── Empresa — listar candidaturas recebidas com dados filtrados ───────────
 
     @Transactional(readOnly = true)
-    public List<CandidaturaEmpresaResponseDTO> findByEmpresa(Long usuarioId) {
+    public PageResponseDTO<CandidaturaEmpresaResponseDTO> findByEmpresa(Long usuarioId, Pageable pageable) {
         Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
 
-        return candidaturasRepository.findByVagaEmpresasId(empresa.getId())
-                .stream()
-                .map(this::toEmpresaResponseDTO)
-                .collect(Collectors.toList());
+        return PageResponseDTO.of(
+                candidaturasRepository.findByVagaEmpresasId(empresa.getId(), pageable)
+                        .map(this::toEmpresaResponseDTO));
     }
 
     // ── Empresa — candidatos de uma vaga específica ───────────────────────────
@@ -158,6 +167,57 @@ public class CandidaturaService {
                 .stream()
                 .map(this::toEmpresaResponseDTO)
                 .collect(Collectors.toList());
+    }
+
+    // ── Empresa — funil Kanban das candidaturas de uma vaga ───────────────────
+
+    @Transactional(readOnly = true)
+    public KanbanBoardDTO montarKanbanVaga(Long vagaId, Long usuarioId) {
+        Empresas empresa = empresaRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new BusinessException("Nenhuma empresa vinculada a este usuário."));
+
+        Vagas vaga = vagasRepository.findById(vagaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Vaga não encontrada com ID: " + vagaId));
+
+        if (!vaga.getEmpresas().getId().equals(empresa.getId()))
+            throw new BusinessException("Esta vaga não pertence à sua empresa");
+
+        List<Candidatura> candidaturas = candidaturasRepository.findByVagaId(vagaId);
+
+        // Agrupa os cards por status (mais recentes primeiro). Status nulo = "Novas".
+        List<CandidaturaEmpresaResponseDTO> novas = new ArrayList<>();
+        Map<Integer, List<CandidaturaEmpresaResponseDTO>> porStatus = new HashMap<>();
+
+        candidaturas.stream()
+                .sorted(Comparator.comparing(Candidatura::getDataCandidatura,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .forEach(c -> {
+                    CandidaturaEmpresaResponseDTO card = toEmpresaResponseDTO(c);
+                    if (c.getStatus() == null) {
+                        novas.add(card);
+                    } else {
+                        porStatus.computeIfAbsent(c.getStatus().getId(), k -> new ArrayList<>()).add(card);
+                    }
+                });
+
+        // Colunas: "Novas" (intake) + status do sistema na ordem canônica do fluxo.
+        List<KanbanColunaDTO> colunas = new ArrayList<>();
+        colunas.add(new KanbanColunaDTO(null, "Novas", novas.size(), novas));
+
+        statusCandidaturaRepository.findAll().stream()
+                .sorted(Comparator.comparingInt((StatusCandidatura s) -> ordemCanonica(s.getStatus()))
+                        .thenComparing(StatusCandidatura::getStatus))
+                .forEach(s -> {
+                    List<CandidaturaEmpresaResponseDTO> cards = porStatus.getOrDefault(s.getId(), List.of());
+                    colunas.add(new KanbanColunaDTO(s.getId(), s.getStatus(), cards.size(), cards));
+                });
+
+        return new KanbanBoardDTO(vaga.getId(), vaga.getTitulo(), candidaturas.size(), colunas);
+    }
+
+    /** Ordem de coluna pelo fluxo canônico; status customizados vão para o fim. */
+    private static int ordemCanonica(String nome) {
+        return FluxoStatusCandidatura.fromNome(nome).map(Enum::ordinal).orElse(Integer.MAX_VALUE);
     }
 
     // ── Empresa — detalhar uma candidatura específica ─────────────────────────

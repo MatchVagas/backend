@@ -34,6 +34,15 @@ public class Curriculos {
     @Column(name = "formato_arquivo", length = 50)
     private String formatoArquivo;
 
+    @Column(name = "texto_extraido", columnDefinition = "TEXT")
+    private String textoExtraido;
+
+    @Column(name = "dados_estruturados", columnDefinition = "TEXT")
+    private String dadosEstruturados;
+
+    @Column(name = "parseado_em")
+    private LocalDateTime parseadoEm;
+
     @PrePersist
     protected void onCreate() {
         this.dataUpload = LocalDateTime.now();

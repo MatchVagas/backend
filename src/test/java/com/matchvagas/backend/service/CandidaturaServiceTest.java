@@ -5,6 +5,8 @@ import com.matchvagas.backend.dto.CandidaturaEmpresaResponseDTO;
 import com.matchvagas.backend.dto.CandidaturaRequestDTO;
 import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
+import com.matchvagas.backend.dto.KanbanBoardDTO;
+import com.matchvagas.backend.dto.KanbanColunaDTO;
 import com.matchvagas.backend.entity.*;
 import com.matchvagas.backend.exception.BusinessException;
 import com.matchvagas.backend.exception.ResourceNotFoundException;
@@ -26,6 +28,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -66,6 +71,7 @@ class CandidaturaServiceTest {
     private static final Long CANDIDATO_ID        = 10L;   // ID da entidade Candidatos
     private static final Long VAGA_ID             = 5L;
     private static final Long CANDIDATURA_ID      = 100L;
+    private static final Pageable PAGEABLE        = PageRequest.of(0, 20);
 
     @BeforeEach
     void setUp() {
@@ -373,25 +379,27 @@ class CandidaturaServiceTest {
             CandidaturaResponseDTO responseDTO = buildResponseDTO();
 
             when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
             when(candidaturaMapper.toResponseDTO(candidatura)).thenReturn(responseDTO);
 
-            List<CandidaturaResponseDTO> result = candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID);
+            var result = candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID, PAGEABLE);
 
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).status()).isEqualTo("EM_ANALISE");
+            assertThat(result.content()).hasSize(1);
+            assertThat(result.content().get(0).status()).isEqualTo("EM_ANALISE");
             // Candidato consegue ver suas próprias preferências
-            assertThat(result.get(0).compartilharObjetivoProfissional()).isTrue();
-            assertThat(result.get(0).compartilharTelefone()).isFalse();
+            assertThat(result.content().get(0).compartilharObjetivoProfissional()).isTrue();
+            assertThat(result.content().get(0).compartilharTelefone()).isFalse();
         }
 
         @Test
         @DisplayName("Deve retornar lista vazia para candidato sem candidaturas")
         void deveRetornarVazioSemCandidaturas() {
             when(candidatosRepository.findByUsuarioId(USUARIO_CANDIDATO_ID)).thenReturn(Optional.of(candidato));
-            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of());
+            when(candidaturasRepository.findByCandidatoId(CANDIDATO_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(), PAGEABLE, 0));
 
-            assertThat(candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID)).isEmpty();
+            assertThat(candidaturaService.findByCandidato(USUARIO_CANDIDATO_ID, PAGEABLE).content()).isEmpty();
         }
 
         @Test
@@ -447,9 +455,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharEndereco(false);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             assertThat(result).hasSize(1);
             CandidaturaEmpresaResponseDTO dto = result.get(0);
@@ -469,9 +478,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharPretensaoSalarial(true);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             assertThat(result.get(0).pretensaoSalarial()).isEqualTo(new BigDecimal("8000.00"));
         }
@@ -489,9 +499,10 @@ class CandidaturaServiceTest {
             candidatura.setCompartilharEndereco(false);
 
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of(candidatura));
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(candidatura), PAGEABLE, 1));
 
-            List<CandidaturaEmpresaResponseDTO> result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID);
+            var result = candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content();
 
             CandidaturaEmpresaResponseDTO dto = result.get(0);
             // Somente identificação básica é sempre visível
@@ -510,9 +521,10 @@ class CandidaturaServiceTest {
         @DisplayName("Deve retornar lista vazia quando empresa não tem candidaturas")
         void deveRetornarVazioSemCandidaturasRecebidas() {
             when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
-            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID)).thenReturn(List.of());
+            when(candidaturasRepository.findByVagaEmpresasId(EMPRESA_ID, PAGEABLE))
+                    .thenReturn(new PageImpl<>(List.of(), PAGEABLE, 0));
 
-            assertThat(candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID)).isEmpty();
+            assertThat(candidaturaService.findByEmpresa(USUARIO_EMPRESA_ID, PAGEABLE).content()).isEmpty();
         }
 
         @Test
@@ -520,7 +532,7 @@ class CandidaturaServiceTest {
         void deveLancarExcecaoSemEmpresaVinculada() {
             when(empresaRepository.findByUsuarioId(99L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L))
+            assertThatThrownBy(() -> candidaturaService.findByEmpresa(99L, PAGEABLE))
                     .isInstanceOf(BusinessException.class)
                     .hasMessageContaining("Nenhuma empresa vinculada");
         }
@@ -781,6 +793,97 @@ class CandidaturaServiceTest {
             assertThat(candidatura.getStatus().getStatus()).isEqualTo("Entrevista Agendada");
             verify(historicoStatusRepository).save(any());
             verify(notificacaoService).notificarPorTipo(eq(USUARIO_CANDIDATO_ID), any(), any(), eq("Candidatura"));
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Kanban — funil de candidaturas por vaga
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("Kanban — funil de candidaturas por vaga")
+    class Kanban {
+
+        private StatusCandidatura status(int id, String nome) {
+            StatusCandidatura s = new StatusCandidatura();
+            s.setId(id);
+            s.setStatus(nome);
+            return s;
+        }
+
+        @Test
+        @DisplayName("Monta o board com a coluna 'Novas' e os status na ordem canônica")
+        void deveMontarBoard() {
+            // Status do sistema retornados fora de ordem — o board deve reordenar
+            StatusCandidatura emAnalise  = status(1, "Em Análise");
+            StatusCandidatura entrevista = status(4, "Entrevista Agendada");
+            StatusCandidatura aprovado   = status(2, "Aprovado");
+            StatusCandidatura reprovado  = status(3, "Reprovado");
+
+            // Candidatura do setUp já está em EM_ANALISE (status id=1);
+            // segunda candidatura ainda sem status → coluna "Novas"
+            Candidatura semStatus = new Candidatura();
+            semStatus.setId(101L);
+            semStatus.setCandidato(candidato);
+            semStatus.setVaga(vaga);
+            semStatus.setDataCandidatura(LocalDateTime.now());
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+            when(candidaturasRepository.findByVagaId(VAGA_ID)).thenReturn(List.of(candidatura, semStatus));
+            when(statusCandidaturaRepository.findAll())
+                    .thenReturn(List.of(reprovado, aprovado, emAnalise, entrevista));
+
+            KanbanBoardDTO board = candidaturaService.montarKanbanVaga(VAGA_ID, USUARIO_EMPRESA_ID);
+
+            assertThat(board.vagaId()).isEqualTo(VAGA_ID);
+            assertThat(board.totalCandidaturas()).isEqualTo(2);
+
+            // Primeira coluna = "Novas" (statusId null) com a candidatura sem status
+            KanbanColunaDTO novas = board.colunas().get(0);
+            assertThat(novas.statusId()).isNull();
+            assertThat(novas.status()).isEqualTo("Novas");
+            assertThat(novas.total()).isEqualTo(1);
+            assertThat(novas.candidaturas().get(0).id()).isEqualTo(101L);
+
+            // Demais colunas na ordem canônica do fluxo
+            assertThat(board.colunas().stream().skip(1).map(KanbanColunaDTO::status))
+                    .containsExactly("Em Análise", "Entrevista Agendada", "Aprovado", "Reprovado");
+
+            // Coluna "Em Análise" carrega a candidatura do setUp
+            KanbanColunaDTO colEmAnalise = board.colunas().get(1);
+            assertThat(colEmAnalise.statusId()).isEqualTo(1);
+            assertThat(colEmAnalise.total()).isEqualTo(1);
+            assertThat(colEmAnalise.candidaturas().get(0).id()).isEqualTo(CANDIDATURA_ID);
+
+            // Colunas terminais vazias continuam presentes (board estável)
+            assertThat(board.colunas().get(3).status()).isEqualTo("Aprovado");
+            assertThat(board.colunas().get(3).total()).isZero();
+        }
+
+        @Test
+        @DisplayName("Bloqueia o board de vaga de outra empresa")
+        void deveBloquearVagaDeOutraEmpresa() {
+            Empresas outra = new Empresas();
+            outra.setId(99L);
+            vaga.setEmpresas(outra);
+
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(VAGA_ID)).thenReturn(Optional.of(vaga));
+
+            assertThatThrownBy(() -> candidaturaService.montarKanbanVaga(VAGA_ID, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(BusinessException.class)
+                    .hasMessageContaining("não pertence");
+        }
+
+        @Test
+        @DisplayName("Vaga inexistente → ResourceNotFoundException")
+        void deveLancarVagaInexistente() {
+            when(empresaRepository.findByUsuarioId(USUARIO_EMPRESA_ID)).thenReturn(Optional.of(empresa));
+            when(vagasRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> candidaturaService.montarKanbanVaga(999L, USUARIO_EMPRESA_ID))
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 }

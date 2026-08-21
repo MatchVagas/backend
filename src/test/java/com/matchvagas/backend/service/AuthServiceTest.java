@@ -38,6 +38,8 @@ class AuthServiceTest {
     @Mock UsuarioMapper      usuariosMapper;
     @Mock PasswordEncoder    passwordEncoder;
     @Mock JwtTokenProvider   jwtTokenProvider;
+    @Mock EmailVerificationService emailVerificationService;
+    @Mock RefreshTokenService refreshTokenService;
 
     @InjectMocks AuthService authService;
 
@@ -63,6 +65,10 @@ class AuthServiceTest {
                 null,
                 true
         );
+
+        // Refresh token é emitido em todo login bem-sucedido; leniente porque os
+        // testes de falha de login não chegam a gerá-lo.
+        lenient().when(refreshTokenService.gerar(any())).thenReturn("refresh.tok");
     }
 
     private UsuarioResponseDTO buildUsuarioResponseDTO(Long id, String nome, String email, TipoUsuario tipo) {
@@ -202,6 +208,7 @@ class AuthServiceTest {
             assertThat(response.tipo()).isEqualTo("Bearer");
             assertThat(response.perfil()).isEqualTo("CANDIDATO");
             assertThat(response.email()).isEqualTo("joao@email.com");
+            assertThat(response.refreshToken()).isEqualTo("refresh.tok");
         }
 
         @Test
