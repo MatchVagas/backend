@@ -94,6 +94,14 @@
 			<artifactId>spring-ai-transformers</artifactId>
 		</dependency>
 
+		<!-- Recursos assistivos (Fase 3): LLM aberto local via Ollama.
+		     Módulo, não starter — o bean é criado à mão em LlmConfig e guardado
+		     por app.llm.enabled, então CI/dev sobem sem tentar falar com o Ollama. -->
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-ollama</artifactId>
+		</dependency>
+
 		<!-- ── Dev Tools ────────────────────────────────────────────────── -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

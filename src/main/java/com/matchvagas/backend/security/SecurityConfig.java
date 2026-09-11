@@ -87,7 +87,11 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
 
-                // Vagas — leitura pública (RF007)
+                // Ranking inverso contém dados profissionais consentidos: somente EMPRESA.
+                .requestMatchers(HttpMethod.GET, "/api/vagas/*/candidatos-recomendados")
+                    .hasAuthority("EMPRESA")
+
+                // Vagas — demais leituras públicas (RF007)
                 .requestMatchers(HttpMethod.GET, "/api/vagas/**").permitAll()
 
                 // Empresas — leitura pública
@@ -129,6 +133,8 @@ public class SecurityConfig {
 
                 // ── Candidaturas — visualização por empresa restrita a EMPRESA ──
                 .requestMatchers(HttpMethod.GET, "/api/candidaturas/empresa").hasAuthority("EMPRESA")
+                // Triagem assistida por IA: quem gera é a empresa dona da vaga (precede a regra abaixo).
+                .requestMatchers(HttpMethod.POST, "/api/candidaturas/*/empresa/triagem").hasAuthority("EMPRESA")
                 .requestMatchers(HttpMethod.POST, "/api/candidaturas/**").hasAuthority("CANDIDATO")
 
                 // ── Qualquer outro endpoint requer autenticação ───────────

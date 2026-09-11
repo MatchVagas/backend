@@ -38,12 +38,12 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 
 - [x] 🔴 **Parsing de currículo** (PDF/DOC/DOCX → texto e dados estruturados por regras, com Apache Tika).
 - [x] 🔴 **Match por embeddings** entre CV e vaga, com score e ranking híbrido. Usa ONNX local, persistência portátil e fallback por regras; modelo multilíngue configurado, desligado por padrão.
-- [ ] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato *e* candidatos para a empresa.
-- [ ] 🟡 **Recursos assistivos**: resumo automático de perfil, geração de descrição de vaga, triagem inicial.
+- [x] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato e ranking paginado de candidatos para a empresa proprietária da vaga. A descoberta exige opt-in revogável, omite dados pessoais/contato e exclui candidatos já inscritos.
+- [x] 🟡 **Recursos assistivos**: sugestão de objetivo profissional e habilidades a partir do currículo, rascunho de descrição/requisitos de vaga e triagem inicial assistida (parecer, pontos fortes, lacunas e recomendação). Todos só sugerem — nada é aplicado sem o usuário; a triagem respeita o compartilhamento da candidatura e é auditada.
 
-> **Camada de IA:** o matching semântico usa embeddings ONNX locais para preservar
-> privacidade e evitar custo por chamada. Recursos generativos futuros podem usar um
-> serviço separado (Anthropic ou modelo aberto), sem acoplar o core.
+> **Camada de IA:** o matching semântico usa embeddings ONNX locais; os recursos generativos usam um
+> LLM aberto local via Ollama atrás da porta `LlmPort` (desligado por padrão). Trocar o provedor em
+> produção — outro modelo aberto ou uma API paga — é escrever um novo adaptador, sem mexer nos serviços.
 
 ## Fase 4 — Escala e negócio
 **Objetivo:** sustentar crescimento e viabilizar receita. Só faz sentido com tração medida.

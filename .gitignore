@@ -38,5 +38,7 @@ build/
 /.claude
 .claude/*
 
+.mcp.json
+
 ### Notas de desenvolvimento ###
 MODIFICACOES.md

@@ -7,8 +7,10 @@ import com.matchvagas.backend.dto.CandidaturaResponseDTO;
 import com.matchvagas.backend.dto.HistoricoStatusResponseDTO;
 import com.matchvagas.backend.dto.KanbanBoardDTO;
 import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.dto.TriagemResponseDTO;
 import com.matchvagas.backend.service.CandidaturaService;
 import com.matchvagas.backend.service.CurriculoService;
+import com.matchvagas.backend.service.assistente.TriagemCandidaturaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -32,6 +34,7 @@ public class CandidaturaController {
 
     private final CandidaturaService candidaturaService;
     private final CurriculoService   curriculoService;
+    private final TriagemCandidaturaService triagemCandidaturaService;
 
     // ── RF008 — Candidatar-se a uma vaga ─────────────────────────────────────
 
@@ -207,5 +210,34 @@ public class CandidaturaController {
             Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(candidaturaService.listarHistoricoEmpresa(id, usuarioId));
+    }
+
+    // ── Empresa — triagem assistida por IA (Fase 3) ───────────────────────────
+
+    @PostMapping("/{id}/empresa/triagem")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Gerar a triagem inicial assistida de uma candidatura",
+        description = "Parecer, pontos fortes, lacunas e uma recomendação sugerida por um LLM local, "
+                    + "usando só o que o candidato compartilhou nesta candidatura. É apoio à decisão: "
+                    + "não move a candidatura. Reaproveita a triagem enquanto a entrada não mudar, "
+                    + "salvo com regenerar=true. Responde 503 quando o assistente está indisponível."
+    )
+    public ResponseEntity<TriagemResponseDTO> gerarTriagem(
+            @PathVariable Long id,
+            Authentication authentication,
+            @RequestParam(defaultValue = "false") boolean regenerar) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(triagemCandidaturaService.gerar(id, usuarioId, regenerar));
+    }
+
+    @GetMapping("/{id}/empresa/triagem")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(summary = "Consultar a triagem assistida já gerada de uma candidatura")
+    public ResponseEntity<TriagemResponseDTO> buscarTriagem(
+            @PathVariable Long id,
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(triagemCandidaturaService.buscar(id, usuarioId));
     }
 }

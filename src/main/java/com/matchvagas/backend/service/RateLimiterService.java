@@ -29,21 +29,26 @@ public class RateLimiterService {
      * se o limite da janela atual foi excedido.
      */
     public void verificar(String chave) {
+        verificar(chave, MAX_TENTATIVAS, JANELA_MS);
+    }
+
+    /** Como {@link #verificar(String)}, com limite e janela próprios (ex.: cota do assistente de IA). */
+    public void verificar(String chave, int maxTentativas, long janelaMs) {
         long agora = System.currentTimeMillis();
 
         Janela janela = janelas.compute(chave, (k, atual) -> {
-            if (atual == null || agora - atual.inicio >= JANELA_MS) {
-                return new Janela(agora);
+            if (atual == null || agora - atual.inicio >= atual.duracaoMs) {
+                return new Janela(agora, janelaMs);
             }
             atual.contador++;
             return atual;
         });
 
         if (janelas.size() > LIMITE_LIMPEZA) {
-            janelas.entrySet().removeIf(e -> agora - e.getValue().inicio >= JANELA_MS);
+            janelas.entrySet().removeIf(e -> agora - e.getValue().inicio >= e.getValue().duracaoMs);
         }
 
-        if (janela.contador > MAX_TENTATIVAS) {
+        if (janela.contador > maxTentativas) {
             throw new RateLimitException(
                     "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
         }
@@ -51,10 +56,12 @@ public class RateLimiterService {
 
     private static final class Janela {
         final long inicio;
+        final long duracaoMs;
         int contador;
 
-        Janela(long inicio) {
+        Janela(long inicio, long duracaoMs) {
             this.inicio = inicio;
+            this.duracaoMs = duracaoMs;
             this.contador = 1;
         }
     }

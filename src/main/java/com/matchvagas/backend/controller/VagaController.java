@@ -4,7 +4,12 @@ import com.matchvagas.backend.dto.PageResponseDTO;
 import com.matchvagas.backend.dto.VagaBuscaFiltro;
 import com.matchvagas.backend.dto.VagaRequestDTO;
 import com.matchvagas.backend.dto.VagaResponseDTO;
+import com.matchvagas.backend.dto.CandidatoRecomendadoResponseDTO;
 import com.matchvagas.backend.service.VagaService;
+import com.matchvagas.backend.service.RecomendacaoCandidatoService;
+import com.matchvagas.backend.dto.DescricaoVagaRequestDTO;
+import com.matchvagas.backend.dto.DescricaoVagaResponseDTO;
+import com.matchvagas.backend.service.assistente.DescricaoVagaService;
 
 import java.math.BigDecimal;
 import io.swagger.v3.oas.annotations.Operation;
@@ -17,6 +22,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -28,6 +34,8 @@ import java.util.List;
 public class VagaController {
 
     private final VagaService vagaService;
+    private final RecomendacaoCandidatoService recomendacaoCandidatoService;
+    private final DescricaoVagaService descricaoVagaService;
 
     // RF007 — Busca pública com filtros opcionais (paginada)
     @GetMapping
@@ -90,6 +98,36 @@ public class VagaController {
     @Operation(summary = "Listar minhas vagas")
     public ResponseEntity<List<VagaResponseDTO>> minhasVagas() {
         return ResponseEntity.ok(vagaService.findMinhasVagas());
+    }
+
+    @GetMapping("/{id}/candidatos-recomendados")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Recomendar candidatos para uma vaga da empresa",
+        description = "Ranking paginado de candidatos que deram opt-in explícito. Exclui quem já se "
+                    + "candidatou e nunca retorna CPF, contato, endereço ou arquivo do currículo."
+    )
+    public ResponseEntity<PageResponseDTO<CandidatoRecomendadoResponseDTO>> candidatosRecomendados(
+            @PathVariable Long id,
+            Authentication authentication,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(recomendacaoCandidatoService.recomendar(id, usuarioId, pageable));
+    }
+
+    // Fase 3 — rascunho de descrição por LLM local; a empresa edita antes de publicar
+    @PostMapping("/assistente/descricao")
+    @PreAuthorize("hasAuthority('EMPRESA') or hasAuthority('ADMIN')")
+    @Operation(
+        summary = "Sugerir descrição e requisitos a partir dos dados do formulário",
+        description = "Rascunho gerado por um LLM local. Nada é salvo na vaga. "
+                    + "Responde 503 quando o assistente está desligado ou indisponível."
+    )
+    public ResponseEntity<DescricaoVagaResponseDTO> sugerirDescricao(
+            Authentication authentication,
+            @Valid @RequestBody DescricaoVagaRequestDTO dto) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(descricaoVagaService.gerar(usuarioId, dto));
     }
 
     // RF005 — Cadastrar vaga (EMPRESA ou ADMIN)

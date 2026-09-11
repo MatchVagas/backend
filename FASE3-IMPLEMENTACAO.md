@@ -525,14 +525,17 @@ Map<Long, float[]> vagaVecs = vagaEmbeddingRepository.findByVagaIdIn(ids).stream
 > na `pontuacao` e num `motivo`. (Opcional: adicionar `Double similaridade` ao DTO.)
 > Mantém o filtro `> 15` e o `limit(10)`.
 
-### Passo 8 — (Opcional, Fase 3b) Recomendação no sentido inverso
+### Passo 8 — Recomendação no sentido inverso (implementado)
 
-`sugerirCandidatos(vagaId)` para a empresa: pega o vetor da vaga, ranqueia candidatos por cosseno.
+`GET /api/vagas/{id}/candidatos-recomendados` pega o vetor persistido da vaga e ranqueia,
+com paginação, os candidatos autorizados. O fallback usa objetivo/habilidades e as regras
+de salário/faixa etária. Apenas a empresa proprietária pode consultar e candidatos que já
+se inscreveram são excluídos.
 
-> ⚠️ **LGPD:** mostrar perfis de candidatos à empresa **antes** de qualquer candidatura é dado
-> pessoal sem base no fluxo atual (a privacidade hoje é por candidatura, ver `Candidatura`).
-> Antes de expor: ou **anonimizar** (só score + resumo), ou exigir **opt-in** do candidato para
-> aparecer em buscas de empresas. **Decidir isso antes de implementar.**
+> **LGPD:** o opt-in é desligado por padrão e pode ser consultado/alterado em
+> `GET|PATCH /api/candidatos/recomendacoes/visibilidade`. Consentimento e revogação têm
+> timestamp; a resposta para empresas contém somente o resumo profissional mínimo, sem CPF,
+> nome, e-mail, telefone, endereço, foto ou arquivo de currículo.
 
 ### Passo 9 — Modelo multilíngue (PT-BR)
 
@@ -575,6 +578,45 @@ app.embeddings.tokenizer-uri=classpath:/onnx/tokenizer.json
 
 ---
 
+### Passo 11 — Recursos assistivos (LLM aberto local via Ollama)
+
+Três recursos generativos, todos **sugestão** — nada é aplicado sem o usuário:
+
+| Recurso | Endpoint | Quem | Persistência |
+|---|---|---|---|
+| Objetivo profissional + habilidades a partir do currículo | `POST` / `GET /api/candidatos/curriculo/resumo` | CANDIDATO | colunas `resumo_ia*` em `curriculo`; reaproveitada enquanto o texto do currículo não mudar |
+| Rascunho de descrição e requisitos da vaga | `POST /api/vagas/assistente/descricao` | EMPRESA / ADMIN | nenhuma (stateless) |
+| Triagem inicial: parecer, pontos fortes, lacunas, recomendação | `POST` / `GET /api/candidaturas/{id}/empresa/triagem` | EMPRESA dona da vaga | tabela `triagem_candidatura` (`ON DELETE CASCADE`); reaproveitada enquanto a entrada não mudar |
+
+**Arquitetura** — mesmo padrão dos embeddings: `LlmPort` + `OllamaLlmAdapter` + `DisabledLlmPort`,
+criados em `LlmConfig` só com `app.llm.enabled=true`. `LlmEstruturado` extrai e valida o JSON (o
+Ollama roda com `format: json`) e repete uma vez se vier inválido. Sem LLM, os endpoints respondem **503**.
+
+**Custo e fila** — as chamadas ao LLM ficam **fora de transação** (em CPU podem levar minutos; timeout
+de leitura em `app.llm.timeout-segundos`). `CotaAssistente` limita gerações por usuário por hora
+(`app.llm.limite-por-hora`); resposta em cache não consome cota.
+
+**LGPD**
+- E-mail, telefone, CPF e links de perfil são mascarados antes do prompt (`MascaraDadosPessoais`).
+- A triagem usa só o que o candidato compartilhou **nesta candidatura** — as mesmas regras da visão
+  da empresa. Habilidades, nome, contato e endereço nunca entram. Informação não compartilhada é
+  tratada como "não avaliável", nunca como lacuna.
+- A triagem nunca move a candidatura: a resposta traz o aviso de decisão humana (art. 20), e cada
+  geração é registrada na auditoria de acesso (art. 37).
+
+**Rodar em dev**
+
+```bash
+ollama pull qwen2.5:7b
+APP_LLM_ENABLED=true ./mvnw spring-boot:run
+```
+
+> ⚠️ **Chamada síncrona.** Em CPU, uma triagem pode levar de 30 s a 2 min, e a requisição HTTP fica
+> aberta esse tempo todo. Para produção sem GPU, o próximo passo é gerar em background e avisar pelo
+> `RealtimeService` (SSE) quando ficar pronto.
+
+---
+
 ## Deploy no Railway (Hobby)
 
 - **Cabe folgado:** teto por serviço muito acima do ~1 GB necessário (RAM não é gargalo).
@@ -600,10 +642,11 @@ app.embeddings.tokenizer-uri=classpath:/onnx/tokenizer.json
 - [x] Passo 5 — entidades `VagaEmbedding`/`CandidatoEmbedding` + repositórios (`@OnDelete` cascade)
 - [x] Passo 6 — `IndexacaoEmbeddingService` + ganchos em `VagaService`/`CandidatoService` + backfill admin
 - [x] Passo 7 — match híbrido em `SugestaoVagaService` (semântico + fallback), carregar vetores em lote
-- [ ] Passo 8 — (opcional) recomendação inversa (com decisão de LGPD antes)
+- [x] Passo 8 — recomendação inversa com opt-in explícito e revogável, minimização de dados, autorização por propriedade da vaga, paginação e exclusão de candidatos já inscritos
 - [x] Passo 9 — configurar `intfloat/multilingual-e5-small` (384d) e prefixos E5 `query:`/`passage:`
 - [x] Passo 10 — testes (codec, híbrido com mocks, contextLoads sem download)
-- [x] `./mvnw test` verde localmente (212 testes); ligar `APP_EMBEDDINGS_ENABLED=true` só em homologação/produção
+- [x] Passo 11 — recursos assistivos com LLM local (Ollama) atrás de `LlmPort`: resumo de perfil, descrição de vaga e triagem; flag desligada por padrão
+- [x] `./mvnw test` verde localmente (238 testes); ligar `APP_EMBEDDINGS_ENABLED=true` só em homologação/produção
 - [x] Marcar no `ROADMAP.md`: parsing de currículo e match semântico implementados
 - [ ] Operação — executar `POST /api/admin/migracao/backfill-embeddings` em homologação e produção após habilitar o modelo
 

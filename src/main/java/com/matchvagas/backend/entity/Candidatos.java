@@ -8,6 +8,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 @Data
 
@@ -47,6 +48,17 @@ public class Candidatos {
 
     @Column(name = "disponibilidade", length = 100)
     private String disponibilidade;
+
+    /** Consentimento específico para descoberta proativa por empresas (LGPD). */
+    @Column(name = "disponivel_recomendacoes", nullable = false,
+            columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private boolean disponivelParaRecomendacoes = false;
+
+    @Column(name = "recomendacoes_consentimento_em")
+    private LocalDateTime recomendacoesConsentimentoEm;
+
+    @Column(name = "recomendacoes_revogacao_em")
+    private LocalDateTime recomendacoesRevogacaoEm;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "genero", length = 30)

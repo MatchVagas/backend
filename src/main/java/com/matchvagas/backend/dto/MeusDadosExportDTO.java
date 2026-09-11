@@ -34,6 +34,9 @@ public record MeusDadosExportDTO(
             String disponibilidade,
             BigDecimal pretensaoSalarial,
             String genero,
+            boolean disponivelParaRecomendacoes,
+            LocalDateTime recomendacoesConsentimentoEm,
+            LocalDateTime recomendacoesRevogacaoEm,
             Endereco endereco,
             List<Habilidade> habilidades,
             List<Telefone> telefones

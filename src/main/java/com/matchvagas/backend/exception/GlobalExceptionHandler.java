@@ -100,6 +100,18 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.TOO_MANY_REQUESTS);
     }
 
+    @ExceptionHandler(LlmIndisponivelException.class)
+    public ResponseEntity<ErrorResponse> handleLlmIndisponivel(LlmIndisponivelException exception) {
+        log.warn("Assistente de IA indisponível: {}", exception.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "Assistente de IA indisponível",
+                exception.getMessage(),
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.SERVICE_UNAVAILABLE);
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException exception) {
         log.warn("Falha de autenticação: {}", exception.getMessage());

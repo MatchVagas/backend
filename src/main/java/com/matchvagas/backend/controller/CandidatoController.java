@@ -4,6 +4,8 @@ import com.matchvagas.backend.dto.CandidatoRequestDTO;
 import com.matchvagas.backend.dto.CandidatoResponseDTO;
 import com.matchvagas.backend.dto.MeusDadosExportDTO;
 import com.matchvagas.backend.dto.SugestaoVagaResponseDTO;
+import com.matchvagas.backend.dto.VisibilidadeRecomendacoesRequestDTO;
+import com.matchvagas.backend.dto.VisibilidadeRecomendacoesResponseDTO;
 import com.matchvagas.backend.service.CandidatoService;
 import com.matchvagas.backend.service.FotoPerfilService;
 import com.matchvagas.backend.service.SugestaoVagaService;
@@ -125,5 +127,27 @@ public class CandidatoController {
     public ResponseEntity<List<SugestaoVagaResponseDTO>> sugestoes(Authentication authentication) {
         Long usuarioId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(sugestaoVagaService.sugerirVagas(usuarioId));
+    }
+
+    @PatchMapping("/recomendacoes/visibilidade")
+    @Operation(
+        summary = "Autorizar ou revogar recomendações do perfil para empresas",
+        description = "Opt-in LGPD desligado por padrão. Quando ativo, somente dados profissionais "
+                    + "mínimos podem aparecer no ranking de candidatos de uma vaga."
+    )
+    public ResponseEntity<VisibilidadeRecomendacoesResponseDTO> atualizarVisibilidadeRecomendacoes(
+            Authentication authentication,
+            @Valid @RequestBody VisibilidadeRecomendacoesRequestDTO dto) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidatoService
+                .atualizarVisibilidadeRecomendacoes(usuarioId, dto.disponivel()));
+    }
+
+    @GetMapping("/recomendacoes/visibilidade")
+    @Operation(summary = "Consultar minha autorização para recomendações a empresas")
+    public ResponseEntity<VisibilidadeRecomendacoesResponseDTO> consultarVisibilidadeRecomendacoes(
+            Authentication authentication) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(candidatoService.consultarVisibilidadeRecomendacoes(usuarioId));
     }
 }
