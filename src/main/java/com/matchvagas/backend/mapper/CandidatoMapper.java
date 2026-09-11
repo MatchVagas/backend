@@ -23,6 +23,9 @@ public interface CandidatoMapper {
     @Mapping(target = "endereco",     ignore = true)
     @Mapping(target = "curriculo",    ignore = true)
     @Mapping(target = "usuario",      ignore = true)
+    @Mapping(target = "disponivelParaRecomendacoes", ignore = true)
+    @Mapping(target = "recomendacoesConsentimentoEm", ignore = true)
+    @Mapping(target = "recomendacoesRevogacaoEm", ignore = true)
     @Mapping(target = "objetivoProfissional", source = "resumoProfissional")
     Candidatos toEntity(CandidatoRequestDTO dto);
 

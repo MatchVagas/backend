@@ -5,6 +5,7 @@ import com.matchvagas.backend.dto.CandidatoResponseDTO;
 import com.matchvagas.backend.dto.LocalizacaoRequestDTO;
 import com.matchvagas.backend.dto.MeusDadosExportDTO;
 import com.matchvagas.backend.dto.TelefonesRequestDTO;
+import com.matchvagas.backend.dto.VisibilidadeRecomendacoesResponseDTO;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
@@ -75,6 +76,38 @@ public class CandidatoService {
         Candidatos candidato = candidatoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidato não encontrado com ID: " + id));
         return comFotoAssinada(candidatoMapper.toResponseDTO(candidato));
+    }
+
+    @Transactional
+    public VisibilidadeRecomendacoesResponseDTO atualizarVisibilidadeRecomendacoes(
+            Long usuarioId, boolean disponivel) {
+        Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
+        candidato.setDisponivelParaRecomendacoes(disponivel);
+        if (disponivel) {
+            candidato.setRecomendacoesConsentimentoEm(LocalDateTime.now());
+            candidato.setRecomendacoesRevogacaoEm(null);
+        } else {
+            candidato.setRecomendacoesRevogacaoEm(LocalDateTime.now());
+        }
+        candidatoRepository.save(candidato);
+        return visibilidade(candidato);
+    }
+
+    @Transactional(readOnly = true)
+    public VisibilidadeRecomendacoesResponseDTO consultarVisibilidadeRecomendacoes(Long usuarioId) {
+        Candidatos candidato = candidatoRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Perfil de candidato não encontrado para o usuário ID: " + usuarioId));
+        return visibilidade(candidato);
+    }
+
+    private VisibilidadeRecomendacoesResponseDTO visibilidade(Candidatos candidato) {
+        return new VisibilidadeRecomendacoesResponseDTO(
+                candidato.isDisponivelParaRecomendacoes(),
+                candidato.getRecomendacoesConsentimentoEm(),
+                candidato.getRecomendacoesRevogacaoEm());
     }
 
     // RF003 — Criar perfil de candidato vinculado ao usuário autenticado
@@ -195,6 +228,9 @@ public class CandidatoService {
                 candidato.getDisponibilidade(),
                 candidato.getPretensaoSalarial(),
                 candidato.getGenero() != null ? candidato.getGenero().name() : null,
+                candidato.isDisponivelParaRecomendacoes(),
+                candidato.getRecomendacoesConsentimentoEm(),
+                candidato.getRecomendacoesRevogacaoEm(),
                 enderecoDto,
                 habilidades,
                 telefones);

@@ -155,6 +155,34 @@ class CandidatoServiceTest {
     }
 
     @Nested
+    @DisplayName("Visibilidade nas recomendações para empresas")
+    class VisibilidadeRecomendacoes {
+        @Test
+        void deveRegistrarOptInExplicito() {
+            when(candidatoRepository.findByUsuarioId(1L)).thenReturn(Optional.of(candidato));
+
+            var resposta = candidatoService.atualizarVisibilidadeRecomendacoes(1L, true);
+
+            assertThat(resposta.disponivel()).isTrue();
+            assertThat(resposta.consentimentoEm()).isNotNull();
+            assertThat(resposta.revogacaoEm()).isNull();
+            assertThat(candidato.isDisponivelParaRecomendacoes()).isTrue();
+            verify(candidatoRepository).save(candidato);
+        }
+
+        @Test
+        void devePermitirRevogarOptIn() {
+            candidato.setDisponivelParaRecomendacoes(true);
+            when(candidatoRepository.findByUsuarioId(1L)).thenReturn(Optional.of(candidato));
+
+            candidatoService.atualizarVisibilidadeRecomendacoes(1L, false);
+
+            assertThat(candidato.isDisponivelParaRecomendacoes()).isFalse();
+            assertThat(candidato.getRecomendacoesRevogacaoEm()).isNotNull();
+        }
+    }
+
+    @Nested
     @DisplayName("Atualizar perfil")
     class AtualizarPerfil {
 

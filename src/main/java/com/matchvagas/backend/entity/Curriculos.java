@@ -43,6 +43,20 @@ public class Curriculos {
     @Column(name = "parseado_em")
     private LocalDateTime parseadoEm;
 
+    // Sugestão do assistente de IA (objetivo + habilidades, em JSON). Reaproveitada
+    // enquanto o hash do texto do currículo não mudar.
+    @Column(name = "resumo_ia", columnDefinition = "TEXT")
+    private String resumoIa;
+
+    @Column(name = "resumo_ia_hash", length = 64)
+    private String resumoIaHash;
+
+    @Column(name = "resumo_ia_modelo", length = 100)
+    private String resumoIaModelo;
+
+    @Column(name = "resumo_ia_gerado_em")
+    private LocalDateTime resumoIaGeradoEm;
+
     @PrePersist
     protected void onCreate() {
         this.dataUpload = LocalDateTime.now();
