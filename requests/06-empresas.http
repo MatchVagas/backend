@@ -155,3 +155,56 @@ Content-Type: application/json
     client.assert(response.status === 403);
   });
 %}
+
+###
+
+### [10] Busca de talentos sem vaga cadastrada (EMPRESA)
+# Ranqueia só candidatos com opt-in; cada página conta na cota por hora.
+POST {{base_url}}/api/empresas/talentos/busca?page=0&size=20
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{
+  "descricao": "Desenvolvedor Java sênior com Spring Boot e AWS, para trabalho remoto",
+  "areaAtuacao": "Tecnologia",
+  "requisitos": "Java, Spring Boot, AWS, SQL",
+  "salarioMinimo": 9000,
+  "salarioMaximo": 14000
+}
+
+> {%
+  client.test("Status 200 com página de candidatos", function() {
+    client.assert(response.status === 200);
+    client.assert(Array.isArray(response.body.content));
+  });
+%}
+
+###
+
+### [11] Busca de talentos sem descrição (deve retornar 400)
+POST {{base_url}}/api/empresas/talentos/busca
+Authorization: Bearer {{token_empresa}}
+Content-Type: application/json
+
+{ "titulo": "Desenvolvedor" }
+
+> {%
+  client.test("Descrição obrigatória", function() {
+    client.assert(response.status === 400);
+  });
+%}
+
+###
+
+### [12] Candidato tenta buscar talentos (deve retornar 403)
+POST {{base_url}}/api/empresas/talentos/busca
+Authorization: Bearer {{token_candidato}}
+Content-Type: application/json
+
+{ "descricao": "Java" }
+
+> {%
+  client.test("Candidato bloqueado", function() {
+    client.assert(response.status === 403);
+  });
+%}

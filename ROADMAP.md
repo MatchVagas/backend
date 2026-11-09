@@ -38,7 +38,7 @@ branch de segurança (hardening, migrações pós-deploy e paginação).
 
 - [x] 🔴 **Parsing de currículo** (PDF/DOC/DOCX → texto e dados estruturados por regras, com Apache Tika).
 - [x] 🔴 **Match por embeddings** entre CV e vaga, com score e ranking híbrido. Usa ONNX local, persistência portátil e fallback por regras; modelo multilíngue configurado, desligado por padrão.
-- [x] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato e ranking paginado de candidatos para a empresa proprietária da vaga. A descoberta exige opt-in revogável, omite dados pessoais/contato e exclui candidatos já inscritos.
+- [x] 🟡 **Recomendação nos dois sentidos**: vagas para o candidato e ranking paginado de candidatos para a empresa proprietária da vaga. A descoberta exige opt-in revogável, omite dados pessoais/contato e exclui candidatos já inscritos. A empresa também pode buscar talentos descrevendo o perfil ideal em texto livre, sem cadastrar vaga (cota por hora e auditoria).
 - [x] 🟡 **Recursos assistivos**: sugestão de objetivo profissional e habilidades a partir do currículo, rascunho de descrição/requisitos de vaga e triagem inicial assistida (parecer, pontos fortes, lacunas e recomendação). Todos só sugerem — nada é aplicado sem o usuário; a triagem respeita o compartilhamento da candidatura e é auditada.
 
 > **Camada de IA:** o matching semântico usa embeddings ONNX locais; os recursos generativos usam um

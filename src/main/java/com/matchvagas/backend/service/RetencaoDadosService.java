@@ -2,8 +2,11 @@ package com.matchvagas.backend.service;
 
 import com.matchvagas.backend.entity.Candidatos;
 import com.matchvagas.backend.entity.Usuarios;
+import com.matchvagas.backend.repository.CandidatoEmbeddingRepository;
 import com.matchvagas.backend.repository.CandidatoRepository;
 import com.matchvagas.backend.repository.CurriculoRepository;
+import com.matchvagas.backend.repository.ExperienciaRepository;
+import com.matchvagas.backend.repository.FormacaoRepository;
 import com.matchvagas.backend.repository.PasswordResetTokenRepository;
 import com.matchvagas.backend.repository.UsuariosRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +22,8 @@ import java.util.List;
 /**
  * Política de retenção de dados (LGPD Art. 15/16). Job mensal que:
  *  - pseudoanonimiza candidatos inativos há mais de N anos (remove dados
- *    identificadores: nome, e-mail, endereço, telefone, foto e perfil);
+ *    identificadores: nome, e-mail, endereço, telefone, foto, perfil, experiências,
+ *    formações e o vetor de embeddings, e retira o candidato das recomendações);
  *  - remove currículos de candidatos inativos há mais de M anos;
  *  - limpa tokens de redefinição de senha expirados/utilizados.
  *
@@ -37,6 +41,9 @@ public class RetencaoDadosService {
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final CurriculoService curriculoService;
     private final FotoPerfilService fotoPerfilService;
+    private final ExperienciaRepository experienciaRepository;
+    private final FormacaoRepository formacaoRepository;
+    private final CandidatoEmbeddingRepository candidatoEmbeddingRepository;
 
     @Value("${lgpd.retencao.enabled:true}")
     private boolean habilitado;
@@ -116,6 +123,17 @@ public class RetencaoDadosService {
             candidato.setGenero(null);
             if (candidato.getHabilidades() != null) {
                 candidato.getHabilidades().clear();
+            }
+            // Histórico profissional e o vetor derivado do perfil também identificam a pessoa
+            // (empresas, cargos, datas): saem junto com o perfil.
+            experienciaRepository.deleteAll(experienciaRepository.findByCandidatoId(candidato.getId()));
+            formacaoRepository.deleteAll(formacaoRepository.findByCandidatoId(candidato.getId()));
+            candidatoEmbeddingRepository.findByCandidatoId(candidato.getId())
+                    .ifPresent(candidatoEmbeddingRepository::delete);
+            // Conta anonimizada não aparece mais para empresas (recomendação e busca de talentos).
+            if (candidato.isDisponivelParaRecomendacoes()) {
+                candidato.setDisponivelParaRecomendacoes(false);
+                candidato.setRecomendacoesRevogacaoEm(LocalDateTime.now());
             }
             candidatoRepository.save(candidato);
         }

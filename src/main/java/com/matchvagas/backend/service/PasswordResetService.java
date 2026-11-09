@@ -123,7 +123,7 @@ public class PasswordResetService {
                   </div>
                   <p style="color:#888;font-size:13px">Se você não fez esta solicitação, ignore este e-mail — sua senha permanece a mesma.</p>
                 </body></html>
-                """.formatted(usuario.getNome(), codigo);
+                """.formatted(EmailService.html(usuario.getNome()), codigo);
 
         emailService.enviarEmail(usuario.getEmail(), "Código de redefinição de senha — MatchVagas", corpo);
     }

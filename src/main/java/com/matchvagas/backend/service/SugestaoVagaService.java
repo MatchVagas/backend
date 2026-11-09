@@ -176,7 +176,9 @@ public class SugestaoVagaService {
         Integer idadeCandidato = (candidato.getUsuario() != null)
                 ? candidato.getUsuario().getIdade() : null;
 
+        // A faixa etária é opcional na vaga: sem ela, o critério não pontua.
         if (idadeCandidato != null && idadeCandidato > 0
+                && vaga.getIdadeMinima() != null && vaga.getIdadeMaxima() != null
                 && vaga.getIdadeMinima() > 0 && vaga.getIdadeMaxima() > 0) {
             if (idadeCandidato >= vaga.getIdadeMinima()
                     && idadeCandidato <= vaga.getIdadeMaxima()) {

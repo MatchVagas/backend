@@ -104,7 +104,7 @@ public class EmailVerificationService {
                   </div>
                   <p style="color:#888;font-size:13px">Se você não criou esta conta, ignore este e-mail.</p>
                 </body></html>
-                """.formatted(usuario.getNome(), link);
+                """.formatted(EmailService.html(usuario.getNome()), link);
 
         emailService.enviarEmail(usuario.getEmail(), "Confirme seu e-mail — MatchVagas", corpo);
     }

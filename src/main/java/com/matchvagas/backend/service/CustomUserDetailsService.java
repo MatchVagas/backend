@@ -35,7 +35,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .accountExpired(false)
                 .accountLocked(false)
                 .credentialsExpired(false)
-                .disabled(!Boolean.TRUE.equals(usuario.getAtivo()))
+                // Mesma regra do login: só "false" desativa; nulo é conta legada ativa.
+                .disabled(Boolean.FALSE.equals(usuario.getAtivo()))
                 .build();
     }
 }

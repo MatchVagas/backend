@@ -161,6 +161,8 @@ public class NotificacaoService {
         return notificacao;
     }
 
+    // Título, nome e mensagem podem trazer texto digitado por usuários (vaga, chat): escapados
+    // para não injetar HTML no e-mail.
     private void enviarEmailNotificacao(String email, String nome, String titulo, String mensagem) {
         String html = """
                 <div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:24px;border:1px solid #e0e0e0;border-radius:8px;">
@@ -170,7 +172,7 @@ public class NotificacaoService {
                   <hr style="border:none;border-top:1px solid #e0e0e0;margin:24px 0;">
                   <p style="color:#6b7280;font-size:12px;">MatchVagas — você recebeu esta mensagem pois está cadastrado em nossa plataforma.</p>
                 </div>
-                """.formatted(titulo, nome, mensagem);
+                """.formatted(EmailService.html(titulo), EmailService.html(nome), EmailService.html(mensagem));
         emailService.enviarEmail(email, titulo, html);
     }
 }

@@ -27,10 +27,12 @@ public class Usuarios {
     @Column(name = "senha_hash", nullable = false, columnDefinition = "TEXT")
     private String senha;
 
-    @Column(name = "dataNascimento", nullable = false)
+    // Opcional: o cadastro de empresa não pede a data de nascimento do recrutador
+    // (minimização, LGPD art. 6º, III). Quem usa a idade trata o valor nulo.
+    @Column(name = "dataNascimento")
     private Date dataNascimento;
 
-    @Column(name = "idade", nullable = false)
+    @Column(name = "idade")
     private Integer idade;
 
     @Column(name = "ativo")

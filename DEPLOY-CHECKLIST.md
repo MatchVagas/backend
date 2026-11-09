@@ -152,6 +152,17 @@ Com `spring.jpa.hibernate.ddl-auto=update`, o Hibernate cria/altera tabelas no b
   - [ ] coluna `cpf_hash` adicionada em `candidatos`.
   - [ ] coluna `cpf` alargada (comporta o texto cifrado em Base64).
 - [ ] Conferir que nenhuma coluna existente foi perdida/renomeada indevidamente.
+- [ ] `usuarios.data_nascimento` e `usuarios.idade` passaram a aceitar nulo (cadastro de
+      empresa sem data de nascimento). O `ddl-auto=update` **não** remove o `NOT NULL` de
+      colunas existentes — rodar uma vez, conforme o banco:
+  ```sql
+  -- PostgreSQL
+  ALTER TABLE usuarios ALTER COLUMN data_nascimento DROP NOT NULL;
+  ALTER TABLE usuarios ALTER COLUMN idade DROP NOT NULL;
+  -- MariaDB / MySQL
+  ALTER TABLE usuarios MODIFY data_nascimento DATETIME(6) NULL;
+  ALTER TABLE usuarios MODIFY idade INT NULL;
+  ```
 
 ---
 

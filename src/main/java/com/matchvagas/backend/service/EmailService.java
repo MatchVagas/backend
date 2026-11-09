@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.HtmlUtils;
 
 @Slf4j
 @Service
@@ -36,6 +37,14 @@ public class EmailService {
         this.resend = apiKey.isBlank() ? null : new Resend(apiKey);
         this.gmailFrom = gmailFrom;
         this.mailSender = mailSenderProvider.getIfAvailable();
+    }
+
+    /**
+     * Escapa texto vindo de usuários (nome, título de vaga, mensagem do chat) antes de
+     * inseri-lo no corpo HTML do e-mail. Mantém acentos; nulo vira vazio.
+     */
+    public static String html(String texto) {
+        return texto == null ? "" : HtmlUtils.htmlEscape(texto, "UTF-8");
     }
 
     public void enviarEmail(String para, String assunto, String corpoHtml) {

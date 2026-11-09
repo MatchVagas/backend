@@ -1,15 +1,23 @@
 package com.matchvagas.backend.exception;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
@@ -122,6 +130,69 @@ public class GlobalExceptionHandler {
                 LocalDateTime.now()
         );
         return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    }
+
+    // Erros de requisição detectados pelo próprio Spring MVC. Sem estes handlers cairiam no
+    // fallback abaixo e virariam 500 — escondendo erro do cliente e poluindo o log de erros.
+    @ExceptionHandler({
+            HttpRequestMethodNotSupportedException.class,
+            HttpMediaTypeNotSupportedException.class,
+            HttpMediaTypeNotAcceptableException.class,
+            MissingServletRequestParameterException.class,
+            NoResourceFoundException.class
+    })
+    public ResponseEntity<ErrorResponse> handleErroDeRequisicao(Exception exception) {
+        HttpStatus status = HttpStatus.valueOf(
+                ((org.springframework.web.ErrorResponse) exception).getStatusCode().value());
+        String mensagem = switch (exception) {
+            case HttpRequestMethodNotSupportedException e -> "Método " + e.getMethod() + " não suportado nesta rota.";
+            case HttpMediaTypeNotSupportedException e -> "Tipo de conteúdo não suportado: " + e.getContentType() + ".";
+            case MissingServletRequestParameterException e ->
+                    "O parâmetro '" + e.getParameterName() + "' é obrigatório e não foi enviado.";
+            case NoResourceFoundException e -> "Rota não encontrada.";
+            default -> status.getReasonPhrase();
+        };
+        log.warn("Requisição inválida ({}): {}", status.value(), exception.getMessage());
+        return new ResponseEntity<>(
+                new ErrorResponse(status.value(), status.getReasonPhrase(), mensagem, LocalDateTime.now()), status);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleCorpoIlegivel(HttpMessageNotReadableException exception) {
+        log.warn("Corpo da requisição ilegível: {}", exception.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Corpo da requisição inválido",
+                "O corpo da requisição está ausente ou não é um JSON válido.",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTipoInvalido(MethodArgumentTypeMismatchException exception) {
+        log.warn("Parâmetro com tipo inválido: {}", exception.getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Parâmetro inválido",
+                "Valor inválido para o parâmetro '" + exception.getName() + "'.",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    // Campo obrigatório ausente ou valor duplicado que só o banco detectou. A mensagem do
+    // driver (com SQL e nomes de colunas) fica só no log.
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleViolacaoDeIntegridade(DataIntegrityViolationException exception) {
+        log.warn("Violação de integridade dos dados: {}", exception.getMostSpecificCause().getMessage());
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Dados inválidos ou conflitantes",
+                "A operação viola uma restrição dos dados: há campo obrigatório ausente ou valor já cadastrado.",
+                LocalDateTime.now()
+        );
+        return new ResponseEntity<>(errorResponse, HttpStatus.CONFLICT);
     }
 
     // Fallback para exceções inesperadas

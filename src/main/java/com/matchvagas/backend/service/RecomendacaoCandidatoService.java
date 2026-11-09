@@ -57,7 +57,7 @@ public class RecomendacaoCandidatoService {
     @Value("${app.embeddings.enabled:false}")
     private boolean embeddingsAtivos;
 
-    private record VetorPersistido(float[] valores, String modelo, int dimensao) {}
+    record VetorPersistido(float[] valores, String modelo, int dimensao) {}
 
     @Transactional(readOnly = true)
     public PageResponseDTO<CandidatoRecomendadoResponseDTO> recomendar(
@@ -73,29 +73,34 @@ public class RecomendacaoCandidatoService {
         Set<Long> jaCandidatados = candidaturaRepository.findByVagaId(vagaId).stream()
                 .map(c -> c.getCandidato().getId())
                 .collect(Collectors.toSet());
+        VetorPersistido vetorVaga = !embeddingsAtivos ? null : vagaEmbeddingRepository.findByVagaId(vagaId)
+                .map(e -> vetor(e.getVetor(), e.getModelo(), e.getDim()))
+                .orElse(null);
+        return ranquear(vaga, vetorVaga, jaCandidatados, pageable);
+    }
+
+    /**
+     * Ranqueia os candidatos com opt-in contra um perfil — uma vaga cadastrada ou o critério
+     * transitório da busca de talentos. Sem vetor do perfil, usa só a comparação textual.
+     */
+    PageResponseDTO<CandidatoRecomendadoResponseDTO> ranquear(
+            Vagas perfil, VetorPersistido vetorPerfil, Set<Long> excluidos, Pageable pageable) {
         List<Candidatos> candidatos = candidatoRepository.findByDisponivelParaRecomendacoesTrue().stream()
-                .filter(c -> !jaCandidatados.contains(c.getId()))
+                .filter(c -> !excluidos.contains(c.getId()))
                 .filter(c -> c.getUsuario() != null && Boolean.TRUE.equals(c.getUsuario().getAtivo()))
                 .toList();
 
-        VetorPersistido vetorVaga = null;
         Map<Long, VetorPersistido> vetoresCandidatos = Collections.emptyMap();
-        if (embeddingsAtivos) {
-            vetorVaga = vagaEmbeddingRepository.findByVagaId(vagaId)
-                    .map(e -> vetor(e.getVetor(), e.getModelo(), e.getDim()))
-                    .orElse(null);
-            List<Long> ids = candidatos.stream().map(Candidatos::getId).toList();
-            if (!ids.isEmpty()) {
-                vetoresCandidatos = candidatoEmbeddingRepository.findByCandidatoIdIn(ids).stream()
-                        .collect(Collectors.toMap(e -> e.getCandidato().getId(),
-                                e -> vetor(e.getVetor(), e.getModelo(), e.getDim()), (a, b) -> a));
-            }
+        if (vetorPerfil != null && !candidatos.isEmpty()) {
+            vetoresCandidatos = candidatoEmbeddingRepository
+                    .findByCandidatoIdIn(candidatos.stream().map(Candidatos::getId).toList()).stream()
+                    .collect(Collectors.toMap(e -> e.getCandidato().getId(),
+                            e -> vetor(e.getVetor(), e.getModelo(), e.getDim()), (a, b) -> a));
         }
 
-        VetorPersistido vetorVagaFinal = vetorVaga;
         Map<Long, VetorPersistido> vetoresFinal = vetoresCandidatos;
         List<CandidatoRecomendadoResponseDTO> ranking = candidatos.stream()
-                .map(c -> pontuar(vaga, c, vetorVagaFinal, vetoresFinal.get(c.getId())))
+                .map(c -> pontuar(perfil, c, vetorPerfil, vetoresFinal.get(c.getId())))
                 .filter(c -> c.pontuacao() > 15)
                 .sorted(Comparator.comparingInt(CandidatoRecomendadoResponseDTO::pontuacao).reversed()
                         .thenComparing(CandidatoRecomendadoResponseDTO::candidatoId))
