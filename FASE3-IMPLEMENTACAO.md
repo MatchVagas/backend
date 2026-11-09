@@ -537,6 +537,20 @@ se inscreveram são excluídos.
 > timestamp; a resposta para empresas contém somente o resumo profissional mínimo, sem CPF,
 > nome, e-mail, telefone, endereço, foto ou arquivo de currículo.
 
+### Passo 8b — Busca de talentos sem vaga cadastrada (implementado)
+
+`POST /api/empresas/talentos/busca` (EMPRESA) recebe um perfil ideal em texto livre
+(`descricao` obrigatória; `titulo`, `areaAtuacao`, `requisitos` e faixa salarial opcionais)
+e devolve o mesmo ranking paginado da recomendação por vaga. O texto vira um vetor na hora
+(`passage:`, como as vagas), sem persistir nada; sem embeddings — ou se o modelo falhar —
+usa a comparação textual, com a descrição no lugar de título/área quando ausentes.
+A pontuação é a de `RecomendacaoCandidatoService.ranquear`, compartilhada com o Passo 8.
+
+> **LGPD:** reaproveita o opt-in da recomendação (mesmo público, mesmos dados mínimos).
+> Cada página conta na cota `APP_TALENTOS_LIMITE_POR_HORA` (padrão 30), contra varredura
+> da base, e cada candidato devolvido é registrado em `auditoria_acesso`
+> (`CANDIDATO` / `BUSCA_TALENTOS`).
+
 ### Passo 9 — Modelo multilíngue (PT-BR)
 
 O default (`all-MiniLM-L6-v2`) é anglocêntrico — funciona, mas para PT prefira um multilíngue
@@ -643,10 +657,11 @@ APP_LLM_ENABLED=true ./mvnw spring-boot:run
 - [x] Passo 6 — `IndexacaoEmbeddingService` + ganchos em `VagaService`/`CandidatoService` + backfill admin
 - [x] Passo 7 — match híbrido em `SugestaoVagaService` (semântico + fallback), carregar vetores em lote
 - [x] Passo 8 — recomendação inversa com opt-in explícito e revogável, minimização de dados, autorização por propriedade da vaga, paginação e exclusão de candidatos já inscritos
+- [x] Passo 8b — busca de talentos por texto livre, sem vaga cadastrada, com cota por empresa e auditoria
 - [x] Passo 9 — configurar `intfloat/multilingual-e5-small` (384d) e prefixos E5 `query:`/`passage:`
 - [x] Passo 10 — testes (codec, híbrido com mocks, contextLoads sem download)
 - [x] Passo 11 — recursos assistivos com LLM local (Ollama) atrás de `LlmPort`: resumo de perfil, descrição de vaga e triagem; flag desligada por padrão
-- [x] `./mvnw test` verde localmente (238 testes); ligar `APP_EMBEDDINGS_ENABLED=true` só em homologação/produção
+- [x] `./mvnw test` verde localmente (245 testes); ligar `APP_EMBEDDINGS_ENABLED=true` só em homologação/produção
 - [x] Marcar no `ROADMAP.md`: parsing de currículo e match semântico implementados
 - [ ] Operação — executar `POST /api/admin/migracao/backfill-embeddings` em homologação e produção após habilitar o modelo
 

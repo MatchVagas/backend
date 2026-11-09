@@ -1,13 +1,19 @@
 package com.matchvagas.backend.controller;
 
+import com.matchvagas.backend.dto.BuscaTalentosRequestDTO;
+import com.matchvagas.backend.dto.CandidatoRecomendadoResponseDTO;
 import com.matchvagas.backend.dto.EmpresaRequestDTO;
 import com.matchvagas.backend.dto.EmpresaResponseDTO;
+import com.matchvagas.backend.dto.PageResponseDTO;
+import com.matchvagas.backend.service.BuscaTalentosService;
 import com.matchvagas.backend.service.EmpresaService;
 import com.matchvagas.backend.service.FotoPerfilService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +32,7 @@ public class EmpresaController {
 
     private final EmpresaService   empresaService;
     private final FotoPerfilService fotoPerfilService;
+    private final BuscaTalentosService buscaTalentosService;
 
     @GetMapping
     @Operation(summary = "Listar todas as empresas")
@@ -76,6 +83,24 @@ public class EmpresaController {
         Long usuarioId = Long.parseLong(authentication.getName());
         fotoPerfilService.deletarEmpresa(usuarioId);
         return ResponseEntity.noContent().build();
+    }
+
+    // Fase 3 — busca de talentos sem vaga cadastrada
+    @PostMapping("/talentos/busca")
+    @PreAuthorize("hasAuthority('EMPRESA')")
+    @Operation(
+        summary = "Buscar candidatos a partir de um perfil ideal descrito em texto livre",
+        description = "Não exige vaga cadastrada e nada é salvo. Ranqueia só candidatos com opt-in "
+                    + "explícito, com a mesma pontuação e os mesmos dados mínimos da recomendação por vaga "
+                    + "(nunca CPF, contato, endereço ou arquivo do currículo). Cada página conta na cota "
+                    + "por hora da empresa, e os candidatos retornados ficam registrados na auditoria."
+    )
+    public ResponseEntity<PageResponseDTO<CandidatoRecomendadoResponseDTO>> buscarTalentos(
+            Authentication authentication,
+            @Valid @RequestBody BuscaTalentosRequestDTO dto,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long usuarioId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(buscaTalentosService.buscar(usuarioId, dto, pageable));
     }
 
     // RF004 — Criar perfil de empresa (EMPRESA ou ADMIN)
