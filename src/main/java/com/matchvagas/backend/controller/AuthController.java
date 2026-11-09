@@ -83,10 +83,12 @@ public class AuthController {
     @PostMapping("/register-empresa")
     @Operation(
         summary = "Cadastrar empresa (usuário + empresa em uma única operação atômica)",
-        description = "Cria o usuário e a empresa numa única transação. Se qualquer etapa falhar, nada é persistido."
+        description = "Cria o usuário e a empresa numa única transação. Se qualquer etapa falhar, nada é persistido. "
+                    + "Envia um link de confirmação por e-mail; a resposta não traz token (token e refreshToken "
+                    + "nulos) e o login só é liberado após a confirmação."
     )
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Empresa cadastrada — token JWT retornado"),
+        @ApiResponse(responseCode = "201", description = "Empresa cadastrada — confirmação de e-mail enviada"),
         @ApiResponse(responseCode = "400", description = "Dados inválidos, CNPJ inválido ou e-mail já em uso",
                      content = @Content(schema = @Schema(hidden = true)))
     })

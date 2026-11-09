@@ -33,6 +33,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 String email = jwtTokenProvider.getEmailFromToken(token);
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                // Conta desativada pelo admin perde o acesso na hora, sem esperar o token expirar.
+                if (!userDetails.isEnabled()) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
 
                 UsernamePasswordAuthenticationToken authenticationToken =
                         new UsernamePasswordAuthenticationToken(

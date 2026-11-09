@@ -110,7 +110,10 @@ public class VagaService {
                 .anyMatch(a -> a.getAuthority().equals(TipoUsuario.ADMIN.name()));
 
         Empresas empresa;
-        if (isAdmin && dto.empresaId() != null) {
+        if (isAdmin && dto.empresaId() == null) {
+            throw new BusinessException("Informe o empresaId para cadastrar vaga como administrador.");
+        }
+        if (isAdmin) {
             // ADMIN pode criar vaga para qualquer empresa informando o ID
             empresa = empresaRepository.findById(dto.empresaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Empresa não encontrada"));

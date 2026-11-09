@@ -96,6 +96,8 @@ public class AuthService {
         usuario.setTipoUsuario(Usuarios.TipoUsuario.EMPRESA);
         usuario.setAtivo(true);
         usuario.registrarConsentimento();
+        // Como no cadastro de candidato: o login fica bloqueado até confirmar o e-mail.
+        usuario.setEmailVerificado(false);
         if (dto.dataNascimento() != null) {
             usuario.setDataNascimento(
                 java.util.Date.from(dto.dataNascimento()
@@ -121,11 +123,11 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ramo de atuação não encontrado")));
         empresaRepository.save(empresa);
 
-        // 3. Gera tokens e retorna — app já entra autenticado
-        String token = jwtTokenProvider.generateToken(usuarioSalvo);
-        String refreshToken = refreshTokenService.gerar(usuarioSalvo);
-        return new AuthResponse(token, "Bearer", usuarioSalvo.getId(),
-                usuarioSalvo.getNome(), usuarioSalvo.getEmail(), "EMPRESA", refreshToken);
+        // 3. Envia o link de confirmação. Sem tokens na resposta: a sessão só começa no
+        //    login, depois que o e-mail for confirmado.
+        emailVerificationService.enviarVerificacao(usuarioSalvo);
+        return new AuthResponse(null, null, usuarioSalvo.getId(),
+                usuarioSalvo.getNome(), usuarioSalvo.getEmail(), "EMPRESA", null);
     }
 
     /**

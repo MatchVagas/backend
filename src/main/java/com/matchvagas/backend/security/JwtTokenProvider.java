@@ -83,6 +83,9 @@ public class JwtTokenProvider {
             System.out.println("Token não suportado: " + e.getMessage());
         } catch (MalformedJwtException e) {
             System.out.println("Token malformado: " + e.getMessage());
+        } catch (io.jsonwebtoken.security.SecurityException e) {
+            // Assinatura que não confere (token forjado ou de outra chave).
+            System.out.println("Assinatura do token inválida: " + e.getMessage());
         } catch (IllegalArgumentException e) {
             System.out.println("Token vazio ou inválido: " + e.getMessage());
         }

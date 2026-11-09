@@ -146,6 +146,25 @@ class SugestaoVagaServiceTest {
     class CompatibilidadeArea {
 
         @Test
+        @DisplayName("Vaga sem faixa etária (campo opcional) é pontuada sem erro")
+        void vagaSemFaixaEtaria() {
+            Vagas vaga = criarVaga(1L, "Dev Java Senior", "Tecnologia Java Backend",
+                    "Spring Boot SQL", new BigDecimal("6000"), new BigDecimal("9000"), 18, 45);
+            vaga.setIdadeMinima(null);
+            vaga.setIdadeMaxima(null);
+
+            when(candidatoRepository.findByUsuarioId(USUARIO_ID)).thenReturn(Optional.of(candidato));
+            when(candidaturaRepository.findByCandidatoId(CANDIDATO_ID)).thenReturn(List.of());
+            when(vagaRepository.findVagasAtivas(any())).thenReturn(List.of(vaga));
+            when(vagasMapper.toDTO(vaga)).thenReturn(mockVagaDTO(1L, "Dev Java Senior"));
+
+            List<SugestaoVagaResponseDTO> result = sugestaoVagaService.sugerirVagas(USUARIO_ID);
+
+            assertThat(result).singleElement()
+                    .satisfies(s -> assertThat(s.motivos()).noneMatch(m -> m.contains("faixa etária")));
+        }
+
+        @Test
         @DisplayName("Deve sugerir vaga quando área bate com objetivo profissional")
         void deveSugerirQuandoAreaBate() {
             Vagas vaga = criarVaga(1L, "Dev Java Senior", "Tecnologia Java Backend",

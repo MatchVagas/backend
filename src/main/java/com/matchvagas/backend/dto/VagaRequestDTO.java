@@ -6,7 +6,7 @@ import java.time.LocalDateTime;
 
 public record VagaRequestDTO(
 
-        @NotNull(message = "ID da empresa é obrigatório")
+        // Só o ADMIN informa: a EMPRESA publica sempre em nome da própria empresa (VagaService).
         Long empresaId,
 
         @NotBlank(message = "Título é obrigatório")
